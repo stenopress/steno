@@ -31,6 +31,12 @@ export type { SiteConfig } from "./src/config.ts";
 export type { StenoTheme } from "./src/theme/types.ts";
 export { Theme } from "./src/theme/theme.ts";
 
+export interface StenoHooks {
+  beforeBuild?: (config: SiteConfig) => void | Promise<void>;
+  afterPage?: (page: { path: string; html: string }) => void | Promise<void>;
+  afterBuild?: (config: SiteConfig) => void | Promise<void>;
+}
+
 /**
  * The main orchestrator class for a Steno static site project.
  * It manages configuration loading, theme resolution, building markdown files to HTML, and dev server watching.
@@ -56,8 +62,9 @@ export class Steno {
    * @param autoBuildOnInit If true, triggers a build immediately on instantiation unless running in dev mode.
    */
   constructor(
-    configPath: string = "content/.steno/config.yml",
-    autoBuildOnInit = true,
+      configPath: string = "content/.steno/config.yml",
+      autoBuildOnInit = true,
+      private hooks: StenoHooks = {},
   ) {
     this.config = loadConfig(configPath);
     this.autoBuildOnInit = autoBuildOnInit;
@@ -156,8 +163,10 @@ export class Steno {
    *
    * @returns A promise that resolves when the build is complete.
    */
-  public async build(): Promise<void> {
+    public async build(): Promise<void> {
     await this.themeLoadingPromise;
+
+    await this.hooks.beforeBuild?.(this.config);
 
     const contentDir = this.config.contentDir || "content";
     const outputDir = this.config.output || "dist";
@@ -178,8 +187,8 @@ export class Steno {
 
           // Parse frontmatter and content body
           const { frontmatter, body } = parseFrontmatter(
-            fileContents,
-            fullPath,
+              fileContents,
+              fullPath,
           );
 
           // Convert Markdown to HTML
@@ -187,8 +196,8 @@ export class Steno {
 
           // Determine output file path
           let outputFilePath = join(
-            outputDir,
-            entryRelPath.replace(/\.md$/, ".html"),
+              outputDir,
+              entryRelPath.replace(/\.md$/, ".html"),
           );
           if (this.config.custom?.shortUrls) {
             if (entryRelPath !== "index.md") {
@@ -205,27 +214,29 @@ export class Steno {
 
           // Determine layout
           const layoutName = typeof frontmatter.layout === "string"
-            ? frontmatter.layout
-            : "layout";
+              ? frontmatter.layout
+              : "layout";
 
           // Render using the theme's layout if available
           const renderedContent = this.theme
-            ? await this.theme.renderLayout(layoutName, htmlContent, {
-              site: {
-                ...this.config,
-              },
-              theme: {
-                name: this.theme.name,
-                version: this.theme.version,
-                ...this.theme.config,
-              },
-              title: frontmatter.title || this.config.title,
-              ...frontmatter,
-            })
-            : htmlContent;
+              ? await this.theme.renderLayout(layoutName, htmlContent, {
+                site: {
+                  ...this.config,
+                },
+                theme: {
+                  name: this.theme.name,
+                  version: this.theme.version,
+                  ...this.theme.config,
+                },
+                title: frontmatter.title || this.config.title,
+                ...frontmatter,
+              })
+              : htmlContent;
 
           // Write the rendered content to the output file
           Deno.writeTextFileSync(outputFilePath, renderedContent);
+
+          await this.hooks.afterPage?.({ path: outputFilePath, html: renderedContent });
         }
       }
     };
@@ -238,6 +249,8 @@ export class Steno {
     }
 
     console.log("Build complete.");
+
+    await this.hooks.afterBuild?.(this.config);
   }
 
   /**
