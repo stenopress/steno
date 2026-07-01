@@ -2,10 +2,10 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@1": "1.0.17",
-    "jsr:@std/collections@^1.1.3": "1.1.6",
+    "jsr:@std/collections@^1.1.3": "1.3.0",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/path@1": "1.1.4",
-    "jsr:@std/toml@1": "1.0.11",
+    "jsr:@std/toml@1.0.11": "1.0.11",
     "jsr:@std/yaml@1": "1.0.10",
     "npm:marked@latest": "17.0.3"
   },
@@ -16,8 +16,8 @@
         "jsr:@std/internal"
       ]
     },
-    "@std/collections@1.1.6": {
-      "integrity": "b458160ce65ea5ad35da05d0a5cbee4b583677c8b443a10d7beb0c4ac63f2baa"
+    "@std/collections@1.3.0": {
+      "integrity": "eb36b43d784477ea0b476483ac034a14bdd182aff921c812ecf662a1fcef9498"
     },
     "@std/internal@1.0.12": {
       "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
@@ -48,7 +48,7 @@
     "dependencies": [
       "jsr:@std/assert@1",
       "jsr:@std/path@1",
-      "jsr:@std/toml@1",
+      "jsr:@std/toml@1.0.11",
       "jsr:@std/yaml@1",
       "npm:marked@latest"
     ]
