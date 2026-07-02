@@ -34,6 +34,7 @@ and theme-driven static websites.
 - Frontmatter support with `---` (YAML) and `+++` (TOML)
 - Theme layouts, components, and static assets
 - Scribe templates for layouts and components
+- Incremental page rebuilds with layered in-memory + on-disk cache
 - Live-reloading dev server on `http://localhost:8000`
 - CLI support for `build`, `dev`, `--config`, and `--help`
 - Root test harness with `deno task test`
