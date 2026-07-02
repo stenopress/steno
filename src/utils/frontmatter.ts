@@ -1,14 +1,7 @@
 import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
 
-/**
- * Parses frontmatter (YAML delimited by `---` or TOML delimited by `+++`) from the beginning of a document.
- *
- * @param content - The raw document content.
- * @param filePath - Optional file path of the document, used to format parsing error messages.
- * @returns An object containing the parsed frontmatter map and the remaining body string.
- * @throws Error when the frontmatter syntax is invalid and cannot be parsed.
- */
+/** Extracts frontmatter metadata and the remaining document body. */
 export function parseFrontmatter(
   content: string,
   filePath?: string,

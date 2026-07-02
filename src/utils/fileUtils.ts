@@ -1,9 +1,4 @@
-/**
- * Ensures that a directory exists. If the directory does not exist, it is created,
- * along with any necessary parent directories.
- *
- * @param dirPath The path to the directory to ensure.
- */
+/** Ensures a directory exists, creating parent directories when needed. */
 export function ensureDirSync(dirPath: string): void {
   try {
     if (!Deno.statSync(dirPath).isDirectory) {

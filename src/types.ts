@@ -1,8 +1,10 @@
+/** A plugin package and its optional initialization options. */
 export interface PluginEntry {
   package: string;
   options?: Record<string, unknown>;
 }
 
+/** Configuration for sorting, filtering, and limiting a collection. */
 export interface CollectionConfig {
   sortBy?: string;
   order?: "asc" | "desc";
@@ -10,6 +12,7 @@ export interface CollectionConfig {
   filter?: Record<string, unknown>;
 }
 
+/** The top-level site configuration loaded from `content/.steno/config.*`. */
 export interface SiteConfig {
   title: string;
   description: string;
@@ -27,12 +30,14 @@ export interface SiteConfig {
   };
 }
 
+/** A single field definition in a theme configuration schema. */
 export interface ThemeConfigField {
   type: "string" | "number" | "boolean";
   default?: unknown;
   description?: string;
 }
 
+/** A plugin hook contract used by Steno and themes. */
 export interface StenoPlugin {
   name: string;
   transformAst?: (tokens: import("marked").TokensList) =>
@@ -44,6 +49,7 @@ export interface StenoPlugin {
   afterBuild?: (config: SiteConfig) => void | Promise<void>;
 }
 
+/** The data contract for a loaded theme. */
 export interface StenoTheme {
   name: string;
   version: string;
@@ -55,6 +61,7 @@ export interface StenoTheme {
   plugins?: StenoPlugin[];
 }
 
+/** Lifecycle hooks exposed to Steno callers. */
 export interface StenoHooks {
   beforeBuild?: (config: SiteConfig) => void | Promise<void>;
   afterPage?: (page: { path: string; html: string }) => void | Promise<void>;

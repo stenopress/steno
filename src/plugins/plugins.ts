@@ -1,5 +1,6 @@
 import type { TokensList } from "marked";
 import type { StenoPlugin } from "../types.ts";
+/** Shared plugin contract used throughout the build pipeline. */
 export type { StenoPlugin } from "../types.ts";
 
 /**

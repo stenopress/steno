@@ -1,6 +1,7 @@
 import { parseCliArgs, printHelp } from "../utils/cli.ts";
 import { Steno } from "./steno.ts";
 
+/** Runs the public CLI command for a Steno project. */
 export async function runStenoCli(args: string[]): Promise<void> {
   const options = parseCliArgs(args);
 
