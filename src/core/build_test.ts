@@ -414,4 +414,112 @@ Content
       Deno.removeSync(tempDir, { recursive: true });
     },
   });
+
+  Deno.test({
+    name:
+      "build: persistent cache re-renders pages when theme layout templates change",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const themeDir = join(tempDir, "theme");
+      const configPath = join(contentDir, ".steno", "config.yml");
+
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        configPath,
+        `title: "Layout Signature"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\ncustom:\n  theme: "${themeDir}"\n`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "theme.yaml"),
+        `name: "signature-theme"\nversion: "1.0.0"\n`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "layouts", "layout.scr"),
+        `<html><body><p>layout-v1</p>{@html content}</body></html>`,
+      );
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---\ntitle: "Home"\nlayout: "layout"\n---\nHome.`,
+      );
+
+      await new Steno(configPath, false).build();
+      let html = Deno.readTextFileSync(join(outputDir, "index.html"));
+      assertStringIncludes(html, "layout-v1");
+
+      Deno.writeTextFileSync(
+        join(themeDir, "layouts", "layout.scr"),
+        `<html><body><p>layout-v2</p>{@html content}</body></html>`,
+      );
+
+      const rendered: string[] = [];
+      await new Steno(configPath, false, {
+        afterPage: ({ path }) => {
+          rendered.push(path);
+        },
+      }).build();
+
+      assertEquals(rendered, [join(outputDir, "index.html")]);
+      html = Deno.readTextFileSync(join(outputDir, "index.html"));
+      assertStringIncludes(html, "layout-v2");
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name:
+      "build: persistent cache re-renders pages when plugin implementation changes",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const configPath = join(contentDir, ".steno", "config.yml");
+
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(
+        configPath,
+        `title: "Plugin Signature"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+      );
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---\ntitle: "Home"\n---\nHome.`,
+      );
+
+      const stenoV1 = new Steno(configPath, false);
+      await (stenoV1 as any).themeLoadingPromise;
+      await (stenoV1 as any).pluginsLoadingPromise;
+      (stenoV1 as any).plugins = [{
+        name: "signature-plugin",
+        transformHtml: (html: string) => `<div>plugin-v1</div>${html}`,
+      }];
+      await stenoV1.build();
+      let html = Deno.readTextFileSync(join(outputDir, "index.html"));
+      assertStringIncludes(html, "plugin-v1");
+
+      const rendered: string[] = [];
+      const stenoV2 = new Steno(configPath, false, {
+        afterPage: ({ path }) => {
+          rendered.push(path);
+        },
+      });
+      await (stenoV2 as any).themeLoadingPromise;
+      await (stenoV2 as any).pluginsLoadingPromise;
+      (stenoV2 as any).plugins = [{
+        name: "signature-plugin",
+        transformHtml: (html: string) => `<div>plugin-v2</div>${html}`,
+      }];
+      await stenoV2.build();
+
+      assertEquals(rendered, [join(outputDir, "index.html")]);
+      html = Deno.readTextFileSync(join(outputDir, "index.html"));
+      assertStringIncludes(html, "plugin-v2");
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
 }
