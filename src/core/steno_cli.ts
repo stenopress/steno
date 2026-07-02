@@ -1,4 +1,4 @@
-import { printHelp, parseCliArgs } from "../utils/cli.ts";
+import { parseCliArgs, printHelp } from "../utils/cli.ts";
 import { Steno } from "./steno.ts";
 
 export async function runStenoCli(args: string[]): Promise<void> {

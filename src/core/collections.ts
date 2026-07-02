@@ -1,7 +1,7 @@
 import { parseFrontmatter } from "../utils/frontmatter.ts";
 import { join } from "@std/path";
 import { marked } from "marked";
-import type { SiteConfig, StenoPlugin, CollectionConfig } from "../types.ts";
+import type { CollectionConfig, SiteConfig, StenoPlugin } from "../types.ts";
 import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
 
 export interface CollectionItem {

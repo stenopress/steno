@@ -1,16 +1,13 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
-import {
-  createDevServerHandler,
-  injectReloadScript,
-} from "./server.ts";
+import { createDevServerHandler, injectReloadScript } from "./server.ts";
 
 export function registerServerTests(): void {
   Deno.test("server: injectReloadScript adds the reload script before body close", () => {
     const html = "<html><body><h1>Hi</h1></body></html>";
     const out = injectReloadScript(html);
 
-    assertStringIncludes(out, "new EventSource(\"/reload\")");
+    assertStringIncludes(out, 'new EventSource("/reload")');
     assertStringIncludes(out, "</body>");
   });
 
@@ -23,7 +20,10 @@ export function registerServerTests(): void {
         join(tempDir, "index.html"),
         "<html><body><h1>Home</h1></body></html>",
       );
-      Deno.writeTextFileSync(join(tempDir, "style.css"), "body { color: red; }");
+      Deno.writeTextFileSync(
+        join(tempDir, "style.css"),
+        "body { color: red; }",
+      );
 
       const { handler } = createDevServerHandler(tempDir);
 
@@ -35,7 +35,10 @@ export function registerServerTests(): void {
         htmlResponse.headers.get("Content-Type"),
         "text/html",
       );
-      assertStringIncludes(await htmlResponse.text(), "new EventSource(\"/reload\")");
+      assertStringIncludes(
+        await htmlResponse.text(),
+        'new EventSource("/reload")',
+      );
 
       const cssResponse = await handler(
         new Request("http://localhost:8000/style.css"),
