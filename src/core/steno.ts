@@ -2,7 +2,7 @@ import { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { startDevServer } from "../utils/server.ts";
 import { loadConfig, loadPlugins } from "./config.ts";
-import { buildSite } from "./steno_build.ts";
+import { buildSite, type BuildState } from "./steno_build.ts";
 import { loadTheme } from "./steno_theme.ts";
 
 /** Coordinates config loading, theme setup, and site builds. */
@@ -13,6 +13,10 @@ export class Steno {
   private readonly autoBuildOnInit: boolean;
   private plugins: StenoPlugin[] = [];
   private readonly pluginsLoadingPromise: Promise<void>;
+  private readonly buildState: BuildState = {
+    signature: null,
+    pages: new Map(),
+  };
 
   constructor(
     configPath: string = "content/.steno/config.yml",
@@ -45,6 +49,7 @@ export class Steno {
       theme: this.theme,
       plugins: this.plugins,
       hooks: this.hooks,
+      state: this.buildState,
     });
   }
 
