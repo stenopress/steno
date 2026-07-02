@@ -56,6 +56,9 @@ deno task test
 deno run -A jsr:@steno/steno build
 ```
 
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the repo layout and change
+checklist.
+
 ## Quick start
 
 Scaffold a new site with the interactive init package:
@@ -108,7 +111,8 @@ deno run -A jsr:@steno/steno dev --config content/.steno/config.yml
 
 ## CLI
 
-Steno’s CLI is implemented in `src/cli.ts` and used by `mod.ts`.
+Steno’s CLI entrypoint lives in `mod.ts`, with argument parsing in
+`src/utils/cli.ts`.
 
 ### Commands
 

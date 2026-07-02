@@ -1,9 +1,8 @@
-import { render } from "../scribe.ts";
-import type { StenoTheme, ThemeConfigField } from "./types.ts";
+import { render } from "../utils/scribe.ts";
+import type { StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
 import { dirname, join } from "@std/path";
-import { ensureDirSync } from "../fileUtils.ts";
+import { ensureDirSync } from "../utils/fileUtils.ts";
 import { parse as parseYaml } from "@std/yaml";
-import type { StenoPlugin } from "../plugins.ts";
 
 type ThemeConfig = Record<string, unknown>;
 

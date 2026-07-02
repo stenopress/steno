@@ -1,9 +1,8 @@
-import { parseFrontmatter } from "./frontmatter.ts";
+import { parseFrontmatter } from "../utils/frontmatter.ts";
 import { join } from "@std/path";
 import { marked } from "marked";
-import type { SiteConfig } from "./config.ts";
-import type { StenoPlugin } from "./plugins.ts";
-import { runAstTransforms, runHtmlTransforms } from "./plugins.ts";
+import type { CollectionConfig, SiteConfig, StenoPlugin } from "../types.ts";
+import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
 
 export interface CollectionItem {
   url: string;
@@ -17,13 +16,6 @@ export interface Collection {
 }
 
 export type CollectionMap = Record<string, Collection>;
-
-export interface CollectionConfig {
-  sortBy?: string;
-  order?: "asc" | "desc";
-  limit?: number;
-  filter?: Record<string, unknown>;
-}
 
 function resolveUrl(relPath: string, shortUrls: boolean): string {
   const withoutExt = relPath.replace(/\.md$/, "");
