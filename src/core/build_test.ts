@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
-import { Steno } from "../mod.ts";
+import { Steno } from "../../mod.ts";
 
 export function registerBuildTests(): void {
   Deno.test({

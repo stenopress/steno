@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { runAstTransforms, runHtmlTransforms } from "./plugins.ts";
-import { loadPlugins } from "./config.ts";
+import { loadPlugins } from "../core/config.ts";
 import type { StenoPlugin } from "./plugins.ts";
 import { marked } from "marked";
 

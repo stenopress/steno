@@ -1,7 +1,7 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { buildCollections } from "./collections.ts";
-import type { SiteConfig } from "./config.ts";
+import type { SiteConfig } from "../types.ts";
 
 function makeConfig(overrides: Partial<SiteConfig> = {}): SiteConfig {
   return {
@@ -301,7 +301,7 @@ custom:
         `---\ntitle: "Hello"\n---\nHello.`,
       );
 
-      const { Steno } = await import("../mod.ts");
+      const { Steno } = await import("../../mod.ts");
       const steno = new Steno(configPath, false);
       await steno.build();
 

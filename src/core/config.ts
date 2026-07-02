@@ -1,50 +1,6 @@
 import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
-import type { StenoPlugin } from "./plugins.ts";
-import type { CollectionConfig } from "./collections.ts";
-
-/**
- * Represents an entry for a Steno plugin, allowing for package specification and optional configuration.
- */
-export interface PluginEntry {
-  /** The package name or URL of the plugin. */
-  package: string;
-  /** Optional configuration options to pass to the plugin. */
-  options?: Record<string, unknown>;
-}
-
-/**
- * Represents the configuration for a Steno site.
- */
-export interface SiteConfig {
-  /** The title of the website. */
-  title: string;
-  /** A brief description of the website. */
-  description: string;
-  /** The author of the website. */
-  author: string;
-  /** Optional array of objects to be included in the `<head>` section of the HTML. */
-  head?: Array<{ name: string; content: string }>;
-  /** The directory where markdown content files are located. Defaults to "content". */
-  contentDir?: string;
-  /** The output directory for the generated static files. Defaults to "dist". */
-  output?: string;
-  /** An array of plugins to be loaded, specified as package names or objects with options. */
-  plugins?: Array<string | PluginEntry>;
-  /** Optional configuration for collections. */
-  collections?: Record<string, CollectionConfig>;
-  /** Custom configuration options. */
-  custom?: {
-    /** Optional array of stylesheet URLs to be included. */
-    stylesheets?: string[];
-    /** If true, generates "short URLs" (e.g., /about/ instead of /about.html). */
-    shortUrls?: boolean;
-    /** The name or path of the theme to use. */
-    theme?: string;
-    /** Configuration options specific to the chosen theme. */
-    themeConfig?: Record<string, unknown>;
-  };
-}
+import type { SiteConfig, StenoPlugin } from "../types.ts";
 
 /**
  * Dynamically loads and initializes Steno plugins based on the provided site configuration.
