@@ -1,6 +1,6 @@
 {
   "name": "@steno/steno",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A fast Deno-powered static site generator.",
   "exports": "./mod.ts",
   "license": "MIT",
