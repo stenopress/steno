@@ -56,6 +56,8 @@ deno task test
 deno run -A jsr:@steno/steno build
 ```
 
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the repo layout and change checklist.
+
 ## Quick start
 
 Scaffold a new site with the interactive init package:
