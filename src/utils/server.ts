@@ -15,14 +15,17 @@ const reloadScript = `
 
 const textEncoder = new TextEncoder();
 
+/** Internal state for connected reload clients. */
 interface DevServerState {
   clients: Set<ReadableStreamDefaultController<Uint8Array>>;
 }
 
+/** Injects the live-reload script before the closing body tag. */
 export function injectReloadScript(html: string): string {
   return html.replace(/<\/body>/, `${reloadScript}</body>`);
 }
 
+/** Creates the dev-server handler and reload broadcaster. */
 export function createDevServerHandler(outputDir: string): {
   handler: (req: Request) => Promise<Response>;
   broadcastReload: () => void;
@@ -83,16 +86,7 @@ export function createDevServerHandler(outputDir: string): {
   return { handler, broadcastReload };
 }
 
-/**
- * Starts a development server that serves static files from the output directory
- * and rebuilds the site on file changes in the watch directory.
- * It also injects a live-reload script into HTML files.
- *
- * @param outputDir The directory from which to serve the static files.
- * @param buildFn A function to call to rebuild the site.
- * @param watchDir The directory to watch for file changes. Defaults to "content".
- * @returns A promise that resolves when the dev server starts.
- */
+/** Serves the built site and rebuilds on filesystem changes. */
 export async function startDevServer(
   outputDir: string,
   buildFn: () => void | Promise<void>,

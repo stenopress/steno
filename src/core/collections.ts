@@ -4,17 +4,20 @@ import { marked } from "marked";
 import type { CollectionConfig, SiteConfig, StenoPlugin } from "../types.ts";
 import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
 
+/** A page captured as part of a collection. */
 export interface CollectionItem {
   url: string;
   frontmatter: Record<string, unknown>;
   content: string;
 }
 
+/** A named collection of content items. */
 export interface Collection {
   name: string;
   items: CollectionItem[];
 }
 
+/** A lookup table of collection names to collection data. */
 export type CollectionMap = Record<string, Collection>;
 
 function resolveUrl(relPath: string, shortUrls: boolean): string {
@@ -57,6 +60,14 @@ function sortItems(
   return result;
 }
 
+/**
+ * Scans the content directory and builds collection data from markdown files.
+ *
+ * @param contentDir - The content root to scan.
+ * @param config - The site configuration.
+ * @param plugins - Plugins that can transform Markdown tokens and HTML.
+ * @returns A map of collection names to collection data.
+ */
 export async function buildCollections(
   contentDir: string,
   config: SiteConfig,

@@ -6,9 +6,7 @@
  * expressions, global filters, and capitalized component tags (e.g. `<Header />`).
  */
 
-/**
- * Options configuration for rendering a Scribe template.
- */
+/** Inputs required to render a Scribe template. */
 export interface ScribeOptions {
   /** The raw template string to compile and render. */
   template: string;
@@ -52,15 +50,7 @@ interface Node {
   props?: Record<string, string>;
 }
 
-/**
- * Global filter registry for template rendering.
- *
- * Includes standard built-in filters:
- * - `date`: Formats string/number/Date values into a locale date string.
- * - `truncate`: Limits a string to a specified length and appends "...".
- * - `upper`: Converts text to uppercase.
- * - `lower`: Converts text to lowercase.
- */
+/** Built-in template filters available to expressions. */
 export const filters: Record<string, FilterFunction> = {
   date: (val: unknown) => {
     if (!val) return "";
@@ -82,7 +72,7 @@ export const filters: Record<string, FilterFunction> = {
   lower: (val: unknown) => (val ? String(val).toLowerCase() : ""),
 };
 
-// HTML escaping helper
+/** Escapes HTML-sensitive characters in a value. */
 export function escapeHtml(val: unknown): string {
   if (val === null || val === undefined) return "";
   return String(val)
@@ -511,7 +501,14 @@ function compileNodes(nodes: Node[]): string {
   return code;
 }
 
-export function compileToFunction(
+export /**
+ * Compiles a Scribe template string into an executable renderer.
+ *
+ * @param template - The raw template source.
+ * @param filePath - Optional file path used in syntax errors.
+ * @returns A compiled renderer function.
+ */
+function compileToFunction(
   template: string,
   filePath?: string,
 ): CompiledTemplateFn {

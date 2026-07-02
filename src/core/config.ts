@@ -2,12 +2,7 @@ import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
 import type { SiteConfig, StenoPlugin } from "../types.ts";
 
-/**
- * Dynamically loads and initializes Steno plugins based on the provided site configuration.
- *
- * @param config The site configuration object.
- * @returns A promise that resolves to an array of initialized Steno plugins.
- */
+/** Loads plugin factories declared in the site config. */
 export async function loadPlugins(
   config: SiteConfig,
 ): Promise<StenoPlugin[]> {
@@ -39,14 +34,7 @@ export async function loadPlugins(
   return plugins;
 }
 
-/**
- * Loads the site configuration from a specified file path.
- * Supports YAML (.yaml, .yml) and TOML (.toml) formats.
- *
- * @param configPath The absolute or relative path to the configuration file.
- * @returns The parsed SiteConfig object.
- * @throws {Error} If the file format is unsupported or the file cannot be read.
- */
+/** Reads and parses a Steno site configuration file. */
 export function loadConfig(configPath: string): SiteConfig {
   const fileContents = Deno.readTextFileSync(configPath);
   if (configPath.endsWith(".yaml") || configPath.endsWith(".yml")) {
