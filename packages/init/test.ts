@@ -109,6 +109,7 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   const denoJson = JSON.parse(readFile(dir, "deno.json"));
   assertEquals(typeof denoJson.tasks.build, "string");
   assertEquals(typeof denoJson.tasks.dev, "string");
+  assertEquals(denoJson.imports["@steno/steno"], "jsr:@steno/steno");
 
   await Deno.remove(dir, { recursive: true });
 });

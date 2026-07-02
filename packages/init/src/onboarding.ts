@@ -387,7 +387,7 @@ new Steno();
     "dev": "deno run -A jsr:@steno/steno dev"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@^0.1.0"
+    "@steno/steno": "jsr:@steno/steno"
   }
 }
 `,
