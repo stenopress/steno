@@ -5,9 +5,10 @@
  */
 
 import { printHelp } from "./src/utils/cli.ts";
-import { runStenoCli } from "./src/core/steno.ts";
+import { runStenoCli } from "./src/core/steno_cli.ts";
 
-export { Steno, runStenoCli, type StenoHooks } from "./src/core/steno.ts";
+export { Steno } from "./src/core/steno.ts";
+export { runStenoCli } from "./src/core/steno_cli.ts";
 export type {
   Collection,
   CollectionItem,
@@ -19,6 +20,7 @@ export type {
   CollectionConfig,
   PluginEntry,
   SiteConfig,
+  StenoHooks,
   StenoPlugin,
   StenoTheme,
   ThemeConfigField,

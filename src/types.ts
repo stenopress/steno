@@ -54,3 +54,9 @@ export interface StenoTheme {
   defaultConfig?: Record<string, unknown>;
   plugins?: StenoPlugin[];
 }
+
+export interface StenoHooks {
+  beforeBuild?: (config: SiteConfig) => void | Promise<void>;
+  afterPage?: (page: { path: string; html: string }) => void | Promise<void>;
+  afterBuild?: (config: SiteConfig) => void | Promise<void>;
+}
