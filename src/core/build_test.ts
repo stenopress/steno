@@ -1,4 +1,9 @@
-import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
+import {
+  assertEquals,
+  assertRejects,
+  assertStringIncludes,
+  assertThrows,
+} from "@std/assert";
 import { join } from "@std/path";
 import { Steno } from "../../mod.ts";
 
@@ -287,6 +292,124 @@ Content
         "plugin:afterBuild",
         "hook:afterBuild",
       ]);
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "build: incremental rebuilds skip unchanged pages",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(
+        join(contentDir, ".steno", "config.yml"),
+        `title: "Incremental"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+      );
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---\ntitle: "Home"\n---\nHome.`,
+      );
+      Deno.writeTextFileSync(
+        join(contentDir, "about.md"),
+        `---\ntitle: "About"\n---\nAbout.`,
+      );
+
+      const rendered: string[] = [];
+      const steno = new Steno(join(contentDir, ".steno", "config.yml"), false, {
+        afterPage: ({ path }) => {
+          rendered.push(path);
+        },
+      });
+
+      await steno.build();
+      assertEquals(rendered.sort(), [
+        join(outputDir, "about.html"),
+        join(outputDir, "index.html"),
+      ]);
+
+      rendered.length = 0;
+      Deno.writeTextFileSync(
+        join(contentDir, "about.md"),
+        `---\ntitle: "About"\n---\nUpdated about page.`,
+      );
+
+      await steno.build();
+      assertEquals(rendered, [join(outputDir, "about.html")]);
+
+      rendered.length = 0;
+      Deno.removeSync(join(contentDir, "index.md"));
+
+      await steno.build();
+      assertEquals(rendered, []);
+      assertThrows(
+        () => Deno.statSync(join(outputDir, "index.html")),
+        Deno.errors.NotFound,
+      );
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "build: persistent cache skips unchanged pages across processes",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const configPath = join(contentDir, ".steno", "config.yml");
+      const cachePath = join(contentDir, ".steno", "build-cache.json");
+
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(
+        configPath,
+        `title: "Persistent Incremental"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+      );
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---\ntitle: "Home"\n---\nHome.`,
+      );
+      Deno.writeTextFileSync(
+        join(contentDir, "about.md"),
+        `---\ntitle: "About"\n---\nAbout.`,
+      );
+
+      await new Steno(configPath, false).build();
+      const cacheRaw = Deno.readTextFileSync(cachePath);
+      assertStringIncludes(cacheRaw, "\"signature\"");
+
+      Deno.writeTextFileSync(
+        join(contentDir, "about.md"),
+        `---\ntitle: "About"\n---\nUpdated from new process.`,
+      );
+
+      const secondRendered: string[] = [];
+      await new Steno(configPath, false, {
+        afterPage: ({ path }) => {
+          secondRendered.push(path);
+        },
+      }).build();
+      assertEquals(secondRendered, [join(outputDir, "about.html")]);
+
+      const thirdRendered: string[] = [];
+      await new Steno(configPath, false, {
+        afterPage: ({ path }) => {
+          thirdRendered.push(path);
+        },
+      }).build();
+      assertEquals(thirdRendered, []);
+
+      Deno.removeSync(join(contentDir, "about.md"));
+      await new Steno(configPath, false).build();
+      assertThrows(
+        () => Deno.statSync(join(outputDir, "about.html")),
+        Deno.errors.NotFound,
+      );
 
       Deno.removeSync(tempDir, { recursive: true });
     },
