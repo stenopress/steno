@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { filters, render, Steno, Theme, runStenoCli } from "../mod.ts";
+import { filters, render, runStenoCli, Steno, Theme } from "../mod.ts";
 import type {
   PluginEntry,
   SiteConfig,

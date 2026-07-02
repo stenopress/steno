@@ -2,7 +2,9 @@ import { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoTheme } from "../types.ts";
 import { isAbsolute, join } from "@std/path";
 
-export async function loadTheme(config: SiteConfig): Promise<Theme | undefined> {
+export async function loadTheme(
+  config: SiteConfig,
+): Promise<Theme | undefined> {
   const themeName = config.custom?.theme;
   if (!themeName) return;
 
