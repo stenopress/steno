@@ -1,9 +1,8 @@
 import { dirname, join } from "@std/path";
 import { marked } from "marked";
 import type { CollectionMap } from "./collections.ts";
-import { buildCollections } from "./collections.ts";
+import { buildCollections, collectMarkdownPages } from "./collections.ts";
 import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
-import { parseFrontmatter } from "../utils/frontmatter.ts";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { Theme } from "../theme/theme.ts";
@@ -13,13 +12,182 @@ type BuildContext = {
   theme?: Theme;
   plugins: StenoPlugin[];
   hooks: StenoHooks;
+  state?: BuildState;
 };
+
+export interface BuildState {
+  signature: string | null;
+  pages: Map<string, BuildStateEntry>;
+}
+
+interface BuildStateEntry {
+  outputPath: string;
+  sourceText: string;
+}
+
+interface PersistentBuildCache {
+  version: 1;
+  signature: string;
+  pages: Array<{
+    fullPath: string;
+    outputPath: string;
+    sourceText: string;
+  }>;
+}
+
+function resolveOutputPath(
+  outputDir: string,
+  relPath: string,
+  shortUrls: boolean,
+): string {
+  let outputFilePath = join(outputDir, relPath.replace(/\.md$/, ".html"));
+
+  if (shortUrls) {
+    if (relPath !== "index.md") {
+      const cleanRelPath = relPath.replace(/\.md$/, "");
+      outputFilePath = join(outputDir, cleanRelPath, "index.html");
+    } else {
+      outputFilePath = join(outputDir, "index.html");
+    }
+  }
+
+  return outputFilePath;
+}
+
+function fileExists(filePath: string): boolean {
+  try {
+    return Deno.statSync(filePath).isFile;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function createBuildSignature(
+  config: SiteConfig,
+  theme?: Theme,
+  plugins: StenoPlugin[] = [],
+): string {
+  return JSON.stringify({
+    config,
+    theme: theme
+      ? {
+        name: theme.name,
+        version: theme.version,
+        config: theme.config,
+      }
+      : null,
+    plugins: plugins.map((plugin) => plugin.name),
+  });
+}
+
+function resolveCachePath(contentDir: string): string {
+  return join(contentDir, ".steno", "build-cache.json");
+}
+
+function loadPersistentBuildCache(cachePath: string): PersistentBuildCache | null {
+  let raw: string;
+  try {
+    raw = Deno.readTextFileSync(cachePath);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return null;
+    }
+    throw error;
+  }
+
+  const parsed: unknown = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`Invalid build cache file at "${cachePath}".`);
+  }
+
+  const cache = parsed as {
+    version?: unknown;
+    signature?: unknown;
+    pages?: unknown;
+  };
+
+  if (cache.version !== 1 || typeof cache.signature !== "string") {
+    throw new Error(`Invalid build cache metadata at "${cachePath}".`);
+  }
+
+  if (!Array.isArray(cache.pages)) {
+    throw new Error(`Invalid build cache pages at "${cachePath}".`);
+  }
+
+  const pages: PersistentBuildCache["pages"] = [];
+  for (const entry of cache.pages) {
+    if (!entry || typeof entry !== "object") {
+      throw new Error(`Invalid build cache page entry at "${cachePath}".`);
+    }
+
+    const typedEntry = entry as {
+      fullPath?: unknown;
+      outputPath?: unknown;
+      sourceText?: unknown;
+    };
+
+    if (
+      typeof typedEntry.fullPath !== "string" ||
+      typeof typedEntry.outputPath !== "string" ||
+      typeof typedEntry.sourceText !== "string"
+    ) {
+      throw new Error(`Invalid build cache page fields at "${cachePath}".`);
+    }
+
+    pages.push({
+      fullPath: typedEntry.fullPath,
+      outputPath: typedEntry.outputPath,
+      sourceText: typedEntry.sourceText,
+    });
+  }
+
+  return {
+    version: 1,
+    signature: cache.signature,
+    pages,
+  };
+}
+
+function toBuildStatePageMap(
+  pages: PersistentBuildCache["pages"],
+): Map<string, BuildStateEntry> {
+  const pageMap = new Map<string, BuildStateEntry>();
+  for (const page of pages) {
+    pageMap.set(page.fullPath, {
+      outputPath: page.outputPath,
+      sourceText: page.sourceText,
+    });
+  }
+  return pageMap;
+}
+
+function savePersistentBuildCache(
+  cachePath: string,
+  signature: string,
+  pages: Map<string, BuildStateEntry>,
+): void {
+  ensureDirSync(dirname(cachePath));
+  const payload: PersistentBuildCache = {
+    version: 1,
+    signature,
+    pages: [...pages.entries()].map(([fullPath, page]) => ({
+      fullPath,
+      outputPath: page.outputPath,
+      sourceText: page.sourceText,
+    })),
+  };
+  Deno.writeTextFileSync(cachePath, JSON.stringify(payload));
+}
 
 export async function buildSite({
   config,
   theme,
   plugins,
   hooks,
+  state,
 }: BuildContext): Promise<void> {
   for (const plugin of plugins) {
     await plugin.beforeBuild?.(config);
@@ -28,86 +196,93 @@ export async function buildSite({
 
   const contentDir = config.contentDir || "content";
   const outputDir = config.output || "dist";
-
-  ensureDirSync(outputDir);
-
+  const shortUrls = config.custom?.shortUrls ?? false;
+  const cachePath = resolveCachePath(contentDir);
+  const pages = await collectMarkdownPages(contentDir);
   const collections: CollectionMap = await buildCollections(
     contentDir,
     config,
     plugins,
+    pages,
   );
+  const buildSignature = createBuildSignature(config, theme, plugins);
+  const previousPages = new Map<string, BuildStateEntry>();
+  if (state?.signature === buildSignature) {
+    for (const [fullPath, page] of state.pages.entries()) {
+      previousPages.set(fullPath, page);
+    }
+  } else {
+    const diskCache = loadPersistentBuildCache(cachePath);
+    if (diskCache && diskCache.signature === buildSignature) {
+      for (const [fullPath, page] of toBuildStatePageMap(diskCache.pages).entries()) {
+        previousPages.set(fullPath, page);
+      }
+    }
+  }
+  const nextPages = new Map<string, BuildStateEntry>();
 
-  const processDirectory = async (currentDir: string, relPath = "") => {
-    for (const entry of Deno.readDirSync(currentDir)) {
-      const fullPath = join(currentDir, entry.name);
-      const entryRelPath = relPath ? join(relPath, entry.name) : entry.name;
+  ensureDirSync(outputDir);
 
-      if (entry.isDirectory) {
-        if (entry.name !== ".steno") {
-          await processDirectory(fullPath, entryRelPath);
-        }
-      } else if (entry.isFile && entry.name.endsWith(".md")) {
-        const fileContents = Deno.readTextFileSync(fullPath);
+  const currentPagePaths = new Set(pages.map((page) => page.fullPath));
+  for (const [fullPath, cachedPage] of previousPages.entries()) {
+    if (!currentPagePaths.has(fullPath) && fileExists(cachedPage.outputPath)) {
+      Deno.removeSync(cachedPage.outputPath);
+    }
+  }
 
-        const { frontmatter, body } = parseFrontmatter(fileContents, fullPath);
+  for (const page of pages) {
+    const outputFilePath = resolveOutputPath(outputDir, page.relPath, shortUrls);
+    const cachedPage = previousPages.get(page.fullPath);
+    const needsRender =
+      !cachedPage || cachedPage.sourceText !== page.sourceText ||
+      cachedPage.outputPath !== outputFilePath ||
+      !fileExists(outputFilePath);
 
-        let tokens = marked.lexer(body);
-        tokens = await runAstTransforms(tokens, plugins);
-        let htmlContent = marked.parser(tokens);
-        htmlContent = await runHtmlTransforms(htmlContent, plugins);
+    if (needsRender) {
+      let tokens = marked.lexer(page.body);
+      tokens = await runAstTransforms(tokens, plugins);
+      let htmlContent = marked.parser(tokens);
+      htmlContent = await runHtmlTransforms(htmlContent, plugins);
 
-        let outputFilePath = join(
-          outputDir,
-          entryRelPath.replace(/\.md$/, ".html"),
-        );
-        if (config.custom?.shortUrls) {
-          if (entryRelPath !== "index.md") {
-            const cleanRelPath = entryRelPath.replace(/\.md$/, "");
-            outputFilePath = join(outputDir, cleanRelPath);
-            ensureDirSync(outputFilePath);
-            outputFilePath = join(outputFilePath, "index.html");
-          } else {
-            outputFilePath = join(outputDir, "index.html");
-          }
-        } else {
-          ensureDirSync(dirname(outputFilePath));
-        }
+      ensureDirSync(dirname(outputFilePath));
 
-        const layoutName = typeof frontmatter.layout === "string"
-          ? frontmatter.layout
-          : "layout";
+      const layoutName = typeof page.frontmatter.layout === "string"
+        ? page.frontmatter.layout
+        : "layout";
 
-        const renderedContent = theme
-          ? theme.renderLayout(layoutName, htmlContent, {
-            site: { ...config },
-            theme: {
-              name: theme.name,
-              version: theme.version,
-              ...theme.config,
-            },
-            collections,
-            title: frontmatter.title || config.title,
-            ...frontmatter,
-          })
-          : htmlContent;
+      const renderedContent = theme
+        ? theme.renderLayout(layoutName, htmlContent, {
+          site: { ...config },
+          theme: {
+            name: theme.name,
+            version: theme.version,
+            ...theme.config,
+          },
+          collections,
+          title: page.frontmatter.title || config.title,
+          ...page.frontmatter,
+        })
+        : htmlContent;
 
-        Deno.writeTextFileSync(outputFilePath, renderedContent);
+      Deno.writeTextFileSync(outputFilePath, renderedContent);
 
-        await hooks.afterPage?.({
+      await hooks.afterPage?.({
+        path: outputFilePath,
+        html: renderedContent,
+      });
+      for (const plugin of plugins) {
+        await plugin.afterPage?.({
           path: outputFilePath,
           html: renderedContent,
         });
-        for (const plugin of plugins) {
-          await plugin.afterPage?.({
-            path: outputFilePath,
-            html: renderedContent,
-          });
-        }
       }
     }
-  };
 
-  await processDirectory(contentDir);
+    nextPages.set(page.fullPath, {
+      outputPath: outputFilePath,
+      sourceText: page.sourceText,
+    });
+  }
 
   if (theme) {
     await theme.copyAssets(outputDir);
@@ -118,6 +293,15 @@ export async function buildSite({
   }
 
   await hooks.afterBuild?.(config);
+
+  if (state) {
+    state.signature = buildSignature;
+    state.pages.clear();
+    for (const [fullPath, cachedPage] of nextPages.entries()) {
+      state.pages.set(fullPath, cachedPage);
+    }
+  }
+  savePersistentBuildCache(cachePath, buildSignature, nextPages);
 
   console.log("Build complete.");
 }
