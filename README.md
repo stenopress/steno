@@ -108,7 +108,7 @@ deno run -A jsr:@steno/steno dev --config content/.steno/config.yml
 
 ## CLI
 
-Steno’s CLI is implemented in `src/cli.ts` and used by `mod.ts`.
+Steno’s CLI entrypoint lives in `mod.ts`, with argument parsing in `src/utils/cli.ts`.
 
 ### Commands
 
