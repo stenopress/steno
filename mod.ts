@@ -25,6 +25,7 @@ export type { ScribeOptions } from "./src/utils/scribe.ts";
 export type {
   CollectionConfig,
   PluginEntry,
+  PluginSecurityConfig,
   SiteConfig,
   StenoHooks,
   StenoPlugin,

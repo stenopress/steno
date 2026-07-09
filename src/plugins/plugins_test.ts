@@ -103,6 +103,8 @@ export function registerPluginTests(): void {
     name: "plugins: loadPlugins loads plugin from string entry",
     permissions: { read: true, write: true },
     fn: async () => {
+      const originalError = console.error;
+      console.error = () => {};
       const tempDir = Deno.makeTempDirSync();
       const pluginPath = join(tempDir, "plugin.ts");
 
@@ -125,8 +127,8 @@ export function registerPluginTests(): void {
         plugins: [`file://${pluginPath}`],
       });
 
-      assertEquals(result.length, 1);
-      assertEquals(result[0].name, "test-plugin");
+      console.error = originalError;
+      assertEquals(result.length, 0);
     },
   });
 
@@ -154,6 +156,11 @@ export function registerPluginTests(): void {
         title: "",
         description: "",
         author: "",
+        custom: {
+          pluginSecurity: {
+            allowLocal: true,
+          },
+        },
         plugins: [{
           package: `file://${pluginPath}`,
           options: { name: "my-plugin" },
@@ -180,6 +187,11 @@ export function registerPluginTests(): void {
         title: "",
         description: "",
         author: "",
+        custom: {
+          pluginSecurity: {
+            allowLocal: true,
+          },
+        },
         plugins: [`file://${pluginPath}`],
       });
 
@@ -201,6 +213,46 @@ export function registerPluginTests(): void {
       });
 
       console.error = originalError;
+      assertEquals(result.length, 0);
+    },
+  });
+
+  Deno.test({
+    name: "plugins: loadPlugins blocks remote http imports by default",
+    fn: async () => {
+      const originalError = console.error;
+      console.error = () => {};
+
+      const result = await loadPlugins({
+        title: "",
+        description: "",
+        author: "",
+        plugins: ["https://example.com/plugin.ts"],
+      });
+
+      console.error = originalError;
+      assertEquals(result.length, 0);
+    },
+  });
+
+  Deno.test({
+    name: "plugins: loadPlugins skips invalid plugin entry shapes",
+    fn: async () => {
+      const originalWarn = console.warn;
+      console.warn = () => {};
+
+      const malformedConfig = {
+        title: "",
+        description: "",
+        author: "",
+        plugins: [{ package: 123 }],
+      };
+
+      const result = await loadPlugins(malformedConfig as unknown as Parameters<
+        typeof loadPlugins
+      >[0]);
+
+      console.warn = originalWarn;
       assertEquals(result.length, 0);
     },
   });

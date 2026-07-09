@@ -4,6 +4,18 @@ export interface PluginEntry {
   options?: Record<string, unknown>;
 }
 
+/** Security controls for plugin module loading. */
+export interface PluginSecurityConfig {
+  /** Allow loading plugins from local `file://` module specifiers. */
+  allowLocal?: boolean;
+  /** Allow loading plugins from remote `http://` or `https://` URLs. */
+  allowRemoteHttp?: boolean;
+  /** Allow loading plugins from `node:` built-in module specifiers. */
+  allowNodeBuiltins?: boolean;
+  /** Allow plugins bundled by the active theme to run. */
+  allowThemePlugins?: boolean;
+}
+
 /** Configuration for sorting, filtering, and limiting a collection. */
 export interface CollectionConfig {
   sortBy?: string;
@@ -27,6 +39,7 @@ export interface SiteConfig {
     shortUrls?: boolean;
     theme?: string;
     themeConfig?: Record<string, unknown>;
+    pluginSecurity?: PluginSecurityConfig;
   };
 }
 
