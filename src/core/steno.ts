@@ -1,5 +1,6 @@
 import { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
+import { isStenoPlugin } from "../plugins/plugins.ts";
 import { startDevServer } from "../utils/server.ts";
 import { loadConfig, loadPlugins } from "./config.ts";
 import { buildSite, type BuildState } from "./steno_build.ts";
@@ -36,7 +37,27 @@ export class Steno {
   private async loadPlugins(): Promise<void> {
     await this.themeLoadingPromise;
     const sitePlugins = await loadPlugins(this.config);
-    this.plugins = [...(this.theme?.plugins ?? []), ...sitePlugins];
+    const allowThemePlugins = this.config.custom?.pluginSecurity
+      ?.allowThemePlugins !== false;
+    const themePlugins = allowThemePlugins
+      ? (this.theme?.plugins ?? []).filter((plugin, index) => {
+        if (!isStenoPlugin(plugin)) {
+          console.warn(
+            `Theme plugin at index ${index} is invalid and will be skipped.`,
+          );
+          return false;
+        }
+        return true;
+      })
+      : [];
+
+    if (!allowThemePlugins && (this.theme?.plugins?.length ?? 0) > 0) {
+      console.warn(
+        "Theme plugins are disabled by `custom.pluginSecurity.allowThemePlugins: false`.",
+      );
+    }
+
+    this.plugins = [...themePlugins, ...sitePlugins];
   }
 
   /** Builds the site once using the loaded configuration and theme. */

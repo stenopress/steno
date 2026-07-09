@@ -522,4 +522,78 @@ Content
       Deno.removeSync(tempDir, { recursive: true });
     },
   });
+
+  Deno.test({
+    name: "build: theme plugins can be disabled via pluginSecurity config",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const themeModulePath = join(tempDir, "theme.ts");
+      const configPath = join(contentDir, ".steno", "config.yml");
+
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(
+        themeModulePath,
+        `import type { StenoTheme } from "file://${join(Deno.cwd(), "mod.ts")}";
+const theme: StenoTheme = {
+  name: "module-theme",
+  version: "1.0.0",
+  layouts: {
+    layout: "<html><body>{@html content}</body></html>",
+  },
+  plugins: [{
+    name: "theme-plugin",
+    transformHtml: (html) => "<div>theme-plugin</div>" + html,
+  }],
+};
+export default theme;
+`,
+      );
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---
+title: "Home"
+layout: "layout"
+---
+Hello.
+`,
+      );
+
+      Deno.writeTextFileSync(
+        configPath,
+        `title: "Theme Plugin Enabled"
+description: ""
+author: ""
+contentDir: "${contentDir}"
+output: "${outputDir}"
+custom:
+  theme: "${themeModulePath}"
+`,
+      );
+      await new Steno(configPath, false).build();
+      let html = Deno.readTextFileSync(join(outputDir, "index.html"));
+      assertStringIncludes(html, "theme-plugin");
+
+      Deno.writeTextFileSync(
+        configPath,
+        `title: "Theme Plugin Disabled"
+description: ""
+author: ""
+contentDir: "${contentDir}"
+output: "${outputDir}"
+custom:
+  theme: "${themeModulePath}"
+  pluginSecurity:
+    allowThemePlugins: false
+`,
+      );
+      await new Steno(configPath, false).build();
+      html = Deno.readTextFileSync(join(outputDir, "index.html"));
+      assertEquals(html.includes("theme-plugin"), false);
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
 }

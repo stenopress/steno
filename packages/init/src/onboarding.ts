@@ -383,8 +383,8 @@ new Steno();
       denoJsonPath,
       `{
   "tasks": {
-    "build": "deno run -A jsr:@steno/steno build",
-    "dev": "deno run -A jsr:@steno/steno dev"
+    "build": "deno run --allow-read=content,content/.steno,themes --allow-write=dist,content/.steno jsr:@steno/steno build",
+    "dev": "deno run --allow-read=content,content/.steno,dist,themes --allow-write=dist,content/.steno --allow-net=127.0.0.1:8000 jsr:@steno/steno dev"
   },
   "imports": {
     "@steno/steno": "jsr:@steno/steno"
