@@ -43,7 +43,7 @@ function getBlockedPluginReason(
   try {
     url = new URL(packageName);
   } catch {
-    return null;
+    return "plugin specifier must use an explicit protocol (for example `jsr:`, `npm:`, `file://`, or `https://`).";
   }
 
   switch (url.protocol) {
