@@ -15,7 +15,7 @@ import { runOnboarding } from "./src/onboarding.ts";
 /** The onboarding error type thrown for expected scaffolding failures. */
 export { OnboardingError, runOnboarding } from "./src/onboarding.ts";
 /** Options for pre-filling the onboarding prompts. */
-export type { ProjectOptions } from "./src/onboarding.ts";
+export type { PluginChoice, ProjectOptions } from "./src/onboarding.ts";
 
 if (import.meta.main) {
   await runOnboarding();

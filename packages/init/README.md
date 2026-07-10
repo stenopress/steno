@@ -15,6 +15,9 @@ The wizard asks for:
 - **Site description**
 - **Author name**
 - **Theme** — choose _Starter Theme_ (more coming soon)
+- **Plugins** — optionally add _Tailwind CSS_ and/or _Shiki_
+
+You can also skip the prompts with `--plugins tailwind,shiki`.
 
 It then generates the following structure in your current directory:
 

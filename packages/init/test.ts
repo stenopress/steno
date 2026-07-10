@@ -12,6 +12,7 @@ async function scaffold(
     title: "Test Site",
     description: "A test",
     author: "Tester",
+    plugins: [],
     theme: "starter",
     ...opts,
   });
@@ -114,6 +115,17 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   await Deno.remove(dir, { recursive: true });
 });
 
+Deno.test("onboarding: config.yml includes selected plugins", async () => {
+  const dir = await scaffold({ plugins: ["tailwind", "shiki"] });
+
+  const config = readFile(dir, "content", ".steno", "config.yml");
+  assertMatch(config, /plugins:/);
+  assertMatch(config, /- jsr:@steno\/plugin-tailwind/);
+  assertMatch(config, /- jsr:@steno\/plugin-shiki/);
+
+  await Deno.remove(dir, { recursive: true });
+});
+
 Deno.test("onboarding: throws OnboardingError when files exist (no force)", async () => {
   const dir = await scaffold();
 
@@ -123,6 +135,7 @@ Deno.test("onboarding: throws OnboardingError when files exist (no force)", asyn
         title: "Again",
         description: "Again",
         author: "Again",
+        plugins: [],
         theme: "starter",
       }),
     OnboardingError,
@@ -140,6 +153,7 @@ Deno.test("onboarding: --force allows overwrite of existing files", async () => 
     title: "Overwritten",
     description: "Overwrite test",
     author: "Bob",
+    plugins: [],
     theme: "starter",
     force: true,
   });
@@ -160,6 +174,7 @@ Deno.test("onboarding: does not overwrite existing mod.ts or deno.json", async (
     title: "T",
     description: "D",
     author: "A",
+    plugins: [],
     theme: "starter",
   });
 
