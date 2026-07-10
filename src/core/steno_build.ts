@@ -90,7 +90,9 @@ function resolveCachePath(contentDir: string): string {
   return join(contentDir, ".steno", "build-cache.json");
 }
 
-function loadPersistentBuildCache(cachePath: string): PersistentBuildCache | null {
+function loadPersistentBuildCache(
+  cachePath: string,
+): PersistentBuildCache | null {
   let raw: string;
   try {
     raw = Deno.readTextFileSync(cachePath);
@@ -217,7 +219,9 @@ export async function buildSite({
   } else {
     const diskCache = loadPersistentBuildCache(cachePath);
     if (diskCache && diskCache.signature === buildSignature) {
-      for (const [fullPath, page] of toBuildStatePageMap(diskCache.pages).entries()) {
+      for (
+        const [fullPath, page] of toBuildStatePageMap(diskCache.pages).entries()
+      ) {
         previousPages.set(fullPath, page);
       }
     }
@@ -234,10 +238,14 @@ export async function buildSite({
   }
 
   for (const page of pages) {
-    const outputFilePath = resolveOutputPath(outputDir, page.relPath, shortUrls);
+    const outputFilePath = resolveOutputPath(
+      outputDir,
+      page.relPath,
+      shortUrls,
+    );
     const cachedPage = previousPages.get(page.fullPath);
-    const needsRender =
-      !cachedPage || cachedPage.sourceText !== page.sourceText ||
+    const needsRender = !cachedPage ||
+      cachedPage.sourceText !== page.sourceText ||
       cachedPage.outputPath !== outputFilePath ||
       !fileExists(outputFilePath);
 

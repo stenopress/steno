@@ -3,7 +3,9 @@ import type { StenoPlugin } from "../types.ts";
 /** Shared plugin contract used throughout the build pipeline. */
 export type { StenoPlugin } from "../types.ts";
 
-function isHookFunction(value: unknown): value is (...args: unknown[]) => unknown {
+function isHookFunction(
+  value: unknown,
+): value is (...args: unknown[]) => unknown {
   return typeof value === "function";
 }
 

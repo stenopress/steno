@@ -113,8 +113,8 @@ export function registerPluginTests(): void {
           pluginPath,
           `
         import type { StenoPlugin } from "${
-          import.meta.resolve("./plugins.ts")
-        }";
+            import.meta.resolve("./plugins.ts")
+          }";
         export default function(_options = {}): StenoPlugin {
           return { name: "test-plugin" };
         }
@@ -258,10 +258,12 @@ export function registerPluginTests(): void {
 
       let result: Awaited<ReturnType<typeof loadPlugins>>;
       try {
-        result = await loadPlugins(malformedConfig as unknown as Parameters<
-        typeof loadPlugins
-      >[0]);
-        } finally {
+        result = await loadPlugins(
+          malformedConfig as unknown as Parameters<
+            typeof loadPlugins
+          >[0],
+        );
+      } finally {
         console.warn = originalWarn;
       }
       assertEquals(result.length, 0);

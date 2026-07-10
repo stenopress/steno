@@ -248,9 +248,10 @@ export class Theme {
     layouts: Array<[string, string]>;
     components: Array<[string, string]>;
   } {
-    const layouts = Object.entries(this.themeData.layouts).sort(([left], [right]) =>
-      left.localeCompare(right)
-    );
+    const layouts = Object.entries(this.themeData.layouts).sort((
+      [left],
+      [right],
+    ) => left.localeCompare(right));
     const components = Object.entries(this.themeData.components ?? {}).sort((
       [left],
       [right],

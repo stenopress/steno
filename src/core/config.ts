@@ -1,8 +1,8 @@
 import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
 import type {
-  PluginSecurityConfig,
   PluginEntry,
+  PluginSecurityConfig,
   SiteConfig,
   StenoPlugin,
 } from "../types.ts";
@@ -34,8 +34,10 @@ function getBlockedPluginReason(
     return "plugin package specifier cannot be empty.";
   }
 
-  if (packageName.startsWith("./") || packageName.startsWith("../") ||
-    packageName.startsWith("/")) {
+  if (
+    packageName.startsWith("./") || packageName.startsWith("../") ||
+    packageName.startsWith("/")
+  ) {
     return "path-based specifiers are not allowed. Use a registry package specifier (for example `jsr:` or `npm:`), or enable local plugins and use a `file://` URL.";
   }
 
@@ -145,7 +147,9 @@ export async function loadPlugins(
         continue;
       }
 
-      const plugin = await (factory as PluginFactory)(clonePluginOptions(options));
+      const plugin = await (factory as PluginFactory)(
+        clonePluginOptions(options),
+      );
       if (!isStenoPlugin(plugin)) {
         console.warn(
           `Plugin "${packageName}" returned an invalid plugin object, skipping.`,
