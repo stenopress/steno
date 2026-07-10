@@ -381,7 +381,7 @@ Content
 
       await new Steno(configPath, false).build();
       const cacheRaw = Deno.readTextFileSync(cachePath);
-      assertStringIncludes(cacheRaw, "\"signature\"");
+      assertStringIncludes(cacheRaw, '"signature"');
 
       Deno.writeTextFileSync(
         join(contentDir, "about.md"),
