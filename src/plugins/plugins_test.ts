@@ -105,12 +105,13 @@ export function registerPluginTests(): void {
     fn: async () => {
       const originalError = console.error;
       console.error = () => {};
-      const tempDir = Deno.makeTempDirSync();
-      const pluginPath = join(tempDir, "plugin.ts");
+      try {
+        const tempDir = Deno.makeTempDirSync();
+        const pluginPath = join(tempDir, "plugin.ts");
 
-      Deno.writeTextFileSync(
-        pluginPath,
-        `
+        Deno.writeTextFileSync(
+          pluginPath,
+          `
         import type { StenoPlugin } from "${
           import.meta.resolve("./plugins.ts")
         }";
@@ -118,17 +119,19 @@ export function registerPluginTests(): void {
           return { name: "test-plugin" };
         }
       `,
-      );
+        );
 
-      const result = await loadPlugins({
-        title: "",
-        description: "",
-        author: "",
-        plugins: [`file://${pluginPath}`],
-      });
+        const result = await loadPlugins({
+          title: "",
+          description: "",
+          author: "",
+          plugins: [`file://${pluginPath}`],
+        });
 
-      console.error = originalError;
-      assertEquals(result.length, 0);
+        assertEquals(result.length, 0);
+      } finally {
+        console.error = originalError;
+      }
     },
   });
 
@@ -204,16 +207,18 @@ export function registerPluginTests(): void {
     fn: async () => {
       const originalError = console.error;
       console.error = () => {};
+      try {
+        const result = await loadPlugins({
+          title: "",
+          description: "",
+          author: "",
+          plugins: ["jsr:@steno/this-does-not-exist-xyz"],
+        });
 
-      const result = await loadPlugins({
-        title: "",
-        description: "",
-        author: "",
-        plugins: ["jsr:@steno/this-does-not-exist-xyz"],
-      });
-
-      console.error = originalError;
-      assertEquals(result.length, 0);
+        assertEquals(result.length, 0);
+      } finally {
+        console.error = originalError;
+      }
     },
   });
 
@@ -223,14 +228,17 @@ export function registerPluginTests(): void {
       const originalError = console.error;
       console.error = () => {};
 
-      const result = await loadPlugins({
-        title: "",
-        description: "",
-        author: "",
-        plugins: ["https://example.com/plugin.ts"],
-      });
-
-      console.error = originalError;
+      let result: Awaited<ReturnType<typeof loadPlugins>>;
+      try {
+        result = await loadPlugins({
+          title: "",
+          description: "",
+          author: "",
+          plugins: ["https://example.com/plugin.ts"],
+        });
+      } finally {
+        console.error = originalError;
+      }
       assertEquals(result.length, 0);
     },
   });
@@ -248,11 +256,14 @@ export function registerPluginTests(): void {
         plugins: [{ package: 123 }],
       };
 
-      const result = await loadPlugins(malformedConfig as unknown as Parameters<
+      let result: Awaited<ReturnType<typeof loadPlugins>>;
+      try {
+        result = await loadPlugins(malformedConfig as unknown as Parameters<
         typeof loadPlugins
       >[0]);
-
-      console.warn = originalWarn;
+        } finally {
+        console.warn = originalWarn;
+      }
       assertEquals(result.length, 0);
     },
   });
