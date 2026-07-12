@@ -5,6 +5,7 @@ import { loadConfig, loadPlugins } from "./config.ts";
 import { buildSite } from "./steno_build.ts";
 import { loadTheme } from "./steno_theme.ts";
 
+/** Coordinates config loading, theme setup, and site builds. */
 export class Steno {
   private readonly config: SiteConfig;
   private theme?: Theme;

@@ -2,6 +2,38 @@ import { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoTheme } from "../types.ts";
 import { isAbsolute, join } from "@std/path";
 
+const bundledThemeSources: Record<string, string> = {
+  "jsr:@steno/theme-minimal": new URL(
+    "../../packages/theme-minimal/mod.ts",
+    import.meta.url,
+  ).pathname,
+  "jsr:@steno/theme-docs-minimal": new URL(
+    "../../packages/theme-docs-minimal/mod.ts",
+    import.meta.url,
+  ).pathname,
+};
+
+async function loadBundledTheme(
+  themeName: string,
+  themeConfig: Record<string, unknown> | undefined,
+): Promise<Theme | undefined> {
+  const localPath = bundledThemeSources[themeName];
+  if (!localPath) return;
+
+  try {
+    if (!(await Deno.stat(localPath)).isFile) return;
+    const normalizedPath = localPath.replace(/\\/g, "/");
+    const fileUrl = normalizedPath.startsWith("/")
+        ? `file://${encodeURI(normalizedPath)}`
+        : `file:///${encodeURI(normalizedPath)}`;
+    const themeModule = await import(fileUrl);
+    const themeData = (themeModule.default || themeModule) as StenoTheme;
+    return new Theme(themeData, themeConfig);
+  } catch {
+    return;
+  }
+}
+
 export async function loadTheme(
   config: SiteConfig,
 ): Promise<Theme | undefined> {
@@ -9,6 +41,14 @@ export async function loadTheme(
   if (!themeName) return;
 
   try {
+    const bundledTheme = await loadBundledTheme(
+      themeName,
+      config.custom?.themeConfig,
+    );
+    if (bundledTheme) {
+      return bundledTheme;
+    }
+
     const isLocalPath = themeName.startsWith(".") ||
       themeName.startsWith("/") ||
       themeName.startsWith("file://");
