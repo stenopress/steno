@@ -35,6 +35,9 @@ type CompiledTemplateFn = (
   helpers: ScribeHelpers,
 ) => string;
 
+const TEMPLATE_CACHE_LIMIT = 512;
+const templateCache = new Map<string, CompiledTemplateFn>();
+
 interface Node {
   type: "text" | "expression" | "html" | "if" | "each" | "component";
   value?: string;
@@ -536,6 +539,26 @@ function compileToFunction(
   }
 }
 
+function getCompiledTemplate(template: string, filePath?: string): CompiledTemplateFn {
+  const key = `${filePath ?? ""}\u0000${template}`;
+  const cached = templateCache.get(key);
+  if (cached) {
+    templateCache.delete(key);
+    templateCache.set(key, cached);
+    return cached;
+  }
+
+  const compiled = compileToFunction(template, filePath);
+  templateCache.set(key, compiled);
+  if (templateCache.size > TEMPLATE_CACHE_LIMIT) {
+    const oldestKey = templateCache.keys().next().value;
+    if (oldestKey) {
+      templateCache.delete(oldestKey);
+    }
+  }
+  return compiled;
+}
+
 /**
  * Renders a Scribe template with the provided context and components.
  *
@@ -554,7 +577,7 @@ function compileToFunction(
  * ```
  */
 export function render(options: ScribeOptions): string {
-  const renderFn = compileToFunction(options.template, options.filePath);
+  const renderFn = getCompiledTemplate(options.template, options.filePath);
 
   const helpers = {
     escapeHtml,

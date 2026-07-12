@@ -28,6 +28,26 @@ export interface Collection {
 
 /** A lookup table of collection names to collection data. */
 export type CollectionMap = Record<string, Collection>;
+const FILE_READ_CONCURRENCY = 128;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapFn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let currentIndex = 0;
+  const workerCount = Math.min(concurrency, Math.max(items.length, 1));
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (true) {
+      const index = currentIndex++;
+      if (index >= items.length) return;
+      results[index] = await mapFn(items[index]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
 /**
  * Scans the content directory and parses all markdown pages.
@@ -38,7 +58,7 @@ export type CollectionMap = Record<string, Collection>;
 export async function collectMarkdownPages(
   contentDir: string,
 ): Promise<MarkdownPage[]> {
-  const pages: MarkdownPage[] = [];
+  const markdownFiles: Array<{ fullPath: string; relPath: string }> = [];
 
   const scanDirectory = async (currentDir: string, relPath = "") => {
     for await (const entry of Deno.readDir(currentDir)) {
@@ -50,21 +70,27 @@ export async function collectMarkdownPages(
           await scanDirectory(fullPath, entryRelPath);
         }
       } else if (entry.isFile && entry.name.endsWith(".md")) {
-        const sourceText = await Deno.readTextFile(fullPath);
-        const { frontmatter, body } = parseFrontmatter(sourceText, fullPath);
-        pages.push({
-          fullPath,
-          relPath: entryRelPath,
-          sourceText,
-          frontmatter,
-          body,
-        });
+        markdownFiles.push({ fullPath, relPath: entryRelPath });
       }
     }
   };
 
   await scanDirectory(contentDir);
-  return pages;
+  return await mapWithConcurrency(
+    markdownFiles,
+    FILE_READ_CONCURRENCY,
+    async ({ fullPath, relPath }) => {
+      const sourceText = await Deno.readTextFile(fullPath);
+      const { frontmatter, body } = parseFrontmatter(sourceText, fullPath);
+      return {
+        fullPath,
+        relPath,
+        sourceText,
+        frontmatter,
+        body,
+      };
+    },
+  );
 }
 
 function resolveUrl(relPath: string, shortUrls: boolean): string {
