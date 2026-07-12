@@ -6,6 +6,7 @@ import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { Theme } from "../theme/theme.ts";
+import { resolveMarkdownScanIgnorePaths, resolveOutputPath } from "./path_utils.ts";
 
 type BuildContext = {
   config: SiteConfig;
@@ -13,6 +14,7 @@ type BuildContext = {
   plugins: StenoPlugin[];
   hooks: StenoHooks;
   state?: BuildState;
+  pages?: import("./collections.ts").MarkdownPage[];
 };
 
 export interface BuildState {
@@ -39,39 +41,9 @@ interface PersistentBuildCache {
   }>;
 }
 
-function resolveOutputPath(
-  outputDir: string,
-  relPath: string,
-  shortUrls: boolean,
-): string {
-  let outputFilePath = join(outputDir, relPath.replace(/\.md$/, ".html"));
-
-  if (shortUrls) {
-    if (relPath !== "index.md") {
-      const cleanRelPath = relPath.replace(/\.md$/, "");
-      outputFilePath = join(outputDir, cleanRelPath, "index.html");
-    } else {
-      outputFilePath = join(outputDir, "index.html");
-    }
-  }
-
-  return outputFilePath;
-}
-
 function fileExists(filePath: string): boolean {
   try {
     return Deno.statSync(filePath).isFile;
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) {
-      return false;
-    }
-    throw error;
-  }
-}
-
-function directoryExists(path: string): boolean {
-  try {
-    return Deno.statSync(path).isDirectory;
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
       return false;
@@ -214,6 +186,7 @@ export async function buildSite({
   plugins,
   hooks,
   state,
+  pages,
 }: BuildContext): Promise<void> {
   for (const plugin of plugins) {
     await plugin.beforeBuild?.(config);
@@ -224,7 +197,10 @@ export async function buildSite({
   const outputDir = config.output || "dist";
   const shortUrls = config.custom?.shortUrls ?? false;
   const cachePath = resolveCachePath(contentDir);
-  const pages = await collectMarkdownPages(contentDir);
+  const scannedPages = pages ?? await collectMarkdownPages(
+    contentDir,
+    { ignorePaths: resolveMarkdownScanIgnorePaths(contentDir, outputDir) },
+  );
   const buildSignature = createBuildSignature(config, theme, plugins);
   const usingInMemoryState = state?.signature === buildSignature;
   const previousPages = new Map<string, BuildStateEntry>();
@@ -249,21 +225,21 @@ export async function buildSite({
       contentDir,
       config,
       plugins,
-      pages,
+      scannedPages,
     );
     return collections;
   };
   const nextPages = new Map<string, BuildStateEntry>();
   ensureDirSync(outputDir);
 
-  const currentPagePaths = new Set(pages.map((page) => page.fullPath));
+  const currentPagePaths = new Set(scannedPages.map((page) => page.fullPath));
   for (const [fullPath, cachedPage] of previousPages.entries()) {
     if (!currentPagePaths.has(fullPath) && fileExists(cachedPage.outputPath)) {
       Deno.removeSync(cachedPage.outputPath);
     }
   }
 
-  for (const page of pages) {
+  for (const page of scannedPages) {
     const outputFilePath = resolveOutputPath(
       outputDir,
       page.relPath,
@@ -304,7 +280,7 @@ export async function buildSite({
             ...theme.config,
           },
           collections: await getCollections(),
-          title: page.frontmatter.title || config.title,
+          title: page.frontmatter.title || page.title || config.title,
           ...page.frontmatter,
         })
         : finalHtmlContent;

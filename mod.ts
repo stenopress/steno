@@ -26,6 +26,7 @@ export type {
   CollectionConfig,
   PluginEntry,
   PluginSecurityConfig,
+  NavigationNode,
   SiteConfig,
   StenoHooks,
   StenoPlugin,
