@@ -254,7 +254,7 @@ function buildZeroConfigSiteConfig(
           ? stenoConfig.output.trim()
           : join(rootDir, stenoConfig.output.trim()))
         : join(rootDir, "dist"),
-      navigation,
+      navigation: buildNavigationTree(pages, stenoConfig.shortUrls !== false),
       custom: {
         shortUrls: stenoConfig.shortUrls !== false,
         theme: typeof stenoConfig.theme === "string" &&
