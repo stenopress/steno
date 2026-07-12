@@ -3,6 +3,12 @@ import { join } from "@std/path";
 import { marked } from "marked";
 import type { CollectionConfig, SiteConfig, StenoPlugin } from "../types.ts";
 import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
+import {
+  inferPageTitle,
+  isPathInsideOrEqual,
+  resolveMarkdownScanIgnorePaths,
+  resolveNavigationUrl,
+} from "./path_utils.ts";
 
 /** A page captured as part of a collection. */
 export interface CollectionItem {
@@ -18,6 +24,7 @@ export interface MarkdownPage {
   sourceText: string;
   frontmatter: Record<string, unknown>;
   body: string;
+  title?: string;
 }
 
 /** A named collection of content items. */
@@ -57,13 +64,26 @@ async function mapWithConcurrency<T, R>(
  */
 export async function collectMarkdownPages(
   contentDir: string,
+  options: { ignorePaths?: string[] } = {},
 ): Promise<MarkdownPage[]> {
   const markdownFiles: Array<{ fullPath: string; relPath: string }> = [];
+  const ignorePaths = [
+    ...resolveMarkdownScanIgnorePaths(contentDir),
+    ...(options.ignorePaths ?? []),
+  ];
 
   const scanDirectory = async (currentDir: string, relPath = "") => {
     for await (const entry of Deno.readDir(currentDir)) {
       const fullPath = join(currentDir, entry.name);
       const entryRelPath = relPath ? join(relPath, entry.name) : entry.name;
+
+      if (
+        ignorePaths.some((ignorePath) =>
+          isPathInsideOrEqual(fullPath, ignorePath)
+        )
+      ) {
+        continue;
+      }
 
       if (entry.isDirectory) {
         if (entry.name !== ".steno") {
@@ -76,6 +96,7 @@ export async function collectMarkdownPages(
   };
 
   await scanDirectory(contentDir);
+  markdownFiles.sort((left, right) => left.relPath.localeCompare(right.relPath));
   return await mapWithConcurrency(
     markdownFiles,
     FILE_READ_CONCURRENCY,
@@ -88,17 +109,20 @@ export async function collectMarkdownPages(
         sourceText,
         frontmatter,
         body,
+        title: inferPageTitle({
+          fullPath,
+          relPath,
+          sourceText,
+          frontmatter,
+          body,
+        }),
       };
     },
   );
 }
 
 function resolveUrl(relPath: string, shortUrls: boolean): string {
-  const withoutExt = relPath.replace(/\.md$/, "");
-  if (shortUrls) {
-    return "/" + withoutExt.replace(/\\/g, "/");
-  }
-  return "/" + withoutExt.replace(/\\/g, "/") + ".html";
+  return resolveNavigationUrl(relPath, shortUrls);
 }
 
 function sortItems(

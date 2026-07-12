@@ -9,6 +9,7 @@ import { registerPublicApiTests } from "./src/public_api_test.ts";
 import { registerBuildTests } from "./src/core/build_test.ts";
 import { registerPluginTests } from "./src/plugins/plugins_test.ts";
 import { registerCollectionTests } from "./src/core/collections_test.ts";
+import { registerProjectTests } from "./src/core/project_test.ts";
 
 registerCliTests();
 registerConfigTests();
@@ -21,3 +22,4 @@ registerPublicApiTests();
 registerBuildTests();
 registerPluginTests();
 registerCollectionTests();
+registerProjectTests();

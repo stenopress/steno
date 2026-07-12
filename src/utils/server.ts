@@ -1,4 +1,5 @@
 import { join } from "@std/path";
+import { isPathInsideOrEqual } from "../core/path_utils.ts";
 
 const reloadScript = `
   <script>
@@ -91,6 +92,7 @@ export async function startDevServer(
   outputDir: string,
   buildFn: () => void | Promise<void>,
   watchDir: string = "content",
+  ignoredPaths: string[] = [],
 ): Promise<void> {
   const { handler, broadcastReload } = createDevServerHandler(outputDir);
 
@@ -116,6 +118,17 @@ export async function startDevServer(
       event.kind === "modify" || event.kind === "create" ||
       event.kind === "remove"
     ) {
+      if (
+        event.paths.length > 0 &&
+        event.paths.every((path) =>
+          ignoredPaths.some((ignoredPath) =>
+            isPathInsideOrEqual(path, ignoredPath)
+          )
+        )
+      ) {
+        continue;
+      }
+
       console.log(`  \x1b[90mchange detected, rebuilding...\x1b[0m`);
       await buildFn();
       broadcastReload();

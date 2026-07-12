@@ -24,6 +24,13 @@ export interface CollectionConfig {
   filter?: Record<string, unknown>;
 }
 
+/** A navigation entry exposed to fallback documentation themes. */
+export interface NavigationNode {
+  title: string;
+  url?: string;
+  children?: NavigationNode[];
+}
+
 /** The top-level site configuration loaded from `content/.steno/config.*`. */
 export interface SiteConfig {
   title: string;
@@ -41,6 +48,7 @@ export interface SiteConfig {
     themeConfig?: Record<string, unknown>;
     pluginSecurity?: PluginSecurityConfig;
   };
+  navigation?: NavigationNode[];
 }
 
 /** A single field definition in a theme configuration schema. */

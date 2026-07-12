@@ -11,7 +11,8 @@
       "test",
       "test.ts",
       "**/*_test.ts",
-      "packages"
+      "packages",
+      "benchmarks"
     ]
   },
   "tasks": {
