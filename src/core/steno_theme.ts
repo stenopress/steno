@@ -19,7 +19,11 @@ async function loadBundledTheme(
 
   try {
     if (!(await Deno.stat(localPath)).isFile) return;
-    const themeModule = await import(`file://${localPath}`);
+    const normalizedPath = localPath.replace(/\\/g, "/");
+    const fileUrl = normalizedPath.startsWith("/")
+        ? `file://${encodeURI(normalizedPath)}`
+        : `file:///${encodeURI(normalizedPath)}`;
+    const themeModule = await import(fileUrl);
     const themeData = (themeModule.default || themeModule) as StenoTheme;
     return new Theme(themeData, themeConfig);
   } catch {
