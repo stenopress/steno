@@ -559,26 +559,11 @@ function getCompiledTemplate(template: string, filePath?: string): CompiledTempl
   return compiled;
 }
 
-/**
- * Renders a Scribe template with the provided context and components.
- *
- * @param options - Configuration options for Scribe including template, context, and components.
- * @returns The rendered template as a string.
- *
- * @example
- * ```ts
- * import { render } from "@steno/steno";
- *
- * const HTML = render({
- *   template: "<h1>{title}</h1>",
- *   context: { title: "Hello World" },
- *   components: {}
- * });
- * ```
- */
-export function render(options: ScribeOptions): string {
-  const renderFn = getCompiledTemplate(options.template, options.filePath);
-
+function renderWithCompiledTemplate(
+  renderFn: CompiledTemplateFn,
+  options: ScribeOptions,
+  componentFnCache: Map<string, CompiledTemplateFn>,
+): string {
   const helpers = {
     escapeHtml,
     filters,
@@ -601,17 +586,27 @@ export function render(options: ScribeOptions): string {
         );
       }
 
+      let componentRenderFn = componentFnCache.get(componentTemplate);
+      if (componentRenderFn === undefined) {
+        componentRenderFn = getCompiledTemplate(componentTemplate, options.filePath);
+        componentFnCache.set(componentTemplate, componentRenderFn);
+      }
+
       const localContext = {
         site: parentContext.site,
         theme: parentContext.theme,
         ...props,
       };
 
-      return render({
-        template: componentTemplate,
-        context: localContext,
-        components: options.components,
-      });
+      return renderWithCompiledTemplate(
+        componentRenderFn,
+        {
+          ...options,
+          template: componentTemplate,
+          context: localContext,
+        },
+        componentFnCache,
+      );
     },
   };
 
@@ -632,4 +627,26 @@ export function render(options: ScribeOptions): string {
   });
 
   return renderFn(contextProxy, helpers);
+}
+
+/**
+ * Renders a Scribe template with the provided context and components.
+ *
+ * @param options - Configuration options for Scribe including template, context, and components.
+ * @returns The rendered template as a string.
+ *
+ * @example
+ * ```ts
+ * import { render } from "@steno/steno";
+ *
+ * const HTML = render({
+ *   template: "<h1>{title}</h1>",
+ *   context: { title: "Hello World" },
+ *   components: {}
+ * });
+ * ```
+ */
+export function render(options: ScribeOptions): string {
+  const renderFn = getCompiledTemplate(options.template, options.filePath);
+  return renderWithCompiledTemplate(renderFn, options, new Map());
 }
