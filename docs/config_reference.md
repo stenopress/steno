@@ -48,6 +48,20 @@ These are the standard properties you can define in your `config.yml` (or
   output: "public"
   ```
 
+- **`plugins`** (array, optional): Plugins to load during build.
+  - String form:
+    ```yaml
+    plugins:
+      - "jsr:@stenodevs/my-plugin"
+    ```
+  - Object form (with options passed to the plugin factory):
+    ```yaml
+    plugins:
+      - package: "npm:@steno/html-minifier"
+        options:
+          collapseWhitespace: true
+    ```
+
 ## `custom` Properties
 
 The `custom` section is a flexible object where you can define additional,
@@ -90,6 +104,25 @@ plugins.
   custom:
     shortUrls: true
   ```
+
+- **`custom.pluginSecurity`** (object, optional): Security policy for plugin
+  module imports.
+  - **Secure defaults**:
+    - Local `file://` plugin imports are blocked.
+    - Remote `http(s)://` plugin imports are blocked.
+    - `node:` builtin plugin imports are blocked.
+    - `data:` and `blob:` plugin imports are always blocked.
+  - You can opt in per source type:
+    ```yaml
+    custom:
+      pluginSecurity:
+        allowLocal: true
+        allowRemoteHttp: false
+        allowNodeBuiltins: false
+        allowThemePlugins: true
+    ```
+  - Set `allowThemePlugins: false` to disable plugins bundled by the active
+    theme and only run explicitly listed site plugins.
 
 ## Example `config.yml`
 

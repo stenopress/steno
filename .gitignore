@@ -3,3 +3,4 @@ theme-example
 .idea
 .DS_Store
 ROADMAP.md
+benchmarks/.bench-history

@@ -1,6 +1,4 @@
-/**
- * Defines the structure for parsed command-line interface options.
- */
+/** Parsed CLI state for a Steno invocation. */
 export interface CliOptions {
   /** The command to execute, either "build", "dev", or "help". */
   command: "build" | "dev" | "help";
@@ -55,9 +53,7 @@ export function parseCliArgs(args: string[]): CliOptions {
   return { command, configPath };
 }
 
-/**
- * Prints the help message for the Steno CLI.
- */
+/** Writes the CLI usage summary to stdout. */
 export function printHelp(): void {
   console.log(`
 steno - static site generator

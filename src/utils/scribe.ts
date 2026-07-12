@@ -6,9 +6,7 @@
  * expressions, global filters, and capitalized component tags (e.g. `<Header />`).
  */
 
-/**
- * Options configuration for rendering a Scribe template.
- */
+/** Inputs required to render a Scribe template. */
 export interface ScribeOptions {
   /** The raw template string to compile and render. */
   template: string;
@@ -37,6 +35,9 @@ type CompiledTemplateFn = (
   helpers: ScribeHelpers,
 ) => string;
 
+const TEMPLATE_CACHE_LIMIT = 512;
+const templateCache = new Map<string, CompiledTemplateFn>();
+
 interface Node {
   type: "text" | "expression" | "html" | "if" | "each" | "component";
   value?: string;
@@ -52,15 +53,7 @@ interface Node {
   props?: Record<string, string>;
 }
 
-/**
- * Global filter registry for template rendering.
- *
- * Includes standard built-in filters:
- * - `date`: Formats string/number/Date values into a locale date string.
- * - `truncate`: Limits a string to a specified length and appends "...".
- * - `upper`: Converts text to uppercase.
- * - `lower`: Converts text to lowercase.
- */
+/** Built-in template filters available to expressions. */
 export const filters: Record<string, FilterFunction> = {
   date: (val: unknown) => {
     if (!val) return "";
@@ -82,7 +75,7 @@ export const filters: Record<string, FilterFunction> = {
   lower: (val: unknown) => (val ? String(val).toLowerCase() : ""),
 };
 
-// HTML escaping helper
+/** Escapes HTML-sensitive characters in a value. */
 export function escapeHtml(val: unknown): string {
   if (val === null || val === undefined) return "";
   return String(val)
@@ -511,7 +504,14 @@ function compileNodes(nodes: Node[]): string {
   return code;
 }
 
-export function compileToFunction(
+export /**
+ * Compiles a Scribe template string into an executable renderer.
+ *
+ * @param template - The raw template source.
+ * @param filePath - Optional file path used in syntax errors.
+ * @returns A compiled renderer function.
+ */
+function compileToFunction(
   template: string,
   filePath?: string,
 ): CompiledTemplateFn {
@@ -539,26 +539,31 @@ export function compileToFunction(
   }
 }
 
-/**
- * Renders a Scribe template with the provided context and components.
- *
- * @param options - Configuration options for Scribe including template, context, and components.
- * @returns The rendered template as a string.
- *
- * @example
- * ```ts
- * import { render } from "@steno/steno";
- *
- * const HTML = render({
- *   template: "<h1>{title}</h1>",
- *   context: { title: "Hello World" },
- *   components: {}
- * });
- * ```
- */
-export function render(options: ScribeOptions): string {
-  const renderFn = compileToFunction(options.template, options.filePath);
+function getCompiledTemplate(template: string, filePath?: string): CompiledTemplateFn {
+  const key = `${filePath ?? ""}\u0000${template}`;
+  const cached = templateCache.get(key);
+  if (cached) {
+    templateCache.delete(key);
+    templateCache.set(key, cached);
+    return cached;
+  }
 
+  const compiled = compileToFunction(template, filePath);
+  templateCache.set(key, compiled);
+  if (templateCache.size > TEMPLATE_CACHE_LIMIT) {
+    const oldestKey = templateCache.keys().next().value;
+    if (oldestKey) {
+      templateCache.delete(oldestKey);
+    }
+  }
+  return compiled;
+}
+
+function renderWithCompiledTemplate(
+  renderFn: CompiledTemplateFn,
+  options: ScribeOptions,
+  componentFnCache: Map<string, CompiledTemplateFn>,
+): string {
   const helpers = {
     escapeHtml,
     filters,
@@ -581,17 +586,27 @@ export function render(options: ScribeOptions): string {
         );
       }
 
+      let componentRenderFn = componentFnCache.get(componentTemplate);
+      if (componentRenderFn === undefined) {
+        componentRenderFn = getCompiledTemplate(componentTemplate, options.filePath);
+        componentFnCache.set(componentTemplate, componentRenderFn);
+      }
+
       const localContext = {
         site: parentContext.site,
         theme: parentContext.theme,
         ...props,
       };
 
-      return render({
-        template: componentTemplate,
-        context: localContext,
-        components: options.components,
-      });
+      return renderWithCompiledTemplate(
+        componentRenderFn,
+        {
+          ...options,
+          template: componentTemplate,
+          context: localContext,
+        },
+        componentFnCache,
+      );
     },
   };
 
@@ -612,4 +627,26 @@ export function render(options: ScribeOptions): string {
   });
 
   return renderFn(contextProxy, helpers);
+}
+
+/**
+ * Renders a Scribe template with the provided context and components.
+ *
+ * @param options - Configuration options for Scribe including template, context, and components.
+ * @returns The rendered template as a string.
+ *
+ * @example
+ * ```ts
+ * import { render } from "@steno/steno";
+ *
+ * const HTML = render({
+ *   template: "<h1>{title}</h1>",
+ *   context: { title: "Hello World" },
+ *   components: {}
+ * });
+ * ```
+ */
+export function render(options: ScribeOptions): string {
+  const renderFn = getCompiledTemplate(options.template, options.filePath);
+  return renderWithCompiledTemplate(renderFn, options, new Map());
 }

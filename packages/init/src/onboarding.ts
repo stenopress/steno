@@ -15,11 +15,28 @@ export interface ProjectOptions {
   title?: string;
   description?: string;
   author?: string;
+  plugins?: PluginChoice[];
   /** Which theme to scaffold. Only "starter" is currently available. */
   theme?: "starter";
   /** Skip the overwrite guard and clobber existing files. */
   force?: boolean;
 }
+
+export type PluginChoice = "tailwind" | "shiki";
+
+const OFFICIAL_PLUGINS: Record<PluginChoice, {
+  label: string;
+  package: string;
+}> = {
+  tailwind: {
+    label: "Tailwind CSS",
+    package: "jsr:@steno/plugin-tailwind",
+  },
+  shiki: {
+    label: "Shiki syntax highlighting",
+    package: "jsr:@steno/plugin-shiki",
+  },
+};
 
 /** Thrown when scaffolding fails for an expected reason (e.g. files already
  * exist). Catching this lets callers do `Deno.exit(1)` cleanly. */
@@ -117,6 +134,19 @@ function promptWithDefault(label: string, defaultValue: string): string {
   return value && value.length > 0 ? value : defaultValue;
 }
 
+function promptYesNo(label: string, defaultValue = false): boolean {
+  const arrow = paint(c.purple, "›");
+  const hint = defaultValue ? paint(c.gray, "[Y/n]") : paint(c.gray, "[y/N]");
+
+  while (true) {
+    const value = prompt(`  ${arrow} ${label} ${hint}`)?.trim().toLowerCase();
+    if (!value) return defaultValue;
+    if (value === "y" || value === "yes") return true;
+    if (value === "n" || value === "no") return false;
+    console.log(paint(c.yellow, "  ⚠  Please answer yes or no."));
+  }
+}
+
 function selectTheme(): "starter" {
   heading("Choose a Theme");
   console.log();
@@ -145,8 +175,66 @@ function selectTheme(): "starter" {
       );
       continue;
     }
+
     console.log(paint(c.yellow, "\n  ⚠  Invalid choice. Enter 1 to continue."));
   }
+}
+
+function selectPlugins(): PluginChoice[] {
+  heading("Choose Plugins");
+  console.log();
+  console.log(
+    `  ${paint(c.gray, "Official plugins available in this starter:")}`,
+  );
+  console.log(
+    `  ${paint(c.purple, "•")} ${OFFICIAL_PLUGINS.tailwind.label}  ${
+      paint(c.gray, `(${OFFICIAL_PLUGINS.tailwind.package})`)
+    }`,
+  );
+  console.log(
+    `  ${paint(c.purple, "•")} ${OFFICIAL_PLUGINS.shiki.label}  ${
+      paint(c.gray, `(${OFFICIAL_PLUGINS.shiki.package})`)
+    }`,
+  );
+  console.log();
+
+  const selected: PluginChoice[] = [];
+  for (const choice of ["tailwind", "shiki"] as const) {
+    if (promptYesNo(`Add ${OFFICIAL_PLUGINS[choice].label}?`, false)) {
+      selected.push(choice);
+    }
+  }
+
+  return selected;
+}
+
+function toPluginList(plugins: PluginChoice[]): string {
+  if (plugins.length === 0) return "";
+
+  return [
+    "plugins:",
+    ...plugins.map((plugin) => `  - ${OFFICIAL_PLUGINS[plugin].package}`),
+    "",
+  ].join("\n");
+}
+
+export function parsePluginChoices(value?: string): PluginChoice[] {
+  if (!value) return [];
+
+  const choices = new Set<PluginChoice>();
+  for (const rawChoice of value.split(",")) {
+    const choice = rawChoice.trim().toLowerCase();
+    if (!choice) continue;
+    if (choice === "tailwind" || choice === "shiki") {
+      choices.add(choice);
+      continue;
+    }
+    throw new OnboardingError(
+      `Unknown plugin "${rawChoice.trim()}". Available plugins: tailwind, shiki.`,
+    );
+  }
+
+  return [...choices];
 }
 
 function ensureDirSync(dirPath: string): void {
@@ -205,6 +293,7 @@ export async function runOnboarding(
   const description = options.description ??
     promptWithDefault("Site description", "A site built with Steno");
   const author = options.author ?? promptWithDefault("Author", "Your Name");
+  const plugins = options.plugins ?? selectPlugins();
   const _theme = options.theme ?? selectTheme();
 
   const contentDir = join(projectRoot, "content");
@@ -257,7 +346,7 @@ export async function runOnboarding(
     `title: ${toYamlString(title)}
 description: ${toYamlString(description)}
 author: ${toYamlString(author)}
-contentDir: "content"
+${toPluginList(plugins)}contentDir: "content"
 output: "dist"
 
 custom:
@@ -383,8 +472,8 @@ new Steno();
       denoJsonPath,
       `{
   "tasks": {
-    "build": "deno run -A jsr:@steno/steno build",
-    "dev": "deno run -A jsr:@steno/steno dev"
+    "build": "deno run --allow-read=content,content/.steno,themes --allow-write=dist,content/.steno jsr:@steno/steno build",
+    "dev": "deno run --allow-read=content,content/.steno,dist,themes --allow-write=dist,content/.steno --allow-net=127.0.0.1:8000 jsr:@steno/steno dev"
   },
   "imports": {
     "@steno/steno": "jsr:@steno/steno"

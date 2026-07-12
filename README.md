@@ -34,6 +34,7 @@ and theme-driven static websites.
 - Frontmatter support with `---` (YAML) and `+++` (TOML)
 - Theme layouts, components, and static assets
 - Scribe templates for layouts and components
+- Incremental page rebuilds with layered in-memory + on-disk cache
 - Live-reloading dev server on `http://localhost:8000`
 - CLI support for `build`, `dev`, `--config`, and `--help`
 - Root test harness with `deno task test`
@@ -53,7 +54,28 @@ For local development inside this repo, the current workflow is:
 ```sh
 deno task dev
 deno task test
+deno task bench
+deno task bench:check
+deno task bench:trends
 deno run -A jsr:@steno/steno build
+```
+
+For build-focused performance runs, use:
+
+```sh
+deno bench -A benchmarks/build.bench.ts
+```
+
+For per-page pipeline performance (frontmatter -> markdown -> Scribe), use:
+
+```sh
+deno bench -A benchmarks/pipeline.bench.ts
+```
+
+To enforce performance budgets in CI or locally:
+
+```sh
+deno task bench:check
 ```
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the repo layout and change

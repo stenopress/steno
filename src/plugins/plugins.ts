@@ -1,6 +1,37 @@
 import type { TokensList } from "marked";
 import type { StenoPlugin } from "../types.ts";
+/** Shared plugin contract used throughout the build pipeline. */
 export type { StenoPlugin } from "../types.ts";
+
+function isHookFunction(
+  value: unknown,
+): value is (...args: unknown[]) => unknown {
+  return typeof value === "function";
+}
+
+/** Returns true when a value satisfies the Steno plugin contract. */
+export function isStenoPlugin(plugin: unknown): plugin is StenoPlugin {
+  if (!plugin || typeof plugin !== "object") {
+    return false;
+  }
+
+  const candidate = plugin as Record<string, unknown>;
+  if (typeof candidate.name !== "string" || !candidate.name.trim()) {
+    return false;
+  }
+
+  const hookKeys = [
+    "transformAst",
+    "transformHtml",
+    "beforeBuild",
+    "afterPage",
+    "afterBuild",
+  ] as const;
+
+  return hookKeys.every((key) =>
+    candidate[key] === undefined || isHookFunction(candidate[key])
+  );
+}
 
 /**
  * Runs all registered AST transformation plugins on the given Markdown tokens.

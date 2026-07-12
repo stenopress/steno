@@ -238,6 +238,35 @@ export class Theme {
   }
 
   /**
+   * Returns deterministic theme data used in build cache signatures.
+   * Template contents are included so layout/component edits invalidate cached pages.
+   */
+  public getBuildSignatureData(): {
+    name: string;
+    version: string;
+    config: ThemeConfig;
+    layouts: Array<[string, string]>;
+    components: Array<[string, string]>;
+  } {
+    const layouts = Object.entries(this.themeData.layouts).sort((
+      [left],
+      [right],
+    ) => left.localeCompare(right));
+    const components = Object.entries(this.themeData.components ?? {}).sort((
+      [left],
+      [right],
+    ) => left.localeCompare(right));
+
+    return {
+      name: this.name,
+      version: this.version,
+      config: this.config,
+      layouts,
+      components,
+    };
+  }
+
+  /**
    * Copies all theme assets to the output directory (e.g., dist/assets/).
    *
    * @param outputDir - The root output/dist directory path.

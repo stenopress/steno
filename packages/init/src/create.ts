@@ -7,11 +7,15 @@
  */
 
 import { parseArgs } from "@std/cli/parse-args";
-import { OnboardingError, runOnboarding } from "./onboarding.ts";
+import {
+  OnboardingError,
+  parsePluginChoices,
+  runOnboarding,
+} from "./onboarding.ts";
 
 const flags = parseArgs(Deno.args, {
   boolean: ["force", "help"],
-  string: ["title", "description", "author"],
+  string: ["title", "description", "author", "plugins"],
   default: {
     force: false,
   },
@@ -32,6 +36,7 @@ Options:
   --title <text>        Site title (skips prompt)
   --description <text>  Site description (skips prompt)
   --author <text>       Author name (skips prompt)
+  --plugins <list>      Comma-separated official plugins: tailwind, shiki
   --force, -f           Overwrite existing files
   --help, -h            Show this help message
 `);
@@ -43,6 +48,7 @@ try {
     title: flags.title,
     description: flags.description,
     author: flags.author,
+    plugins: parsePluginChoices(flags.plugins),
     force: flags.force,
   });
 } catch (err) {

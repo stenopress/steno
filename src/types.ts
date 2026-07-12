@@ -1,8 +1,22 @@
+/** A plugin package and its optional initialization options. */
 export interface PluginEntry {
   package: string;
   options?: Record<string, unknown>;
 }
 
+/** Security controls for plugin module loading. */
+export interface PluginSecurityConfig {
+  /** Allow loading plugins from local `file://` module specifiers. */
+  allowLocal?: boolean;
+  /** Allow loading plugins from remote `http://` or `https://` URLs. */
+  allowRemoteHttp?: boolean;
+  /** Allow loading plugins from `node:` built-in module specifiers. */
+  allowNodeBuiltins?: boolean;
+  /** Allow plugins bundled by the active theme to run. */
+  allowThemePlugins?: boolean;
+}
+
+/** Configuration for sorting, filtering, and limiting a collection. */
 export interface CollectionConfig {
   sortBy?: string;
   order?: "asc" | "desc";
@@ -10,6 +24,14 @@ export interface CollectionConfig {
   filter?: Record<string, unknown>;
 }
 
+/** A navigation entry exposed to fallback documentation themes. */
+export interface NavigationNode {
+  title: string;
+  url?: string;
+  children?: NavigationNode[];
+}
+
+/** The top-level site configuration loaded from `content/.steno/config.*`. */
 export interface SiteConfig {
   title: string;
   description: string;
@@ -24,15 +46,19 @@ export interface SiteConfig {
     shortUrls?: boolean;
     theme?: string;
     themeConfig?: Record<string, unknown>;
+    pluginSecurity?: PluginSecurityConfig;
   };
+  navigation?: NavigationNode[];
 }
 
+/** A single field definition in a theme configuration schema. */
 export interface ThemeConfigField {
   type: "string" | "number" | "boolean";
   default?: unknown;
   description?: string;
 }
 
+/** A plugin hook contract used by Steno and themes. */
 export interface StenoPlugin {
   name: string;
   transformAst?: (tokens: import("marked").TokensList) =>
@@ -44,6 +70,7 @@ export interface StenoPlugin {
   afterBuild?: (config: SiteConfig) => void | Promise<void>;
 }
 
+/** The data contract for a loaded theme. */
 export interface StenoTheme {
   name: string;
   version: string;
@@ -55,6 +82,7 @@ export interface StenoTheme {
   plugins?: StenoPlugin[];
 }
 
+/** Lifecycle hooks exposed to Steno callers. */
 export interface StenoHooks {
   beforeBuild?: (config: SiteConfig) => void | Promise<void>;
   afterPage?: (page: { path: string; html: string }) => void | Promise<void>;

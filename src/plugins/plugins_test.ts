@@ -103,30 +103,35 @@ export function registerPluginTests(): void {
     name: "plugins: loadPlugins loads plugin from string entry",
     permissions: { read: true, write: true },
     fn: async () => {
-      const tempDir = Deno.makeTempDirSync();
-      const pluginPath = join(tempDir, "plugin.ts");
+      const originalError = console.error;
+      console.error = () => {};
+      try {
+        const tempDir = Deno.makeTempDirSync();
+        const pluginPath = join(tempDir, "plugin.ts");
 
-      Deno.writeTextFileSync(
-        pluginPath,
-        `
+        Deno.writeTextFileSync(
+          pluginPath,
+          `
         import type { StenoPlugin } from "${
-          import.meta.resolve("./plugins.ts")
-        }";
+            import.meta.resolve("./plugins.ts")
+          }";
         export default function(_options = {}): StenoPlugin {
           return { name: "test-plugin" };
         }
       `,
-      );
+        );
 
-      const result = await loadPlugins({
-        title: "",
-        description: "",
-        author: "",
-        plugins: [`file://${pluginPath}`],
-      });
+        const result = await loadPlugins({
+          title: "",
+          description: "",
+          author: "",
+          plugins: [`file://${pluginPath}`],
+        });
 
-      assertEquals(result.length, 1);
-      assertEquals(result[0].name, "test-plugin");
+        assertEquals(result.length, 0);
+      } finally {
+        console.error = originalError;
+      }
     },
   });
 
@@ -154,6 +159,11 @@ export function registerPluginTests(): void {
         title: "",
         description: "",
         author: "",
+        custom: {
+          pluginSecurity: {
+            allowLocal: true,
+          },
+        },
         plugins: [{
           package: `file://${pluginPath}`,
           options: { name: "my-plugin" },
@@ -180,6 +190,11 @@ export function registerPluginTests(): void {
         title: "",
         description: "",
         author: "",
+        custom: {
+          pluginSecurity: {
+            allowLocal: true,
+          },
+        },
         plugins: [`file://${pluginPath}`],
       });
 
@@ -192,15 +207,65 @@ export function registerPluginTests(): void {
     fn: async () => {
       const originalError = console.error;
       console.error = () => {};
+      try {
+        const result = await loadPlugins({
+          title: "",
+          description: "",
+          author: "",
+          plugins: ["jsr:@steno/this-does-not-exist-xyz"],
+        });
 
-      const result = await loadPlugins({
+        assertEquals(result.length, 0);
+      } finally {
+        console.error = originalError;
+      }
+    },
+  });
+
+  Deno.test({
+    name: "plugins: loadPlugins blocks remote http imports by default",
+    fn: async () => {
+      const originalError = console.error;
+      console.error = () => {};
+
+      let result: Awaited<ReturnType<typeof loadPlugins>>;
+      try {
+        result = await loadPlugins({
+          title: "",
+          description: "",
+          author: "",
+          plugins: ["https://example.com/plugin.ts"],
+        });
+      } finally {
+        console.error = originalError;
+      }
+      assertEquals(result.length, 0);
+    },
+  });
+
+  Deno.test({
+    name: "plugins: loadPlugins skips invalid plugin entry shapes",
+    fn: async () => {
+      const originalWarn = console.warn;
+      console.warn = () => {};
+
+      const malformedConfig = {
         title: "",
         description: "",
         author: "",
-        plugins: ["jsr:@steno/this-does-not-exist-xyz"],
-      });
+        plugins: [{ package: 123 }],
+      };
 
-      console.error = originalError;
+      let result: Awaited<ReturnType<typeof loadPlugins>>;
+      try {
+        result = await loadPlugins(
+          malformedConfig as unknown as Parameters<
+            typeof loadPlugins
+          >[0],
+        );
+      } finally {
+        console.warn = originalWarn;
+      }
       assertEquals(result.length, 0);
     },
   });
