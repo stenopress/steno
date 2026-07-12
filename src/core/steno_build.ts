@@ -21,8 +21,11 @@ export interface BuildState {
 }
 
 export interface BuildStateEntry {
+  relPath: string;
   outputPath: string;
   sourceText: string;
+  body?: string;
+  htmlContent?: string;
 }
 
 interface PersistentBuildCache {
@@ -30,6 +33,7 @@ interface PersistentBuildCache {
   signature: string;
   pages: Array<{
     fullPath: string;
+    relPath: string;
     outputPath: string;
     sourceText: string;
   }>;
@@ -57,6 +61,17 @@ function resolveOutputPath(
 function fileExists(filePath: string): boolean {
   try {
     return Deno.statSync(filePath).isFile;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function directoryExists(path: string): boolean {
+  try {
+    return Deno.statSync(path).isDirectory;
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
       return false;
@@ -130,6 +145,7 @@ function loadPersistentBuildCache(
 
     const typedEntry = entry as {
       fullPath?: unknown;
+      relPath?: unknown;
       outputPath?: unknown;
       sourceText?: unknown;
     };
@@ -144,6 +160,9 @@ function loadPersistentBuildCache(
 
     pages.push({
       fullPath: typedEntry.fullPath,
+      relPath: typeof typedEntry.relPath === "string"
+        ? typedEntry.relPath
+        : typedEntry.fullPath,
       outputPath: typedEntry.outputPath,
       sourceText: typedEntry.sourceText,
     });
@@ -162,6 +181,7 @@ function toBuildStatePageMap(
   const pageMap = new Map<string, BuildStateEntry>();
   for (const page of pages) {
     pageMap.set(page.fullPath, {
+      relPath: page.relPath,
       outputPath: page.outputPath,
       sourceText: page.sourceText,
     });
@@ -180,6 +200,7 @@ function savePersistentBuildCache(
     signature,
     pages: [...pages.entries()].map(([fullPath, page]) => ({
       fullPath,
+      relPath: page.relPath,
       outputPath: page.outputPath,
       sourceText: page.sourceText,
     })),
@@ -204,15 +225,10 @@ export async function buildSite({
   const shortUrls = config.custom?.shortUrls ?? false;
   const cachePath = resolveCachePath(contentDir);
   const pages = await collectMarkdownPages(contentDir);
-  const collections: CollectionMap = await buildCollections(
-    contentDir,
-    config,
-    plugins,
-    pages,
-  );
   const buildSignature = createBuildSignature(config, theme, plugins);
+  const usingInMemoryState = state?.signature === buildSignature;
   const previousPages = new Map<string, BuildStateEntry>();
-  if (state?.signature === buildSignature) {
+  if (usingInMemoryState) {
     for (const [fullPath, page] of state.pages.entries()) {
       previousPages.set(fullPath, page);
     }
@@ -226,9 +242,21 @@ export async function buildSite({
       }
     }
   }
+  let collections: CollectionMap | undefined;
+  const getCollections = async (): Promise<CollectionMap> => {
+    if (collections) return collections;
+    collections = await buildCollections(
+      contentDir,
+      config,
+      plugins,
+      pages,
+    );
+    return collections;
+  };
   const nextPages = new Map<string, BuildStateEntry>();
-
+  const outputDirExistedBeforeBuild = directoryExists(outputDir);
   ensureDirSync(outputDir);
+  const skipOutputExistenceCheck = usingInMemoryState && outputDirExistedBeforeBuild;
 
   const currentPagePaths = new Set(pages.map((page) => page.fullPath));
   for (const [fullPath, cachedPage] of previousPages.entries()) {
@@ -247,13 +275,21 @@ export async function buildSite({
     const needsRender = !cachedPage ||
       cachedPage.sourceText !== page.sourceText ||
       cachedPage.outputPath !== outputFilePath ||
-      !fileExists(outputFilePath);
+      (!skipOutputExistenceCheck && !fileExists(outputFilePath));
 
+    let htmlContent: string | undefined;
     if (needsRender) {
-      let tokens = marked.lexer(page.body);
-      tokens = await runAstTransforms(tokens, plugins);
-      let htmlContent = marked.parser(tokens);
-      htmlContent = await runHtmlTransforms(htmlContent, plugins);
+      htmlContent = cachedPage?.body === page.body &&
+          typeof cachedPage.htmlContent === "string"
+        ? cachedPage.htmlContent
+        : undefined;
+      if (htmlContent === undefined) {
+        let tokens = marked.lexer(page.body);
+        tokens = await runAstTransforms(tokens, plugins);
+        const parsedHtmlContent = marked.parser(tokens);
+        htmlContent = await runHtmlTransforms(parsedHtmlContent, plugins);
+      }
+      const finalHtmlContent = htmlContent;
 
       ensureDirSync(dirname(outputFilePath));
 
@@ -262,18 +298,18 @@ export async function buildSite({
         : "layout";
 
       const renderedContent = theme
-        ? theme.renderLayout(layoutName, htmlContent, {
+        ? theme.renderLayout(layoutName, finalHtmlContent, {
           site: { ...config },
           theme: {
             name: theme.name,
             version: theme.version,
             ...theme.config,
           },
-          collections,
+          collections: await getCollections(),
           title: page.frontmatter.title || config.title,
           ...page.frontmatter,
         })
-        : htmlContent;
+        : finalHtmlContent;
 
       Deno.writeTextFileSync(outputFilePath, renderedContent);
 
@@ -290,8 +326,11 @@ export async function buildSite({
     }
 
     nextPages.set(page.fullPath, {
+      relPath: page.relPath,
       outputPath: outputFilePath,
       sourceText: page.sourceText,
+      body: page.body,
+      htmlContent: needsRender ? htmlContent : cachedPage?.htmlContent,
     });
   }
 
