@@ -254,9 +254,7 @@ export async function buildSite({
     return collections;
   };
   const nextPages = new Map<string, BuildStateEntry>();
-  const outputDirExistedBeforeBuild = directoryExists(outputDir);
   ensureDirSync(outputDir);
-  const skipOutputExistenceCheck = usingInMemoryState && outputDirExistedBeforeBuild;
 
   const currentPagePaths = new Set(pages.map((page) => page.fullPath));
   for (const [fullPath, cachedPage] of previousPages.entries()) {
@@ -275,7 +273,7 @@ export async function buildSite({
     const needsRender = !cachedPage ||
       cachedPage.sourceText !== page.sourceText ||
       cachedPage.outputPath !== outputFilePath ||
-      (!skipOutputExistenceCheck && !fileExists(outputFilePath));
+      !fileExists(outputFilePath);
 
     let htmlContent: string | undefined;
     if (needsRender) {
