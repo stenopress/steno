@@ -4,5 +4,8 @@
   "license": "MIT",
   "exports": {
     ".": "./mod.ts"
+  },
+  "imports": {
+    "steno": "jsr:@steno/steno"
   }
 }
