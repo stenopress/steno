@@ -4,63 +4,17 @@
  * @module
  */
 
-import type {StenoTheme} from "@steno/steno";
+import type { StenoTheme } from "@steno/steno";
 
-/**
- * The minimal Steno theme object.
- */
+// fetch() works universally: file:// for local/bundled imports,
+// https:// for direct JSR imports (jsr:@steno/theme-minimal@x.y.z).
+const layout = await fetch(new URL("./layouts/layout.scr", import.meta.url))
+  .then((r) => r.text());
+
 const theme: StenoTheme = {
   name: "minimal",
-  version: "0.5.0",
-  layouts: {
-    layout: `<!doctype html>
-<html lang="en" style="
-  {#if theme.accent}--accent: { theme.accent };{/if}
-  {#if theme.accentHover}--accent-hover: { theme.accentHover };{/if}
-  {#if theme.accentFg}--accent-fg: { theme.accentFg };{/if}
-  {#if theme.accentDark}--accent-dark: { theme.accentDark };{/if}
-  {#if theme.accentDarkHover}--accent-dark-hover: { theme.accentDarkHover };{/if}
-  {#if theme.accentDarkFg}--accent-dark-fg: { theme.accentDarkFg };{/if}
-">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{#if title}{ title }{:else}{ site.title }{/if}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/assets/style.css" />
-  </head>
-  <body>
-    <header class="site-header">
-      <div class="header-container">
-        <a href="/" class="site-logo">{#if site.title}{ site.title }{:else}Home{/if}</a>
-        {#if site.navigation}
-          <nav class="site-nav">
-            <ul>
-              {#each site.navigation as item}
-                <li><a href={item.url}>{ item.title }</a></li>
-              {/each}
-            </ul>
-          </nav>
-        {/if}
-      </div>
-    </header>
-
-    <main class="site-content">
-      <article class="content-wrapper">
-        {@html content}
-      </article>
-    </main>
-
-    <footer class="site-footer">
-      <div class="footer-container">
-        <p>&copy; {#if site.title}{ site.title }{:else}Steno Site{/if}. Built with Steno.</p>
-      </div>
-    </footer>
-  </body>
-</html>`,
-  },
+  version: "1.0.0",
+  layouts: { layout },
   assets: {
     "style.css": new URL("./assets/style.css", import.meta.url),
   },
