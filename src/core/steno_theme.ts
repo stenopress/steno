@@ -4,11 +4,11 @@ import { isAbsolute, join } from "@std/path";
 
 const bundledThemeSources: Record<string, string> = {
   "jsr:@steno/theme-minimal": new URL(
-    "../../packages/theme-minimal/mod.ts",
+    "../../packages/theme-minimal",
     import.meta.url,
   ).pathname,
   "jsr:@steno/theme-docs-minimal": new URL(
-    "../../packages/theme-docs-minimal/mod.ts",
+    "../../packages/theme-docs-minimal",
     import.meta.url,
   ).pathname,
 };
@@ -21,11 +21,24 @@ async function loadBundledTheme(
   if (!localPath) return;
 
   try {
-    if (!(await Deno.stat(localPath)).isFile) return;
+    const stat = await Deno.stat(localPath);
+    if (stat.isDirectory) {
+      for (const themeFile of ["theme.yaml", "theme.yml"]) {
+        try {
+          if ((await Deno.stat(join(localPath, themeFile))).isFile) {
+            return Theme.loadFromDirectory(localPath, themeConfig);
+          }
+        } catch {
+          // continue
+        }
+      }
+      return;
+    }
+
     const normalizedPath = localPath.replace(/\\/g, "/");
     const fileUrl = normalizedPath.startsWith("/")
-        ? `file://${encodeURI(normalizedPath)}`
-        : `file:///${encodeURI(normalizedPath)}`;
+      ? `file://${encodeURI(normalizedPath)}`
+      : `file:///${encodeURI(normalizedPath)}`;
     const themeModule = await import(fileUrl);
     const themeData = (themeModule.default || themeModule) as StenoTheme;
     return new Theme(themeData, themeConfig);
