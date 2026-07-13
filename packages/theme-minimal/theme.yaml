@@ -1,0 +1,28 @@
+name: "minimal"
+version: "1.0.0"
+defaultConfig:
+  accent: "hsl(250, 84%, 54%)"
+  accentHover: "hsl(250, 84%, 48%)"
+  accentFg: "#ffffff"
+  accentDark: "hsl(250, 95%, 70%)"
+  accentDarkHover: "hsl(250, 95%, 76%)"
+  accentDarkFg: "#09090b"
+configSchema:
+  accent:
+    type: "string"
+    default: "hsl(250, 84%, 54%)"
+  accentHover:
+    type: "string"
+    default: "hsl(250, 84%, 48%)"
+  accentFg:
+    type: "string"
+    default: "#ffffff"
+  accentDark:
+    type: "string"
+    default: "hsl(250, 95%, 70%)"
+  accentDarkHover:
+    type: "string"
+    default: "hsl(250, 95%, 76%)"
+  accentDarkFg:
+    type: "string"
+    default: "#09090b"
