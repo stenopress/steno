@@ -4,7 +4,7 @@
  * @module
  */
 
-import type { StenoTheme } from "steno";
+import type { StenoTheme } from "@steno/steno";
 
 const themeDir: URL = new URL(".", import.meta.url);
 

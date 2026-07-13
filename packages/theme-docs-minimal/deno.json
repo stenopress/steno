@@ -6,7 +6,6 @@
     ".": "./mod.ts"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@0.6.0",
-    "steno": "jsr:@steno/steno"
+    "@steno/steno": "jsr:@steno/steno@^0.6.0"
   }
 }
