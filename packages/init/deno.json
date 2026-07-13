@@ -1,6 +1,6 @@
 {
   "name": "@steno/init",
-  "version": "0.3.0",
+  "version": "0.7.0",
   "description": "Interactive scaffolder for new Steno static-site projects.",
   "exports": {
     ".": "./mod.ts",
