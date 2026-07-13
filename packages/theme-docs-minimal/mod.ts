@@ -1,7 +1,16 @@
+/**
+ * This module exports the minimal documentation theme for Steno.
+ *
+ * @module
+ */
+
 import type { StenoTheme } from "steno";
 
 const themeDir: URL = new URL(".", import.meta.url);
 
+/**
+ * The minimal documentation Steno theme object.
+ */
 const theme: StenoTheme = {
     name: "docs-minimal",
     version: "0.5.0",
