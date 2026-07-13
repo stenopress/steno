@@ -7,7 +7,7 @@
  * @module
  */
 
-import { join, relative } from "@std/path";
+import {join} from "@std/path";
 
 /** Options that can be passed directly to {@link runOnboarding}. When a field
  * is omitted the user is prompted interactively. */
@@ -16,11 +16,28 @@ export interface ProjectOptions {
   description?: string;
   author?: string;
   plugins?: PluginChoice[];
-  /** Which theme to scaffold. Only "starter" is currently available. */
-  theme?: "starter";
-  /** Skip the overwrite guard and clobber existing files. */
+  theme?: ThemeChoice;
   force?: boolean;
 }
+
+export type ThemeChoice = "minimal" | "docs-minimal";
+
+const AVAILABLE_THEMES: Record<ThemeChoice, {
+  label: string;
+  description: string;
+  package: string;
+}> = {
+  "minimal": {
+    label: "Minimal",
+    description: "A clean, simple theme for personal sites and blogs",
+    package: "jsr:@steno/theme-minimal",
+  },
+  "docs-minimal": {
+    label: "Docs Minimal",
+    description: "A minimal theme optimised for documentation sites",
+    package: "jsr:@steno/theme-docs-minimal",
+  },
+};
 
 export type PluginChoice = "tailwind" | "shiki";
 
@@ -147,36 +164,41 @@ function promptYesNo(label: string, defaultValue = false): boolean {
   }
 }
 
-function selectTheme(): "starter" {
+function selectTheme(): ThemeChoice {
   heading("Choose a Theme");
   console.log();
-  console.log(
-    `  ${paint(c.purple, "1)")} Starter Theme  ${
-      paint(c.green, "✔ available")
-    }`,
-  );
-  console.log(
-    `  ${paint(c.gray, "2)")} ${paint(c.dim, "More themes    coming soon…")}`,
-  );
+
+  const entries = Object.entries(AVAILABLE_THEMES) as [
+    ThemeChoice,
+    typeof AVAILABLE_THEMES[ThemeChoice],
+  ][];
+
+  entries.forEach(([, theme], i) => {
+    console.log(
+      `  ${paint(c.purple, `${i + 1})`)} ${paint(c.whiteBold, theme.label)}`,
+    );
+    console.log(
+      `     ${paint(c.gray, theme.description)}`,
+    );
+    console.log(
+      `     ${paint(c.gray, theme.package)}`,
+    );
+    console.log();
+  });
 
   while (true) {
     const arrow = paint(c.purple, "›");
     const selection =
-      prompt(`\n  ${arrow} Select theme ${paint(c.gray, "[1]")}`)?.trim() ||
-      "1";
+      prompt(`  ${arrow} Select theme ${paint(c.gray, "[1]")}`)?.trim() || "1";
 
-    if (selection === "1") return "starter";
-    if (selection === "2") {
-      console.log(
-        paint(
-          c.yellow,
-          "\n  ⚠  That theme isn't available yet — please pick Starter (1).",
-        ),
-      );
-      continue;
+    const index = parseInt(selection) - 1;
+    if (index >= 0 && index < entries.length) {
+      return entries[index][0];
     }
 
-    console.log(paint(c.yellow, "\n  ⚠  Invalid choice. Enter 1 to continue."));
+    console.log(
+      paint(c.yellow, `\n  ⚠  Invalid choice. Enter 1 or 2.`),
+    );
   }
 }
 
@@ -294,33 +316,17 @@ export async function runOnboarding(
     promptWithDefault("Site description", "A site built with Steno");
   const author = options.author ?? promptWithDefault("Author", "Your Name");
   const plugins = options.plugins ?? selectPlugins();
-  const _theme = options.theme ?? selectTheme();
 
   const contentDir = join(projectRoot, "content");
   const stenoConfigDir = join(contentDir, ".steno");
   const configPath = join(stenoConfigDir, "config.yml");
   const homePagePath = join(contentDir, "index.md");
-  const themeDir = join(projectRoot, "themes", "starter");
-  const themeLayoutsDir = join(themeDir, "layouts");
-  const themeComponentsDir = join(themeDir, "components");
-  const themeAssetsDir = join(themeDir, "assets");
-  const themeConfigPath = join(themeDir, "theme.yaml");
-  const layoutPath = join(themeLayoutsDir, "layout.scr");
-  const headerPath = join(themeComponentsDir, "header.scr");
-  const footerPath = join(themeComponentsDir, "footer.scr");
-  const stylesheetPath = join(themeAssetsDir, "style.css");
-  const entryPath = join(projectRoot, "mod.ts");
   const denoJsonPath = join(projectRoot, "deno.json");
 
   if (!options.force) {
     checkOverwrite([
       configPath,
       homePagePath,
-      themeConfigPath,
-      layoutPath,
-      headerPath,
-      footerPath,
-      stylesheetPath,
     ]);
   }
 
@@ -330,17 +336,15 @@ export async function runOnboarding(
   for (
     const dir of [
       stenoConfigDir,
-      themeLayoutsDir,
-      themeComponentsDir,
-      themeAssetsDir,
     ]
   ) {
     ensureDirSync(dir);
   }
 
-  const themeRelativePath = `./${relative(projectRoot, themeDir)}`;
-
   // config.yml
+  const selectedTheme = options.theme ?? selectTheme();
+  const themePackage = AVAILABLE_THEMES[selectedTheme].package;
+
   Deno.writeTextFileSync(
     configPath,
     `title: ${toYamlString(title)}
@@ -351,7 +355,7 @@ output: "dist"
 
 custom:
   shortUrls: true
-  theme: ${toYamlString(themeRelativePath)}
+  theme: ${toYamlString(themePackage)}
   themeConfig:
     author: ${toYamlString(author)}
 `,
@@ -371,99 +375,6 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
 `,
   );
 
-  // theme.yaml
-  Deno.writeTextFileSync(
-    themeConfigPath,
-    `name: "Starter Theme"
-version: "1.0.0"
-components:
-  header: "components/header.scr"
-  footer: "components/footer.scr"
-defaultConfig:
-  author: ${toYamlString(author)}
-`,
-  );
-
-  // layouts/layout.scr
-  Deno.writeTextFileSync(
-    layoutPath,
-    `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <link rel="stylesheet" href="/assets/style.css" />
-  </head>
-  <body>
-    <Header />
-    <main>
-      {@html content}
-    </main>
-    <Footer />
-  </body>
-</html>
-`,
-  );
-
-  // components/header.scr
-  Deno.writeTextFileSync(
-    headerPath,
-    `<header>
-  <h1>{site.title}</h1>
-  <p>{site.description}</p>
-</header>
-`,
-  );
-
-  // components/footer.scr
-  Deno.writeTextFileSync(
-    footerPath,
-    `<footer>
-  <small>Built with <a href="https://jsr.io/@steno/steno">Steno</a> by {theme.author}</small>
-</footer>
-`,
-  );
-
-  // assets/style.css
-  Deno.writeTextFileSync(
-    stylesheetPath,
-    `:root {
-  color-scheme: light dark;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-body {
-  margin: 0;
-  padding: 2rem;
-  max-width: 800px;
-  margin-inline: auto;
-  line-height: 1.6;
-}
-
-header,
-footer {
-  margin-block: 1.5rem;
-}
-
-main {
-  margin-block: 2rem;
-}
-`,
-  );
-
-  // mod.ts — only when not already present
-  try {
-    Deno.statSync(entryPath);
-  } catch {
-    Deno.writeTextFileSync(
-      entryPath,
-      `import { Steno } from "jsr:@steno/steno";
-new Steno();
-`,
-    );
-  }
-
   // deno.json — only when not already present
   try {
     Deno.statSync(denoJsonPath);
@@ -472,8 +383,8 @@ new Steno();
       denoJsonPath,
       `{
   "tasks": {
-    "build": "deno run --allow-read=content,content/.steno,themes --allow-write=dist,content/.steno jsr:@steno/steno build",
-    "dev": "deno run --allow-read=content,content/.steno,dist,themes --allow-write=dist,content/.steno --allow-net=127.0.0.1:8000 jsr:@steno/steno dev"
+    "build": "deno run --allow-read=content,content/.steno --allow-write=dist,content/.steno jsr:@steno/steno build",
+    "dev": "deno run --allow-read=content,content/.steno,dist --allow-write=dist,content/.steno --allow-net=127.0.0.1:8000 jsr:@steno/steno dev"
   },
   "imports": {
     "@steno/steno": "jsr:@steno/steno"
@@ -491,7 +402,9 @@ new Steno();
   console.log(
     `  ${paint(c.green, "✔")} Content  → ${paint(c.gray, homePagePath)}`,
   );
-  console.log(`  ${paint(c.green, "✔")} Theme    → ${paint(c.gray, themeDir)}`);
+  console.log(
+    `  ${paint(c.green, "✔")} Theme    → ${paint(c.gray, themePackage)}`,
+  );
 
   console.log();
   console.log(

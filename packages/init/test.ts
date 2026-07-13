@@ -1,6 +1,6 @@
-import { assertEquals, assertMatch, assertRejects } from "@std/assert";
-import { join } from "@std/path";
-import { OnboardingError, runOnboarding } from "./src/onboarding.ts";
+import {assertEquals, assertMatch, assertRejects} from "@std/assert";
+import {join} from "@std/path";
+import {OnboardingError, runOnboarding} from "./src/onboarding.ts";
 
 // helpers
 
@@ -13,7 +13,7 @@ async function scaffold(
     description: "A test",
     author: "Tester",
     plugins: [],
-    theme: "starter",
+    theme: "minimal",
     ...opts,
   });
   return dir;
@@ -32,7 +32,7 @@ function fileExists(dir: string, ...segments: string[]): boolean {
   }
 }
 
-// tetsd
+// tests
 
 Deno.test("onboarding: scaffolds all expected files", async () => {
   const dir = await scaffold();
@@ -40,12 +40,6 @@ Deno.test("onboarding: scaffolds all expected files", async () => {
   const expected = [
     ["content", ".steno", "config.yml"],
     ["content", "index.md"],
-    ["themes", "starter", "theme.yaml"],
-    ["themes", "starter", "layouts", "layout.scr"],
-    ["themes", "starter", "components", "header.scr"],
-    ["themes", "starter", "components", "footer.scr"],
-    ["themes", "starter", "assets", "style.css"],
-    ["mod.ts"],
     ["deno.json"],
   ];
 
@@ -57,6 +51,20 @@ Deno.test("onboarding: scaffolds all expected files", async () => {
     );
   }
 
+  // local theme dir should NOT be created anymore
+  assertEquals(
+    fileExists(dir, "themes"),
+    false,
+    "themes/ directory should not be scaffolded",
+  );
+
+  // mod.ts should NOT be created anymore
+  assertEquals(
+    fileExists(dir, "mod.ts"),
+    false,
+    "mod.ts should not be scaffolded",
+  );
+
   await Deno.remove(dir, { recursive: true });
 });
 
@@ -66,7 +74,24 @@ Deno.test("onboarding: config.yml contains correct title/author", async () => {
   const config = readFile(dir, "content", ".steno", "config.yml");
   assertMatch(config, /title: "My Blog"/);
   assertMatch(config, /author: "Alice"/);
-  assertMatch(config, /theme: "\.\/themes\/starter"/);
+
+  await Deno.remove(dir, { recursive: true });
+});
+
+Deno.test("onboarding: config.yml uses JSR theme package for minimal", async () => {
+  const dir = await scaffold({ theme: "minimal" });
+
+  const config = readFile(dir, "content", ".steno", "config.yml");
+  assertMatch(config, /theme: "jsr:@steno\/theme-minimal"/);
+
+  await Deno.remove(dir, { recursive: true });
+});
+
+Deno.test("onboarding: config.yml uses JSR theme package for docs-minimal", async () => {
+  const dir = await scaffold({ theme: "docs-minimal" });
+
+  const config = readFile(dir, "content", ".steno", "config.yml");
+  assertMatch(config, /theme: "jsr:@steno\/theme-docs-minimal"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -77,29 +102,6 @@ Deno.test("onboarding: index.md contains site title", async () => {
   const index = readFile(dir, "content", "index.md");
   assertMatch(index, /# Welcome to Hello World/);
   assertMatch(index, /layout: layout/);
-
-  await Deno.remove(dir, { recursive: true });
-});
-
-Deno.test("onboarding: layout.scr is a valid HTML shell", async () => {
-  const dir = await scaffold();
-
-  const layout = readFile(dir, "themes", "starter", "layouts", "layout.scr");
-  assertMatch(layout, /<!doctype html>/);
-  assertMatch(layout, /<Header \/>/);
-  assertMatch(layout, /<Footer \/>/);
-  assertMatch(layout, /\{@html content\}/);
-
-  await Deno.remove(dir, { recursive: true });
-});
-
-Deno.test("onboarding: theme.yaml has correct name and components", async () => {
-  const dir = await scaffold();
-
-  const theme = readFile(dir, "themes", "starter", "theme.yaml");
-  assertMatch(theme, /name: "Starter Theme"/);
-  assertMatch(theme, /header: "components\/header\.scr"/);
-  assertMatch(theme, /footer: "components\/footer\.scr"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -126,6 +128,15 @@ Deno.test("onboarding: config.yml includes selected plugins", async () => {
   await Deno.remove(dir, { recursive: true });
 });
 
+Deno.test("onboarding: config.yml has no plugins section when none selected", async () => {
+  const dir = await scaffold({ plugins: [] });
+
+  const config = readFile(dir, "content", ".steno", "config.yml");
+  assertEquals(config.includes("plugins:"), false);
+
+  await Deno.remove(dir, { recursive: true });
+});
+
 Deno.test("onboarding: throws OnboardingError when files exist (no force)", async () => {
   const dir = await scaffold();
 
@@ -136,7 +147,7 @@ Deno.test("onboarding: throws OnboardingError when files exist (no force)", asyn
         description: "Again",
         author: "Again",
         plugins: [],
-        theme: "starter",
+        theme: "minimal",
       }),
     OnboardingError,
     "already exist",
@@ -148,13 +159,12 @@ Deno.test("onboarding: throws OnboardingError when files exist (no force)", asyn
 Deno.test("onboarding: --force allows overwrite of existing files", async () => {
   const dir = await scaffold();
 
-  // should not throw
   await runOnboarding(dir, {
     title: "Overwritten",
     description: "Overwrite test",
     author: "Bob",
     plugins: [],
-    theme: "starter",
+    theme: "minimal",
     force: true,
   });
 
@@ -164,10 +174,9 @@ Deno.test("onboarding: --force allows overwrite of existing files", async () => 
   await Deno.remove(dir, { recursive: true });
 });
 
-Deno.test("onboarding: does not overwrite existing mod.ts or deno.json", async () => {
+Deno.test("onboarding: does not overwrite existing deno.json", async () => {
   const dir = await Deno.makeTempDir({ prefix: "steno_init_preexist_" });
 
-  Deno.writeTextFileSync(join(dir, "mod.ts"), "// custom entry\n");
   Deno.writeTextFileSync(join(dir, "deno.json"), '{"custom":true}\n');
 
   await runOnboarding(dir, {
@@ -175,10 +184,9 @@ Deno.test("onboarding: does not overwrite existing mod.ts or deno.json", async (
     description: "D",
     author: "A",
     plugins: [],
-    theme: "starter",
+    theme: "minimal",
   });
 
-  assertEquals(readFile(dir, "mod.ts"), "// custom entry\n");
   assertEquals(readFile(dir, "deno.json"), '{"custom":true}\n');
 
   await Deno.remove(dir, { recursive: true });
