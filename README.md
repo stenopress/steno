@@ -8,8 +8,8 @@
   <p>A fast Deno-powered static site generator.</p>
   <small>Sponsored by <a href="https://tuta.com">Tuta</a></small>
 <br><br>
-  
-  [![JSR](https://jsr.io/badges/@steno/steno)](https://jsr.io/@steno/steno)
+
+[![JSR](https://jsr.io/badges/@steno/steno)](https://jsr.io/@steno/steno)
 [![JSR Score](https://jsr.io/badges/@steno/steno/score)](https://jsr.io/@steno/steno)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/stenopress/steno/ci.yml)
 
@@ -41,7 +41,8 @@ and theme-driven static websites.
 - Theme layouts, components, and static assets
 - Scribe templates for layouts and components
 - Incremental page rebuilds with layered in-memory + on-disk cache
-- Live-reloading dev server on `http://localhost:8000`
+- Live-reloading dev server on `http://localhost:5735` (auto-falls back to the
+  next free port)
 - CLI support for `build`, `dev`, `--config`, and `--help`
 - Root test harness with `deno task test`
 
@@ -176,6 +177,7 @@ Supported top-level fields used by the current runtime include:
 - `contentDir`
 - `output`
 - `custom.shortUrls`
+- `custom.devPort`
 - `custom.theme`
 - `custom.themeConfig`
 - `custom.globals`
@@ -194,6 +196,7 @@ head:
     content: /favicon.ico
 
 custom:
+  devPort: 5735
   shortUrls: true
   theme: "./test/test-theme"
   themeConfig:
