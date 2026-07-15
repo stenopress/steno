@@ -7,6 +7,7 @@ import { ensureDirSync } from "../utils/fileUtils.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { Theme } from "../theme/theme.ts";
 import { resolveMarkdownScanIgnorePaths, resolveOutputPath } from "./path_utils.ts";
+import { loadDataFiles } from "./data.ts";
 
 type BuildContext = {
   config: SiteConfig;
@@ -195,6 +196,7 @@ export async function buildSite({
 
   const contentDir = config.contentDir || "content";
   const outputDir = config.output || "dist";
+  const data = loadDataFiles(contentDir);
   const shortUrls = config.custom?.shortUrls ?? false;
   const cachePath = resolveCachePath(contentDir);
   const scannedPages = pages ?? await collectMarkdownPages(
@@ -280,6 +282,7 @@ export async function buildSite({
             ...theme.config,
           },
           collections: await getCollections(),
+          data,
           title: page.frontmatter.title || page.title || config.title,
           ...page.frontmatter,
         })
