@@ -7,6 +7,12 @@
   <br><br>
   <p>A fast Deno-powered static site generator.</p>
   <small>Sponsored by <a href="https://tuta.com">Tuta</a></small>
+<br><br>
+  
+  [![JSR](https://jsr.io/badges/@steno/steno)](https://jsr.io/@steno/steno)
+[![JSR Score](https://jsr.io/badges/@steno/steno/score)](https://jsr.io/@steno/steno)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/stenopress/steno/ci.yml)
+
 </div>
 <br><br>
 
