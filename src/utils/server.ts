@@ -91,14 +91,15 @@ export function createDevServerHandler(outputDir: string): {
 export async function startDevServer(
   outputDir: string,
   buildFn: () => void | Promise<void>,
-  watchDir: string = "content",
+  watchDirs: string | string[] = "content",
   ignoredPaths: string[] = [],
 ): Promise<void> {
   const { handler, broadcastReload } = createDevServerHandler(outputDir);
 
   await buildFn();
 
-  const watcher = Deno.watchFs([watchDir]);
+  const dirsToWatch = Array.isArray(watchDirs) ? watchDirs : [watchDirs];
+  const watcher = Deno.watchFs(dirsToWatch);
 
   Deno.serve({ port: 8000, handler });
 
