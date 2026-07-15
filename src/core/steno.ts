@@ -79,6 +79,7 @@ export class Steno {
       hooks: this.hooks,
       state: this.buildState,
       pages: project.pages,
+      dev: false,
     });
   }
 
@@ -89,10 +90,26 @@ export class Steno {
     const outputDir = project.config.output || "dist";
     await startDevServer(
       outputDir,
-      () => this.build(),
+      () => this.devBuild(),
       [contentDir, getDataDir(contentDir)],
       [join(contentDir, ".steno"), outputDir],
     );
+  }
+
+  private async devBuild(): Promise<void> {
+    const project = await this.projectPromise;
+    await this.themeLoadingPromise;
+    await this.pluginsLoadingPromise;
+
+    await buildSite({
+      config: project.config,
+      theme: this.theme,
+      plugins: this.plugins,
+      hooks: this.hooks,
+      state: this.buildState,
+      pages: project.pages,
+      dev: true,
+    });
   }
 
   /** Triggers the initial build unless dev mode is active. */
