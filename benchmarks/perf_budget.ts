@@ -59,10 +59,14 @@ for (const [name, budgetNs] of Object.entries(BENCH_BUDGETS_NS)) {
   }
   if (metrics.avg > budgetNs) {
     failures.push(
-      `${name}: avg ${formatNs(metrics.avg)} exceeds budget ${formatNs(budgetNs)}`,
+      `${name}: avg ${formatNs(metrics.avg)} exceeds budget ${
+        formatNs(budgetNs)
+      }`,
     );
   } else {
-    console.log(`${name}: ${formatNs(metrics.avg)} (budget ${formatNs(budgetNs)})`);
+    console.log(
+      `${name}: ${formatNs(metrics.avg)} (budget ${formatNs(budgetNs)})`,
+    );
   }
 }
 

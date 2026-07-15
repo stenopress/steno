@@ -70,6 +70,8 @@ Deno.bench(
   },
 );
 
-Deno.bench("pipeline (large page parse->markdown->scribe)", { group: "pipeline" }, () => {
+Deno.bench("pipeline (large page parse->markdown->scribe)", {
+  group: "pipeline",
+}, () => {
   runPagePipeline(largePageTemplate);
 });

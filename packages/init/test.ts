@@ -1,6 +1,6 @@
-import {assertEquals, assertMatch, assertRejects} from "@std/assert";
-import {join} from "@std/path";
-import {OnboardingError, runOnboarding} from "./src/onboarding.ts";
+import { assertEquals, assertMatch, assertRejects } from "@std/assert";
+import { join } from "@std/path";
+import { OnboardingError, runOnboarding } from "./src/onboarding.ts";
 
 // helpers
 

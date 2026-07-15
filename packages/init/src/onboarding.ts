@@ -7,7 +7,7 @@
  * @module
  */
 
-import {join} from "@std/path";
+import { join } from "@std/path";
 
 /** Options that can be passed directly to {@link runOnboarding}. When a field
  * is omitted the user is prompted interactively. */

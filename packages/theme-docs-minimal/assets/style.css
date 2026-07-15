@@ -309,7 +309,8 @@ table {
   font-size: 0.95rem;
 }
 
-th, td {
+th,
+td {
   padding: 0.75rem 1rem;
   text-align: left;
   border-bottom: 1px solid var(--border-color);
@@ -400,7 +401,9 @@ fieldset {
   background-color: rgba(0, 0, 0, 0.01);
 }
 @media (prefers-color-scheme: dark) {
-  fieldset { background-color: rgba(255, 255, 255, 0.01); }
+  fieldset {
+    background-color: rgba(255, 255, 255, 0.01);
+  }
 }
 
 legend {
@@ -621,7 +624,6 @@ input[type="range"]:hover::-webkit-slider-thumb {
   background-color: var(--accent-hover);
 }
 
-
 /* ==========================================================================
    STRUCTURAL LAYOUT TAGS
    ========================================================================== */
@@ -636,7 +638,10 @@ aside {
   font-size: 0.95rem;
 }
 
-aside h1, aside h2, aside h3, aside h4 {
+aside h1,
+aside h2,
+aside h3,
+aside h4 {
   margin-top: 0 !important;
   margin-bottom: 0.5rem;
   font-size: 1.2rem;
@@ -715,7 +720,8 @@ dialog {
   margin: auto;
   position: fixed;
   inset: 0;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0,
+    0, 0.04);
 }
 
 dialog::backdrop {
@@ -723,11 +729,14 @@ dialog::backdrop {
   backdrop-filter: blur(6px);
 }
 @media (prefers-color-scheme: dark) {
-  dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+  dialog::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+  }
 }
 
 /* Progress & Meters */
-progress, meter {
+progress,
+meter {
   appearance: none;
   width: 100%;
   height: 8px;
@@ -738,9 +747,12 @@ progress, meter {
   margin: 0.5rem 0 1rem 0;
 }
 
-progress::-webkit-progress-bar { background-color: var(--border-color); }
-progress::-webkit-progress-value { background-color: var(--accent); }
-
+progress::-webkit-progress-bar {
+  background-color: var(--border-color);
+}
+progress::-webkit-progress-value {
+  background-color: var(--accent);
+}
 
 /* ==========================================================================
    COMPLEX LISTS & DEFINITIONS
@@ -766,9 +778,16 @@ dd {
   margin-bottom: 0.75rem;
   padding-left: 0.5rem;
 }
-dd:last-child { margin-bottom: 0; }
+dd:last-child {
+  margin-bottom: 0;
+}
 
-img, video, canvas, iframe, embed, object {
+img,
+video,
+canvas,
+iframe,
+embed,
+object {
   display: block;
   max-width: 100%;
   height: auto;
@@ -778,7 +797,10 @@ img, video, canvas, iframe, embed, object {
   margin: 1.5rem 0;
 }
 
-img, video { border: none; } /* Clear wrapper borders for clean images */
+img,
+video {
+  border: none;
+} /* Clear wrapper borders for clean images */
 
 figure {
   margin: 1.5rem 0;
@@ -788,7 +810,11 @@ figure {
   border-radius: var(--radius-lg);
 }
 
-figure img, figure video { border-radius: var(--radius-md); margin: 0; }
+figure img,
+figure video {
+  border-radius: var(--radius-md);
+  margin: 0;
+}
 
 figcaption {
   font-size: 0.85rem;
@@ -804,7 +830,6 @@ hr {
   background-color: var(--border-color);
   margin: 2.5rem 0;
 }
-
 
 /* ==========================================================================
    MICRO-TYPOGRAPHY & EDITORIAL INLINES
@@ -828,12 +853,14 @@ dfn {
   color: var(--text-main);
 }
 
-del, s {
+del,
+s {
   color: var(--text-muted);
   opacity: 0.7;
 }
 
-ins, u {
+ins,
+u {
   text-decoration: none;
   border-bottom: 2px solid var(--accent);
 }
@@ -861,20 +888,48 @@ abbr[title] {
   cursor: help;
 }
 
-small { font-size: 0.8em; color: var(--text-muted); }
+small {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
 
-sub, sup { font-size: 0.75em; line-height: 0; position: relative; vertical-align: baseline; }
-sup { top: -0.5em; }
-sub { bottom: -0.25em; }
+sub,
+sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+sup {
+  top: -0.5em;
+}
+sub {
+  bottom: -0.25em;
+}
 
-bdi, bdo { unicode-bidi: isolate; }
+bdi,
+bdo {
+  unicode-bidi: isolate;
+}
 
-cite { font-style: italic; color: var(--text-muted); }
-cite::before { content: "— "; }
+cite {
+  font-style: italic;
+  color: var(--text-muted);
+}
+cite::before {
+  content: "— ";
+}
 
-q { font-style: italic; color: var(--text-main); }
-q::before { content: "“"; }
-q::after { content: "”"; }
+q {
+  font-style: italic;
+  color: var(--text-main);
+}
+q::before {
+  content: "“";
+}
+q::after {
+  content: "”";
+}
 
 var {
   font-family: var(--font-mono);
@@ -895,7 +950,9 @@ samp {
   border-radius: var(--radius-sm);
 }
 
-time { font-variant-numeric: tabular-nums; }
+time {
+  font-variant-numeric: tabular-nums;
+}
 
 ::selection {
   background-color: var(--accent);

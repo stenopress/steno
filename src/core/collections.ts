@@ -96,7 +96,9 @@ export async function collectMarkdownPages(
   };
 
   await scanDirectory(contentDir);
-  markdownFiles.sort((left, right) => left.relPath.localeCompare(right.relPath));
+  markdownFiles.sort((left, right) =>
+    left.relPath.localeCompare(right.relPath)
+  );
   return await mapWithConcurrency(
     markdownFiles,
     FILE_READ_CONCURRENCY,

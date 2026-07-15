@@ -98,7 +98,9 @@ Steps.
         pages: project.pages,
       });
 
-      const indexHtml = Deno.readTextFileSync(join(tempDir, "dist", "index.html"));
+      const indexHtml = Deno.readTextFileSync(
+        join(tempDir, "dist", "index.html"),
+      );
       assertStringIncludes(indexHtml, "Docs Home");
       assertStringIncludes(indexHtml, "Guide");
       assertStringIncludes(indexHtml, "Setup");
