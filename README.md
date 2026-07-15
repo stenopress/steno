@@ -178,6 +178,7 @@ Supported top-level fields used by the current runtime include:
 - `custom.shortUrls`
 - `custom.theme`
 - `custom.themeConfig`
+- `custom.globals`
 
 Example:
 
@@ -197,6 +198,9 @@ custom:
   theme: "./test/test-theme"
   themeConfig:
     author: "Your Name"
+  globals:
+    company: "Steno"
+    tagline: "Build fast"
 ```
 
 ### Notes
@@ -269,6 +273,7 @@ Common patterns:
 
 Layouts receive a context object containing:
 
+- `globals` — values from `custom.globals` in site config
 - `site` — the site config
 - `theme` — theme metadata plus merged theme config
 - `content` — rendered Markdown HTML
