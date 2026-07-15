@@ -1,6 +1,8 @@
 import { join } from "@std/path";
 import { isPathInsideOrEqual } from "../core/path_utils.ts";
 
+export const DEFAULT_DEV_PORT = 5735;
+
 const reloadScript = `
   <script>
     if (typeof(EventSource) !== "undefined") {
@@ -15,6 +17,58 @@ const reloadScript = `
 `;
 
 const textEncoder = new TextEncoder();
+const MAX_PORT = 65535;
+
+type PortAvailabilityCheck = (port: number) => Promise<boolean>;
+
+async function isPortAvailable(
+  port: number,
+  hostname: string,
+): Promise<boolean> {
+  let listener: Deno.Listener | undefined;
+  try {
+    listener = Deno.listen({ hostname, port });
+    return true;
+  } catch (error) {
+    if (error instanceof Deno.errors.AddrInUse) {
+      return false;
+    }
+    throw error;
+  } finally {
+    listener?.close();
+  }
+}
+
+/** Finds the first available TCP port starting at the requested port. */
+export async function findAvailablePort(
+  startPort: number,
+  options: {
+    hostname?: string;
+    maxPort?: number;
+    isPortAvailable?: PortAvailabilityCheck;
+  } = {},
+): Promise<number> {
+  if (!Number.isInteger(startPort) || startPort < 1 || startPort > MAX_PORT) {
+    throw new Error(
+      `Invalid start port "${startPort}". Expected an integer between 1 and ${MAX_PORT}.`,
+    );
+  }
+
+  const hostname = options.hostname ?? "0.0.0.0";
+  const maxPort = options.maxPort ?? MAX_PORT;
+  const portCheck = options.isPortAvailable ??
+    ((port: number) => isPortAvailable(port, hostname));
+
+  for (let port = startPort; port <= maxPort; port++) {
+    if (await portCheck(port)) {
+      return port;
+    }
+  }
+
+  throw new Error(
+    `No available port found in range ${startPort}-${maxPort}.`,
+  );
+}
 
 /** Internal state for connected reload clients. */
 interface DevServerState {
@@ -93,6 +147,7 @@ export async function startDevServer(
   buildFn: () => void | Promise<void>,
   watchDirs: string | string[] = "content",
   ignoredPaths: string[] = [],
+  preferredPort: number = DEFAULT_DEV_PORT,
 ): Promise<void> {
   const { handler, broadcastReload } = createDevServerHandler(outputDir);
 
@@ -100,17 +155,24 @@ export async function startDevServer(
 
   const dirsToWatch = Array.isArray(watchDirs) ? watchDirs : [watchDirs];
   const watcher = Deno.watchFs(dirsToWatch);
+  const port = await findAvailablePort(preferredPort);
 
-  Deno.serve({ port: 8000, handler });
+  Deno.serve({ port, handler });
+
+  if (port !== preferredPort) {
+    console.warn(
+      `  \x1b[33mport ${preferredPort} is in use, switched to ${port}\x1b[0m`,
+    );
+  }
 
   console.log("");
   console.log("  \x1b[32msteno\x1b[0m  \x1b[90mdev server\x1b[0m");
   console.log("");
   console.log(
-    "  \x1b[90m➜\x1b[0m  \x1b[1mLocal\x1b[0m:   \x1b[36mhttp://localhost:8000/\x1b[0m",
+    `  \x1b[90m➜\x1b[0m  \x1b[1mLocal\x1b[0m:   \x1b[36mhttp://localhost:${port}/\x1b[0m`,
   );
   console.log(
-    "  \x1b[90m➜\x1b[0m  \x1b[1mNetwork\x1b[0m: \x1b[36mhttp://0.0.0.0:8000/\x1b[0m",
+    `  \x1b[90m➜\x1b[0m  \x1b[1mNetwork\x1b[0m: \x1b[36mhttp://0.0.0.0:${port}/\x1b[0m`,
   );
   console.log("");
 

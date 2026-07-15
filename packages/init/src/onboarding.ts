@@ -384,7 +384,7 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
       `{
   "tasks": {
     "build": "deno run --allow-read=content,content/.steno --allow-write=dist,content/.steno jsr:@steno/steno build",
-    "dev": "deno run --allow-read=content,content/.steno,dist --allow-write=dist,content/.steno --allow-net=127.0.0.1:8000 jsr:@steno/steno dev"
+    "dev": "deno run --allow-read=content,content/.steno,dist --allow-write=dist,content/.steno --allow-net=127.0.0.1,0.0.0.0 jsr:@steno/steno dev"
   },
   "imports": {
     "@steno/steno": "jsr:@steno/steno"
