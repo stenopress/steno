@@ -1,7 +1,7 @@
 import { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
-import { startDevServer } from "../utils/server.ts";
+import { DEFAULT_DEV_PORT, startDevServer } from "../utils/server.ts";
 import { loadPlugins } from "./config.ts";
 import { buildSite, type BuildState } from "./steno_build.ts";
 import { loadTheme } from "./steno_theme.ts";
@@ -88,11 +88,13 @@ export class Steno {
     const project = await this.projectPromise;
     const contentDir = project.config.contentDir || "content";
     const outputDir = project.config.output || "dist";
+    const devPort = project.config.custom?.devPort ?? DEFAULT_DEV_PORT;
     await startDevServer(
       outputDir,
       () => this.devBuild(),
       [contentDir, getDataDir(contentDir)],
       [join(contentDir, ".steno"), outputDir],
+      devPort,
     );
   }
 

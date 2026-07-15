@@ -44,6 +44,7 @@ export interface SiteConfig {
   custom?: {
     stylesheets?: string[];
     shortUrls?: boolean;
+    devPort?: number;
     theme?: string;
     themeConfig?: Record<string, unknown>;
     globals?: Record<string, unknown>;
