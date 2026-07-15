@@ -15,9 +15,10 @@ const simpleTemplate = `
 
 const simpleContext = {
   title: "Steno Bench",
-  description: "A small benchmark focused on the core Scribe render path. ".repeat(
-    4,
-  ),
+  description: "A small benchmark focused on the core Scribe render path. "
+    .repeat(
+      4,
+    ),
 };
 
 const layoutTemplate = `
@@ -133,19 +134,24 @@ Deno.bench(
       template: largeListTemplate,
       context: { items: thousandItems },
       components: {
-        Row: "<article><h4>{title}</h4><p>{excerpt | truncate(60)}</p></article>",
+        Row:
+          "<article><h4>{title}</h4><p>{excerpt | truncate(60)}</p></article>",
       },
     });
   },
 );
 
-Deno.bench("scribe render (4-level nested loops)", { group: "scribe-scale" }, () => {
-  render({
-    template: nestedTemplate,
-    context: { sections: deepTree },
-    components: deepComponents,
-  });
-});
+Deno.bench(
+  "scribe render (4-level nested loops)",
+  { group: "scribe-scale" },
+  () => {
+    render({
+      template: nestedTemplate,
+      context: { sections: deepTree },
+      components: deepComponents,
+    });
+  },
+);
 
 Deno.bench(
   "scribe render (unclosed tag fails fast)",

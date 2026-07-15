@@ -5,8 +5,8 @@ import type { NavigationNode, SiteConfig } from "../types.ts";
 import {
   commonAncestorDir,
   humanizeSegment,
-  resolveNavigationUrl,
   resolveMarkdownScanIgnorePaths,
+  resolveNavigationUrl,
 } from "./path_utils.ts";
 
 export interface ResolvedProject {
@@ -157,7 +157,8 @@ function buildZeroConfigSiteTitle(
     return normalized === "index.md" || normalized.endsWith("/index.md");
   });
 
-  return indexPage?.title ?? pages[0]?.title ?? humanizeSegment(basename(contentDir));
+  return indexPage?.title ?? pages[0]?.title ??
+    humanizeSegment(basename(contentDir));
 }
 
 function getZeroConfigTheme(mode: ZeroConfigDiscovery["mode"]): string {
@@ -249,11 +250,12 @@ function buildZeroConfigSiteConfig(
         : "",
       author: typeof stenoConfig.author === "string" ? stenoConfig.author : "",
       contentDir: discovery.contentDir,
-      output: typeof stenoConfig.output === "string" && stenoConfig.output.trim()
-        ? (isAbsolute(stenoConfig.output.trim())
-          ? stenoConfig.output.trim()
-          : join(rootDir, stenoConfig.output.trim()))
-        : join(rootDir, "dist"),
+      output:
+        typeof stenoConfig.output === "string" && stenoConfig.output.trim()
+          ? (isAbsolute(stenoConfig.output.trim())
+            ? stenoConfig.output.trim()
+            : join(rootDir, stenoConfig.output.trim()))
+          : join(rootDir, "dist"),
       navigation: buildNavigationTree(pages, stenoConfig.shortUrls !== false),
       custom: {
         shortUrls: stenoConfig.shortUrls !== false,
@@ -261,12 +263,12 @@ function buildZeroConfigSiteConfig(
             stenoConfig.theme.trim()
           ? stenoConfig.theme.trim()
           : theme,
-      themeConfig: stenoConfig.themeConfig &&
-          typeof stenoConfig.themeConfig === "object" &&
-          stenoConfig.themeConfig !== null &&
-          !Array.isArray(stenoConfig.themeConfig)
-        ? stenoConfig.themeConfig as Record<string, unknown>
-        : {},
+        themeConfig: stenoConfig.themeConfig &&
+            typeof stenoConfig.themeConfig === "object" &&
+            stenoConfig.themeConfig !== null &&
+            !Array.isArray(stenoConfig.themeConfig)
+          ? stenoConfig.themeConfig as Record<string, unknown>
+          : {},
       },
     };
   }

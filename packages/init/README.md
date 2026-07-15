@@ -1,6 +1,7 @@
 # @steno/init
 
-Interactive scaffolder for new [Steno](https://jsr.io/@steno/steno) static-site projects.
+Interactive scaffolder for new [Steno](https://jsr.io/@steno/steno) static-site
+projects.
 
 ## Usage
 
@@ -33,17 +34,17 @@ Themes are loaded directly from JSR — no local theme files are created.
 
 ## Themes
 
-| Key | Package | Description |
-|-----|---------|-------------|
-| `minimal` | `jsr:@steno/theme-minimal` | Clean, simple theme for personal sites and blogs |
-| `docs-minimal` | `jsr:@steno/theme-docs-minimal` | Minimal theme optimised for documentation sites |
+| Key            | Package                         | Description                                      |
+| -------------- | ------------------------------- | ------------------------------------------------ |
+| `minimal`      | `jsr:@steno/theme-minimal`      | Clean, simple theme for personal sites and blogs |
+| `docs-minimal` | `jsr:@steno/theme-docs-minimal` | Minimal theme optimised for documentation sites  |
 
 ## Plugins
 
-| Key | Package |
-|-----|---------|
+| Key        | Package                      |
+| ---------- | ---------------------------- |
 | `tailwind` | `jsr:@steno/plugin-tailwind` |
-| `shiki` | `jsr:@steno/plugin-shiki` |
+| `shiki`    | `jsr:@steno/plugin-shiki`    |
 
 ## Next steps after scaffolding
 
