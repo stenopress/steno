@@ -10,6 +10,7 @@ import { registerBuildTests } from "./src/core/build_test.ts";
 import { registerPluginTests } from "./src/plugins/plugins_test.ts";
 import { registerCollectionTests } from "./src/core/collections_test.ts";
 import { registerProjectTests } from "./src/core/project_test.ts";
+import { registerDataTests } from "./src/core/data_test.ts";
 
 registerCliTests();
 registerConfigTests();
@@ -23,3 +24,4 @@ registerBuildTests();
 registerPluginTests();
 registerCollectionTests();
 registerProjectTests();
+registerDataTests();
