@@ -75,6 +75,7 @@ interface SiteConfig {
   custom?: {
     theme?: string; // Path or URL to theme
     themeConfig?: Record<string, unknown>; // Theme-specific config
+    globals?: Record<string, unknown>; // Global template variables
     shortUrls?: boolean; // If true, generates directory URLs (e.g., /post/index.html)
     // ... other custom properties
   };

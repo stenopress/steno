@@ -64,6 +64,8 @@ Inside a layout, you have access to several variables:
   `site.author`, `site.custom`).
 - **`theme`**: Theme metadata and merged theme configuration (e.g.,
   `theme.name`, `theme.version`, `theme.brand`, `theme.menu`).
+- **`globals`**: Values from `custom.globals` in site config (e.g.,
+  `globals.company`, `globals.tagline`).
 - **Frontmatter keys**: All keys defined in the Markdown file's frontmatter
   (e.g., `title`, `date`, `tags`).
 - **`content`**: The already-rendered HTML body of the Markdown file.
@@ -158,6 +160,9 @@ custom:
         url: "/"
       - name: "Blog"
         url: "/blog"
+  globals: # Optional: global values available in every layout/component
+    company: "My Company"
+    tagline: "Ship docs fast"
 ```
 
 Steno will automatically detect and load your theme from the specified local

@@ -94,6 +94,17 @@ plugins.
           url: "/about"
   ```
 
+- **`custom.globals`** (object, optional): Global variables available in every
+  rendered page/layout context as `globals.<key>`.
+  ```yaml
+  custom:
+    globals:
+      company: "Steno"
+      tagline: "Build fast"
+      links:
+        docs: "/docs/"
+  ```
+
 - **`custom.shortUrls`** (boolean, optional): If `true`, Steno will generate
   "short URLs" for non-root pages.
   - Instead of `post.html`, it will create a directory `post/` containing
@@ -140,5 +151,8 @@ custom:
     social:
       twitter: "https://twitter.com/deno_land"
       github: "https://github.com/denoland/deno"
+  globals:
+    company: "Steno"
+    tagline: "Build fast"
   shortUrls: true
 ```
