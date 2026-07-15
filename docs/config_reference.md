@@ -116,6 +116,16 @@ plugins.
     shortUrls: true
   ```
 
+- **`custom.devPort`** (number, optional): Preferred starting port for
+  `steno dev`.
+  - **Default**: `5735`
+  - If this port is busy, Steno automatically tries the next ports (`5736`,
+    `5737`, ...) until it finds one that is free.
+  ```yaml
+  custom:
+    devPort: 5735
+  ```
+
 - **`custom.pluginSecurity`** (object, optional): Security policy for plugin
   module imports.
   - **Secure defaults**:
@@ -145,6 +155,7 @@ contentDir: "content"
 output: "dist"
 
 custom:
+  devPort: 5735
   theme: "./theme"
   themeConfig:
     brand: "Steno"
