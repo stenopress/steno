@@ -617,16 +617,16 @@ custom:
 
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
       Deno.writeTextFileSync(
-          join(contentDir, ".steno", "config.yml"),
-          `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+        join(contentDir, ".steno", "config.yml"),
+        `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
       );
       Deno.writeTextFileSync(
-          join(contentDir, "index.md"),
-          `---\ntitle: "Home"\n---\nHello.`,
+        join(contentDir, "index.md"),
+        `---\ntitle: "Home"\n---\nHello.`,
       );
       Deno.writeTextFileSync(
-          join(contentDir, "draft-post.md"),
-          `---\ntitle: "Draft"\ndraft: true\n---\nThis is a draft.`,
+        join(contentDir, "draft-post.md"),
+        `---\ntitle: "Draft"\ndraft: true\n---\nThis is a draft.`,
       );
 
       const steno = new Steno(join(contentDir, ".steno", "config.yml"), false);
@@ -634,13 +634,13 @@ custom:
 
       // index.html should exist
       assertEquals(
-          fileExists(join(outputDir, "index.html")),
-          true,
+        fileExists(join(outputDir, "index.html")),
+        true,
       );
       // draft page should NOT exist
       assertEquals(
-          fileExists(join(outputDir, "draft-post.html")),
-          false,
+        fileExists(join(outputDir, "draft-post.html")),
+        false,
       );
 
       Deno.removeSync(tempDir, { recursive: true });
@@ -657,12 +657,12 @@ custom:
 
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
       Deno.writeTextFileSync(
-          join(contentDir, ".steno", "config.yml"),
-          `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+        join(contentDir, ".steno", "config.yml"),
+        `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
       );
       Deno.writeTextFileSync(
-          join(contentDir, "draft-post.md"),
-          `---\ntitle: "Draft"\ndraft: true\n---\nThis is a draft.`,
+        join(contentDir, "draft-post.md"),
+        `---\ntitle: "Draft"\ndraft: true\n---\nThis is a draft.`,
       );
 
       // call buildSite directly with dev: true
@@ -680,8 +680,8 @@ custom:
       });
 
       assertEquals(
-          fileExists(join(outputDir, "draft-post.html")),
-          true,
+        fileExists(join(outputDir, "draft-post.html")),
+        true,
       );
 
       Deno.removeSync(tempDir, { recursive: true });
@@ -698,12 +698,12 @@ custom:
 
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
       Deno.writeTextFileSync(
-          join(contentDir, ".steno", "config.yml"),
-          `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+        join(contentDir, ".steno", "config.yml"),
+        `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
       );
       Deno.writeTextFileSync(
-          join(contentDir, "about.md"),
-          `---\ntitle: "About"\ndraft: false\n---\nAbout page.`,
+        join(contentDir, "about.md"),
+        `---\ntitle: "About"\ndraft: false\n---\nAbout page.`,
       );
 
       await buildSite({
@@ -720,9 +720,75 @@ custom:
       });
 
       assertEquals(
-          fileExists(join(outputDir, "about.html")),
-          true,
+        fileExists(join(outputDir, "about.html")),
+        true,
       );
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "build: exposes custom globals in layouts and components",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const themeDir = join(tempDir, "theme");
+      const configPath = join(contentDir, ".steno", "config.yml");
+
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
+      Deno.mkdirSync(join(themeDir, "components"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        configPath,
+        `title: "Globals"
+description: ""
+author: ""
+contentDir: "${contentDir}"
+output: "${outputDir}"
+custom:
+  theme: "${themeDir}"
+  globals:
+    tagline: "Ship fast"
+    company:
+      name: "Acme"
+`,
+      );
+
+      Deno.writeTextFileSync(
+        join(themeDir, "theme.yaml"),
+        `name: "globals-theme"
+version: "1.0.0"
+components:
+  header: "components/header.scr"
+`,
+      );
+
+      Deno.writeTextFileSync(
+        join(themeDir, "layouts", "layout.scr"),
+        `<html><body><Header /><p>{tagline} - {globals.company.name}</p>{@html content}</body></html>`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "components", "header.scr"),
+        `<header>{tagline}::{globals.company.name}</header>`,
+      );
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---
+title: "Home"
+layout: "layout"
+---
+Hello.
+`,
+      );
+
+      await new Steno(configPath, false).build();
+      const html = Deno.readTextFileSync(join(outputDir, "index.html"));
+      assertStringIncludes(html, "<header>Ship fast::Acme</header>");
+      assertStringIncludes(html, "<p>Ship fast - Acme</p>");
 
       Deno.removeSync(tempDir, { recursive: true });
     },

@@ -46,6 +46,7 @@ export interface SiteConfig {
     shortUrls?: boolean;
     theme?: string;
     themeConfig?: Record<string, unknown>;
+    globals?: Record<string, unknown>;
     pluginSecurity?: PluginSecurityConfig;
   };
   navigation?: NavigationNode[];

@@ -539,7 +539,10 @@ function compileToFunction(
   }
 }
 
-function getCompiledTemplate(template: string, filePath?: string): CompiledTemplateFn {
+function getCompiledTemplate(
+  template: string,
+  filePath?: string,
+): CompiledTemplateFn {
   const key = `${filePath ?? ""}\u0000${template}`;
   const cached = templateCache.get(key);
   if (cached) {
@@ -587,12 +590,22 @@ function renderWithCompiledTemplate(
       }
 
       let componentRenderFn = componentFnCache.get(componentTemplate);
+      const globals = parentContext.globals;
+      const scopedGlobals =
+        globals && typeof globals === "object" && !Array.isArray(globals)
+          ? globals as Record<string, unknown>
+          : {};
       if (componentRenderFn === undefined) {
-        componentRenderFn = getCompiledTemplate(componentTemplate, options.filePath);
+        componentRenderFn = getCompiledTemplate(
+          componentTemplate,
+          options.filePath,
+        );
         componentFnCache.set(componentTemplate, componentRenderFn);
       }
 
       const localContext = {
+        ...scopedGlobals,
+        globals: scopedGlobals,
         site: parentContext.site,
         theme: parentContext.theme,
         ...props,
