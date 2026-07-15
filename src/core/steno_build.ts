@@ -16,6 +16,7 @@ type BuildContext = {
   hooks: StenoHooks;
   state?: BuildState;
   pages?: import("./collections.ts").MarkdownPage[];
+  dev?: boolean;
 };
 
 export interface BuildState {
@@ -188,6 +189,7 @@ export async function buildSite({
   hooks,
   state,
   pages,
+  dev = false
 }: BuildContext): Promise<void> {
   for (const plugin of plugins) {
     await plugin.beforeBuild?.(config);
@@ -252,6 +254,10 @@ export async function buildSite({
       cachedPage.sourceText !== page.sourceText ||
       cachedPage.outputPath !== outputFilePath ||
       !fileExists(outputFilePath);
+
+    if (page.frontmatter.draft === true && !dev) {
+      continue;
+    }
 
     let htmlContent: string | undefined;
     if (needsRender) {
