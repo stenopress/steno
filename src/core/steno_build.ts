@@ -6,7 +6,10 @@ import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { Theme } from "../theme/theme.ts";
-import { resolveMarkdownScanIgnorePaths, resolveOutputPath } from "./path_utils.ts";
+import {
+  resolveMarkdownScanIgnorePaths,
+  resolveOutputPath,
+} from "./path_utils.ts";
 import { loadDataFiles } from "./data.ts";
 
 type BuildContext = {
@@ -41,6 +44,15 @@ interface PersistentBuildCache {
     outputPath: string;
     sourceText: string;
   }>;
+}
+
+function resolveConfigGlobals(config: SiteConfig): Record<string, unknown> {
+  const globals = config.custom?.globals;
+  if (globals === undefined) return {};
+  if (!globals || typeof globals !== "object" || Array.isArray(globals)) {
+    throw new Error("Invalid `custom.globals` in config: expected an object.");
+  }
+  return globals;
 }
 
 function fileExists(filePath: string): boolean {
@@ -189,7 +201,7 @@ export async function buildSite({
   hooks,
   state,
   pages,
-  dev = false
+  dev = false,
 }: BuildContext): Promise<void> {
   for (const plugin of plugins) {
     await plugin.beforeBuild?.(config);
@@ -199,6 +211,7 @@ export async function buildSite({
   const contentDir = config.contentDir || "content";
   const outputDir = config.output || "dist";
   const data = loadDataFiles(contentDir);
+  const globalVars = resolveConfigGlobals(config);
   const shortUrls = config.custom?.shortUrls ?? false;
   const cachePath = resolveCachePath(contentDir);
   const scannedPages = pages ?? await collectMarkdownPages(
@@ -281,6 +294,8 @@ export async function buildSite({
 
       const renderedContent = theme
         ? theme.renderLayout(layoutName, finalHtmlContent, {
+          ...globalVars,
+          globals: globalVars,
           site: { ...config },
           theme: {
             name: theme.name,
