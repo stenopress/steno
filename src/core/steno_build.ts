@@ -46,6 +46,20 @@ interface PersistentBuildCache {
   }>;
 }
 
+function getPublicEnvVars(): Record<string, string> {
+  const publicVars: Record<string, string> = {};
+  try {
+    for (const [key, value] of Object.entries(Deno.env.toObject())) {
+      if (key.startsWith("PUBLIC_")) {
+        publicVars[key] = value;
+      }
+    }
+  } catch (_error) {
+    // Gracefully ignore NotCapable / PermissionDenied errors in sandboxed test runs
+  }
+  return publicVars;
+}
+
 function resolveConfigGlobals(config: SiteConfig): Record<string, unknown> {
   const globals = config.custom?.globals;
   if (globals === undefined) return {};
@@ -212,6 +226,7 @@ export async function buildSite({
   const outputDir = config.output || "dist";
   const data = loadDataFiles(contentDir);
   const globalVars = resolveConfigGlobals(config);
+  const publicEnv = getPublicEnvVars(); // Extract PUBLIC_ prefixed environment variables
   const shortUrls = config.custom?.shortUrls ?? false;
   const cachePath = resolveCachePath(contentDir);
   const scannedPages = pages ?? await collectMarkdownPages(
@@ -295,6 +310,8 @@ export async function buildSite({
       const renderedContent = theme
         ? theme.renderLayout(layoutName, finalHtmlContent, {
           ...globalVars,
+          ...publicEnv,
+          env: publicEnv,
           globals: globalVars,
           site: { ...config },
           theme: {
