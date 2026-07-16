@@ -793,4 +793,81 @@ Hello.
       Deno.removeSync(tempDir, { recursive: true });
     },
   });
+
+  Deno.test({
+    name:
+      "build: exposes PUBLIC_ environment variables and namespaced env in layouts",
+    permissions: { read: true, write: true, env: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const themeDir = join(tempDir, "theme");
+      const configPath = join(contentDir, ".steno", "config.yml");
+
+      // Setup mock environment variables
+      Deno.env.set("PUBLIC_ANALYTICS_ID", "STENO-999");
+      Deno.env.set("STRIPE_SECRET_KEY", "sk_private_secret_leak_test");
+
+      try {
+        Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+        Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
+
+        Deno.writeTextFileSync(
+          configPath,
+          `title: "Env Test"
+description: ""
+author: ""
+contentDir: "${contentDir}"
+output: "${outputDir}"
+custom:
+  theme: "${themeDir}"
+`,
+        );
+
+        Deno.writeTextFileSync(
+          join(themeDir, "theme.yaml"),
+          `name: "env-theme"\nversion: "1.0.0"\n`,
+        );
+
+        // This layout tries to render flat public env, namespaced public env, and a private key
+        Deno.writeTextFileSync(
+          join(themeDir, "layouts", "layout.scr"),
+          `<html>
+<body>
+  <div id="flat">{PUBLIC_ANALYTICS_ID}</div>
+  <div id="namespace">{env.PUBLIC_ANALYTICS_ID}</div>
+  <div id="secret">{STRIPE_SECRET_KEY}</div>
+  {@html content}
+</body>
+</html>`,
+        );
+
+        Deno.writeTextFileSync(
+          join(contentDir, "index.md"),
+          `---
+title: "Home"
+layout: "layout"
+---
+Page content
+`,
+        );
+
+        await new Steno(configPath, false).build();
+        const html = Deno.readTextFileSync(join(outputDir, "index.html"));
+
+        // Assertions: Public variables are resolved in templates
+        assertStringIncludes(html, '<div id="flat">STENO-999</div>');
+        assertStringIncludes(html, '<div id="namespace">STENO-999</div>');
+
+        // Assertions: Private keys are not exposed/leaked (rendered as blank/undefined)
+        assertStringIncludes(html, '<div id="secret"></div>');
+      } finally {
+        // Safe Cleanup
+        Deno.env.delete("PUBLIC_ANALYTICS_ID");
+        Deno.env.delete("STRIPE_SECRET_KEY");
+        Deno.removeSync(tempDir, { recursive: true });
+      }
+    },
+  });
 }
