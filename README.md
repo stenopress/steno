@@ -1,119 +1,148 @@
 <div align="center">
   <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/c8955414-6790-40fb-b38b-1a64cf11c0c3">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/1659f847-7180-4539-8ce9-57b610669d51">
-  <img width="233" height="81" alt="Fallback image description" src="https://github.com/user-attachments/assets/1659f847-7180-4539-8ce9-57b610669d51">
-</picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/c8955414-6790-40fb-b38b-1a64cf11c0c3">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/1659f847-7180-4539-8ce9-57b610669d51">
+    <img width="233" height="81" alt="Steno Logo" src="https://github.com/user-attachments/assets/1659f847-7180-4539-8ce9-57b610669d51">
+  </picture>
   <br><br>
-  <p>A fast Deno-powered static site generator.</p>
+  <p><strong>An ultra-lightweight, sub-millisecond static site generator powered by Deno.</strong></p>
   <small>Sponsored by <a href="https://tuta.com">Tuta</a></small>
-<br><br>
+  <br><br>
 
 [![JSR](https://jsr.io/badges/@steno/steno)](https://jsr.io/@steno/steno)
 [![JSR Score](https://jsr.io/badges/@steno/steno/score)](https://jsr.io/@steno/steno)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/stenopress/steno/ci.yml)
 
 </div>
-<br><br>
 
-Steno turns Markdown files into static HTML, adds frontmatter and theme support,
-and ships with a small CLI plus a live-reloading dev server.
+<br>
 
-## What Steno does
+Steno is a high-performance, developer-first static site generator built on
+Deno. By pairing an asynchronous file-system pipeline with Scribe (a custom
+compiled templating runtime combining Svelte and Astro syntax), Steno compiles
+thousands of pages in fractions of a second, shipping with a local dev server,
+instant live-reloading, and near-zero external dependencies.
 
-Steno is designed around a simple content pipeline:
+## Performance Benchmarks
 
-1. Read Markdown files from `content/`
-2. Parse YAML or TOML frontmatter
-3. Convert Markdown to HTML with `marked`
-4. Optionally render the HTML through a Scribe-based theme
-5. Write the generated pages to `dist/`
-6. Copy theme assets into `dist/assets/`
+Steno is engineered for speed. Built-in performance budgets are strictly
+enforced via our local benchmark suite to prevent regression:
 
-That makes it a good fit for blogs, documentation sites, small marketing sites,
-and theme-driven static websites.
+- **Compile Speed:** Built to handle scale, compiling **4,000+ rich markdown
+  pages in <0.5 seconds**.
+- **Incremental Rebuilds:** Powered by a layered in-memory + on-disk cache to
+  compile changes instantly.
+- **Cold Starts:** Under 20ms startup time thanks to Deno's native TypeScript
+  runtime and a zero-dependency architecture.
+
+To run performance diagnostics locally:
+
+```sh
+deno task bench            # Run the benchmark suite
+deno task bench:check      # Assert performance budget thresholds
+```
+
+---
 
 ## Features
 
-- Markdown pages rendered to HTML with `marked`
-- YAML and TOML config loading
-- Frontmatter support with `---` (YAML) and `+++` (TOML)
-- Theme layouts, components, and static assets
-- Scribe templates for layouts and components
-- Incremental page rebuilds with layered in-memory + on-disk cache
-- Live-reloading dev server on `http://localhost:5735` (auto-falls back to the
-  next free port)
-- CLI support for `build`, `dev`, `--config`, and `--help`
-- Root test harness with `deno task test`
+- **Zero-Configuration Mode:** Compile on the fly. Run Steno with nothing but a
+  single Markdown file, no config files or complex directory structures
+  required.
+- **Remote Theme Resolvers:** Load and share themes effortlessly. Steno supports
+  importing themes directly from remote modules like JSR, npm, or secure HTTPS
+  URLs, removing the need to manually clone or manage local theme folders.
+- **Intelligent Port Auto-Recovery:** Never deal with crashed local servers due
+  to blocked addresses. The dev server automatically detects if your preferred
+  port (default 5735) is in use and seamlessly increments to the next available
+  port.
+- **Scribe Pipe-Syntax Filters:** Format your template variables elegantly.
+  Scribe supports Unix-style pipes for clean, readable layout transformations
+  like formatting dates or joining arrays inside your HTML.
+- **Sandboxed Plugin Architecture:** Dynamically extend your build pipeline with
+  modular compile-time plugins loaded directly from JSR or npm.
+- **Strict Security Guardrails:** Out-of-the-box protection that sandboxes
+  plugin environments, blocking unauthorized local filesystem, remote HTTP, or
+  Node-builtin imports unless explicitly allowed.
+- **Scribe Templating:** Premium Svelte and Astro style syntax parsing with
+  native layout and component structures.
+- **Double-Engine Frontmatter:** First-class, rapid parsing for both `---`
+  (YAML) and `+++` (TOML).
+- **Sub-Millisecond Live Reload:** Driven by a native Server-Sent Events (SSE)
+  server for instant browser updates on `http://localhost:5735`.
+- **Hybrid Caching:** Advanced recursive compilation with layered memory caching
+  to only rebuild what changed.
+- **Interactive Scaffolding:** Spin up modern theme templates instantly with a
+  dedicated initializer.
 
-## Installation / usage
+---
 
-The package exports `mod.ts`, so you can import it directly in a Deno project:
+## Quick Start
 
-```ts
-import { Steno } from "@steno/steno";
+Steno is designed to get out of your way. You can run it in **zero-config mode**
+with just a single Markdown file, or scale up to a fully structured project.
 
-new Steno();
+### Zero-Config (Single File)
+
+If you just want to render a quick page, you do not need any config files.
+
+1. Create a file named `content/index.md`:
+
+```md
+# My Page
+
+Hello from Steno!
 ```
 
-For local development inside this repo, the current workflow is:
+2. Compile it instantly:
 
 ```sh
-deno task dev
-deno task test
-deno task bench
-deno task bench:check
-deno task bench:trends
 deno run -A jsr:@steno/steno build
 ```
 
-For build-focused performance runs, use:
+_Steno will automatically detect your file, apply default settings, and output
+the static HTML directly to `dist/index.html`._
 
-```sh
-deno bench -A benchmarks/build.bench.ts
-```
+---
 
-For per-page pipeline performance (frontmatter -> markdown -> Scribe), use:
+### Structured Project Setup
 
-```sh
-deno bench -A benchmarks/pipeline.bench.ts
-```
-
-To enforce performance budgets in CI or locally:
-
-```sh
-deno task bench:check
-```
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the repo layout and change
-checklist.
-
-## Quick start
-
-Scaffold a new site with the interactive init package:
+When you are ready to scale up to custom metadata, structured content
+directories, and themes, initialize a standard project workspace:
 
 ```sh
 deno run -Ar jsr:@steno/init
 ```
 
-Or create the default config file manually at `content/.steno/config.yml`:
+#### Manual Setup
 
-```yaml
-title: My site
-description: A Steno site
-author: Your Name
+If you prefer to configure your workspace manually, structure your directory
+like this:
 
-contentDir: content
-output: dist
-
-custom:
-  shortUrls: true
-  theme: "./test/test-theme"
-  themeConfig:
-    author: "Your Name"
+```text
+.steno/
+└── config.yml
+content/
+└── index.md
 ```
 
-Add a page at `content/index.md`:
+1. **Configure your site in content/.steno/config.yml. You can point to a local
+   theme folder, or keep your project completely lightweight by referencing a
+   remote theme directly from JSR:
+
+```yaml
+title: "My Steno Site"
+description: "A high-performance blog"
+author: "Your Name"
+contentDir: "content"
+output: "dist"
+
+custom:
+  shortUrls: true # Generates /about/index.html instead of /about.html
+  theme: "jsr:@steno/minimal-theme" # Point to a remote JSR theme or local directory
+```
+
+2. **Write** your first document in `content/index.md`:
 
 ```md
 ---
@@ -121,218 +150,141 @@ title: Home
 layout: layout
 ---
 
-# Hello
+# Hello World
 
-Welcome to Steno.
+Welcome to an ultra-fast site powered by Steno and Scribe.
 ```
 
-Then build the site:
+3. **Run** the development server with real-time live reload:
 
 ```sh
-deno run -A jsr:@steno/steno build --config content/.steno/config.yml
-```
-
-Or start the dev server with live reload:
-
-```sh
-deno run -A jsr:@steno/steno dev --config content/.steno/config.yml
-```
-
-## CLI
-
-Steno’s CLI entrypoint lives in `mod.ts`, with argument parsing in
-`src/utils/cli.ts`.
-
-### Commands
-
-- `build` — generate the site into `dist/` (default)
-- `dev` — start the dev server with file watching
-- `--help` — print CLI usage
-
-### Options
-
-- `-c, --config <path>` — path to the site config file
-
-### Examples
-
-```sh
-deno run -A jsr:@steno/steno
-deno run -A jsr:@steno/steno build
 deno run -A jsr:@steno/steno dev
-deno run -A jsr:@steno/steno build --config content/.steno/config.yml
-deno run -A jsr:@steno/steno --help
 ```
 
-## Configuration
+4. **Build** your production-ready static assets:
 
-Steno loads config from YAML or TOML. The default path is
-`content/.steno/config.yml`.
-
-Supported top-level fields used by the current runtime include:
-
-- `title`
-- `description`
-- `author`
-- `head`
-- `contentDir`
-- `output`
-- `custom.shortUrls`
-- `custom.devPort`
-- `custom.theme`
-- `custom.themeConfig`
-- `custom.globals`
-
-Example:
-
-```yaml
-title: My site
-description: A site built with Steno
-author: Your Name
-contentDir: content
-output: dist
-
-head:
-  - name: icon
-    content: /favicon.ico
-
-custom:
-  devPort: 5735
-  shortUrls: true
-  theme: "./test/test-theme"
-  themeConfig:
-    author: "Your Name"
-  globals:
-    company: "Steno"
-    tagline: "Build fast"
+```sh
+deno run -A jsr:@steno/steno build
 ```
 
-### Notes
+---
 
-- `shortUrls: true` writes pages like `about/index.html` instead of `about.html`
-- `.steno/` is reserved for internal config files
-- only `.md` files are processed during builds
+## Themes & Scribe Templating
 
-## Themes
+Steno themes are powered by **Scribe**, our custom compiled template engine.
+Themes live in a directory or can be resolved as remote module imports (`jsr:`,
+`npm:`, `https:`).
 
-Themes are loaded from `custom.theme` and can be either:
-
-- a local theme directory containing `theme.yaml` or `theme.yml`
-- a module import such as `jsr:`, `npm:`, `file:`, or `https:`
-
-Directory-based themes conventionally use:
-
-- `layouts/*.scr` for layouts
-- `components/*.scr` for reusable components
-- `assets/**` for static files copied to `dist/assets/`
-
-Example `theme.yaml`:
-
-```yaml
-name: "Steno Minimalist"
-version: "1.0.0"
-components:
-  header: "components/header.scr"
-  footer: "components/footer.scr"
-defaultConfig:
-  author: "Steno Creator"
-```
-
-Example theme structure:
+### Project Layout
 
 ```text
-test/test-theme/
+themes/minimalist/
 ├── theme.yaml
 ├── assets/
 │   └── style.css
 ├── components/
-│   ├── footer.scr
 │   └── header.scr
 └── layouts/
-    ├── layout.scr
-    └── post.scr
+    └── layout.scr
 ```
 
-### Scribe template syntax
+### Scribe Syntax Example
 
-Steno themes are rendered with Scribe, not Liquid.
-
-Common patterns:
+Write clean, declarative markup in your `.scr` templates:
 
 ```scr
 {#if title}
-  <Header />
+  <Header/>
 {/if}
 
-{@html content}
-
-{ tags | join: ", " }
+<main class="prose">
+  {@html content}
+</main>
 
 {#each tags as tag}
-  <span>{tag}</span>
+  <span class="badge">{tag}</span>
 {/each}
 ```
 
-### Render context
+---
 
-Layouts receive a context object containing:
+## CLI Reference
 
-- `globals` — values from `custom.globals` in site config
-- `site` — the site config
-- `theme` — theme metadata plus merged theme config
-- `content` — rendered Markdown HTML
-- frontmatter fields such as `title`, `layout`, `date`, `tags`, and `author`
-
-The default layout name is `layout` when frontmatter does not specify one.
-
-## Development workflow
-
-The repo is structured so that the root package points at `mod.ts`, while the
-sandbox app lives under `test/`.
-
-- `deno task dev` delegates to `test/`
-- `deno task test` runs the root `test.ts` harness
-- `cd test && deno task build` builds the sandbox site directly
-
-Useful commands:
+The Steno command-line utility provides intuitive, clean endpoints for your
+development workflows.
 
 ```sh
-deno check
-deno lint
-deno task test
-cd test && deno task build
+steno [command] [options]
 ```
 
-## Public API
+### Commands
 
-The main exports from `mod.ts` are:
+- `build` (default): Compiles the site into your distribution folder.
+- `dev`: Spins up the local development server with file watching and SSE
+  live-reloading.
 
-- `Steno`
-- `Theme`
-- `render`
-- `filters`
-- `StenoTheme`
+### Options
 
-This lets you use the package as a library or as a runnable CLI entrypoint.
+- `-c, --config <path>`: Manually specify a path to your config file (defaults
+  to `content/.steno/config.yml`).
 
-## Project status
+---
 
-The current implementation already includes:
+## Plugins & Security Sandboxing
 
-- Markdown-to-HTML compilation
-- theme loading and rendering
-- asset copying
-- a CLI
-- live reload in dev mode
-- a test suite
+Steno features a robust, extensible plugin ecosystem alongside built-in security
+profiles. You can register custom build pipeline plugins directly via JSR or npm
+inside your `config.yml`:
+
+```yaml
+# Add plugins directly to your build pipeline
+plugins:
+  - "jsr:@stenodevs/my-plugin"
+  - package: "npm:@steno/html-minifier"
+    options:
+      collapseWhitespace: true
+
+# Control import access policies for third-party extensions
+custom:
+  pluginSecurity:
+    allowLocal: false # Block/allow local file:// imports
+    allowRemoteHttp: false # Block/allow untrusted remote HTTP imports
+    allowNodeBuiltins: false # Prevent plugins from accessing Node.js system APIs
+    allowThemePlugins: true # Enable/disable plugins bundled within themes
+```
+
+---
+
+## Developer Workflow
+
+We love contributors. The Steno repository contains a fully configured workspace
+so you can test changes immediately.
+
+```sh
+deno task dev     # Starts the sandbox development app under /test
+deno task test    # Runs the complete test harness
+deno lint         # Enforce standard code styling
+deno check        # Type check the codebase
+```
+
+For a comprehensive guide on building themes, writing filters, or extending the
+core compiler, see
+[`CONTRIBUTING.md`](https://github.com/GabsEdits/steno/blob/main/CONTRIBUTING.md).
+
+---
 
 ## License
 
-MIT — see [`LICENSE.txt`.](LICENSE.txt)
+MIT (c) [Gabriel Cozma](https://gxbs.dev) and Contributors. See
+[`LICENSE.txt`](https://github.com/GabsEdits/steno/blob/main/LICENSE.txt) for
+details.
+
+---
 
 ## Sponsors
 
 <div align="center">
   <a href="https://tuta.com">
-<img width="233" alt="image" src="https://github.com/user-attachments/assets/4849c0dd-79a0-44a4-b6e8-12127559961f" />
+<img width="233" alt="Tuta Logo" src="https://github.com/user-attachments/assets/4849c0dd-79a0-44a4-b6e8-12127559961f" />
   </a>
 </div>
