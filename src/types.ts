@@ -41,6 +41,7 @@ export interface SiteConfig {
   output?: string;
   plugins?: Array<string | PluginEntry>;
   collections?: Record<string, CollectionConfig>;
+  redirects?: Record<string, string>;
   custom?: {
     stylesheets?: string[];
     shortUrls?: boolean;

@@ -6,6 +6,7 @@ import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { Theme } from "../theme/theme.ts";
+import { buildRedirects } from "./redirects.ts";
 import {
   resolveMarkdownScanIgnorePaths,
   resolveOutputPath,
@@ -355,6 +356,10 @@ export async function buildSite({
 
   for (const plugin of plugins) {
     await plugin.afterBuild?.(config);
+  }
+
+  if (config.redirects && Object.keys(config.redirects).length > 0) {
+    buildRedirects(outputDir, config.redirects, shortUrls);
   }
 
   await hooks.afterBuild?.(config);
