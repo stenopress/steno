@@ -8,6 +8,7 @@ import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { Theme } from "../theme/theme.ts";
 import { processIncludes } from "./includes.ts";
 import { buildRedirects } from "./redirects.ts";
+import { buildComplete } from "../utils/output.ts";
 import {
   resolveMarkdownScanIgnorePaths,
   resolveOutputPath,
@@ -382,5 +383,9 @@ export async function buildSite({
   }
   savePersistentBuildCache(cachePath, buildSignature, nextPages);
 
-  console.log("Build complete.");
+  const builtCount = [...nextPages.values()].filter(
+    (p) => p.htmlContent !== undefined,
+  ).length;
+
+  buildComplete(builtCount);
 }

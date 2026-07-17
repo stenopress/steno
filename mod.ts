@@ -6,6 +6,7 @@
 
 import { printHelp } from "./src/utils/cli.ts";
 import { runStenoCli } from "./src/core/steno_cli.ts";
+import { buildError } from "./src/utils/output.ts";
 
 /** The main site generator class. */
 export { Steno } from "./src/core/steno.ts";
@@ -40,7 +41,7 @@ if (import.meta.main) {
   try {
     await runStenoCli(Deno.args);
   } catch (error) {
-    console.error((error as Error).message);
+    buildError((error as Error).message);
     printHelp();
     Deno.exit(1);
   }

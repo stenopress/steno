@@ -69,4 +69,15 @@ export function registerCliTests(): void {
       "Missing value for --config",
     );
   });
+
+  Deno.test("cli: parses doctor command", () => {
+    const options = parseCliArgs(["doctor"]);
+    assertEquals(options.command, "doctor");
+  });
+
+  Deno.test("cli: parses doctor command with config flag", () => {
+    const options = parseCliArgs(["doctor", "--config", "my/config.yml"]);
+    assertEquals(options.command, "doctor");
+    assertEquals(options.configPath, "my/config.yml");
+  });
 }
