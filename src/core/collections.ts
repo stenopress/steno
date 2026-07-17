@@ -159,6 +159,41 @@ function sortItems(
   return result;
 }
 
+function validateCollectionItem(
+  item: CollectionItem,
+  schema: Record<string, import("../types.ts").CollectionFieldSchema>,
+  pageRelPath: string,
+  collectionName: string,
+): void {
+  const errors: string[] = [];
+
+  for (const [field, rule] of Object.entries(schema)) {
+    const value = item.frontmatter[field];
+
+    if (value === undefined || value === null) {
+      if (rule.required !== false) {
+        errors.push(`  - "${field}" is required but missing`);
+      }
+      continue;
+    }
+
+    const actualType = Array.isArray(value) ? "array" : typeof value;
+    if (actualType !== rule.type) {
+      errors.push(
+        `  - "${field}" must be of type "${rule.type}", got "${actualType}"`,
+      );
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      `Schema validation failed for "${pageRelPath}" in collection "${collectionName}":\n${
+        errors.join("\n")
+      }`,
+    );
+  }
+}
+
 /**
  * Scans the content directory and builds collection data from markdown files.
  *
@@ -199,6 +234,19 @@ export async function buildCollections(
       frontmatter: page.frontmatter,
       content: htmlContent,
     });
+
+    // validate against schema if defined
+    const schema = collectionConfigs[collectionName]?.schema;
+    if (schema) {
+      validateCollectionItem(
+        collections[collectionName].items[
+          collections[collectionName].items.length - 1
+        ],
+        schema,
+        page.relPath,
+        collectionName,
+      );
+    }
   }
 
   // Apply filter, then sort/order/limit from config

@@ -16,12 +16,19 @@ export interface PluginSecurityConfig {
   allowThemePlugins?: boolean;
 }
 
+/** A single field definition in a collection frontmatter schema. */
+export interface CollectionFieldSchema {
+  type: "string" | "number" | "boolean" | "array";
+  required?: boolean;
+}
+
 /** Configuration for sorting, filtering, and limiting a collection. */
 export interface CollectionConfig {
   sortBy?: string;
   order?: "asc" | "desc";
   limit?: number;
   filter?: Record<string, unknown>;
+  schema?: Record<string, CollectionFieldSchema>;
 }
 
 /** A navigation entry exposed to fallback documentation themes. */
