@@ -562,10 +562,11 @@ function getCompiledTemplate(
   return compiled;
 }
 
+// Replace the current `render` and helper functions near the bottom of `src/utils/scribe.ts` with this highly-optimized pass:
+
 function renderWithCompiledTemplate(
   renderFn: CompiledTemplateFn,
   options: ScribeOptions,
-  componentFnCache: Map<string, CompiledTemplateFn>,
 ): string {
   const helpers = {
     escapeHtml,
@@ -589,19 +590,17 @@ function renderWithCompiledTemplate(
         );
       }
 
-      let componentRenderFn = componentFnCache.get(componentTemplate);
+      // ⚡ Retrieve compiled component renderer from global, unified template cache
+      const componentRenderFn = getCompiledTemplate(
+        componentTemplate,
+        options.filePath,
+      );
+
       const globals = parentContext.globals;
       const scopedGlobals =
         globals && typeof globals === "object" && !Array.isArray(globals)
           ? globals as Record<string, unknown>
           : {};
-      if (componentRenderFn === undefined) {
-        componentRenderFn = getCompiledTemplate(
-          componentTemplate,
-          options.filePath,
-        );
-        componentFnCache.set(componentTemplate, componentRenderFn);
-      }
 
       const localContext = {
         ...scopedGlobals,
@@ -618,7 +617,6 @@ function renderWithCompiledTemplate(
           template: componentTemplate,
           context: localContext,
         },
-        componentFnCache,
       );
     },
   };
@@ -644,22 +642,9 @@ function renderWithCompiledTemplate(
 
 /**
  * Renders a Scribe template with the provided context and components.
- *
- * @param options - Configuration options for Scribe including template, context, and components.
- * @returns The rendered template as a string.
- *
- * @example
- * ```ts
- * import { render } from "@steno/steno";
- *
- * const HTML = render({
- *   template: "<h1>{title}</h1>",
- *   context: { title: "Hello World" },
- *   components: {}
- * });
- * ```
  */
 export function render(options: ScribeOptions): string {
   const renderFn = getCompiledTemplate(options.template, options.filePath);
-  return renderWithCompiledTemplate(renderFn, options, new Map());
+  // ⚡ Bypassed creating fresh, heavy Maps per execution pass
+  return renderWithCompiledTemplate(renderFn, options);
 }

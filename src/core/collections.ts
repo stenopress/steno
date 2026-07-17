@@ -37,6 +37,11 @@ export interface Collection {
 export type CollectionMap = Record<string, Collection>;
 const FILE_READ_CONCURRENCY = 128;
 
+export interface MarkdownFilePath {
+  fullPath: string;
+  relPath: string;
+}
+
 async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
@@ -66,7 +71,37 @@ export async function collectMarkdownPages(
   contentDir: string,
   options: { ignorePaths?: string[] } = {},
 ): Promise<MarkdownPage[]> {
-  const markdownFiles: Array<{ fullPath: string; relPath: string }> = [];
+  const markdownFiles = await collectMarkdownFilePaths(contentDir, options);
+  return await mapWithConcurrency(
+    markdownFiles,
+    FILE_READ_CONCURRENCY,
+    async ({ fullPath, relPath }) => {
+      const sourceText = await Deno.readTextFile(fullPath);
+      const { frontmatter, body } = parseFrontmatter(sourceText, fullPath);
+      return {
+        fullPath,
+        relPath,
+        sourceText,
+        frontmatter,
+        body,
+        title: inferPageTitle({
+          fullPath,
+          relPath,
+          sourceText,
+          frontmatter,
+          body,
+        }),
+      };
+    },
+  );
+}
+
+/** Discovers Markdown paths without reading or parsing their contents. */
+export async function collectMarkdownFilePaths(
+  contentDir: string,
+  options: { ignorePaths?: string[] } = {},
+): Promise<MarkdownFilePath[]> {
+  const markdownFiles: MarkdownFilePath[] = [];
   const ignorePaths = [
     ...resolveMarkdownScanIgnorePaths(contentDir),
     ...(options.ignorePaths ?? []),
@@ -99,28 +134,7 @@ export async function collectMarkdownPages(
   markdownFiles.sort((left, right) =>
     left.relPath.localeCompare(right.relPath)
   );
-  return await mapWithConcurrency(
-    markdownFiles,
-    FILE_READ_CONCURRENCY,
-    async ({ fullPath, relPath }) => {
-      const sourceText = await Deno.readTextFile(fullPath);
-      const { frontmatter, body } = parseFrontmatter(sourceText, fullPath);
-      return {
-        fullPath,
-        relPath,
-        sourceText,
-        frontmatter,
-        body,
-        title: inferPageTitle({
-          fullPath,
-          relPath,
-          sourceText,
-          frontmatter,
-          body,
-        }),
-      };
-    },
-  );
+  return markdownFiles;
 }
 
 function resolveUrl(relPath: string, shortUrls: boolean): string {

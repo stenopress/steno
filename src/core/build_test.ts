@@ -6,7 +6,19 @@ import {
 } from "@std/assert";
 import { join } from "@std/path";
 import { Steno } from "../../mod.ts";
+import type { StenoPlugin } from "../types.ts";
 import { buildSite } from "./steno_build.ts";
+
+interface TestableSteno {
+  themeLoadingPromise: Promise<void>;
+  pluginsLoadingPromise: Promise<void>;
+  plugins: StenoPlugin[];
+  devBuild(): Promise<void>;
+}
+
+function getInternals(steno: Steno): TestableSteno {
+  return steno as unknown as TestableSteno;
+}
 
 function fileExists(path: string): boolean {
   try {
@@ -276,10 +288,11 @@ Content
         },
       });
 
-      await (steno as any).themeLoadingPromise;
-      await (steno as any).pluginsLoadingPromise;
+      const internals = getInternals(steno);
+      await internals.themeLoadingPromise;
+      await internals.pluginsLoadingPromise;
 
-      (steno as any).plugins = [{
+      internals.plugins = [{
         name: "test",
         beforeBuild: () => {
           order.push("plugin:beforeBuild");
@@ -501,9 +514,10 @@ Content
       );
 
       const stenoV1 = new Steno(configPath, false);
-      await (stenoV1 as any).themeLoadingPromise;
-      await (stenoV1 as any).pluginsLoadingPromise;
-      (stenoV1 as any).plugins = [{
+      const internalsV1 = getInternals(stenoV1);
+      await internalsV1.themeLoadingPromise;
+      await internalsV1.pluginsLoadingPromise;
+      internalsV1.plugins = [{
         name: "signature-plugin",
         transformHtml: (html: string) => `<div>plugin-v1</div>${html}`,
       }];
@@ -517,9 +531,10 @@ Content
           rendered.push(path);
         },
       });
-      await (stenoV2 as any).themeLoadingPromise;
-      await (stenoV2 as any).pluginsLoadingPromise;
-      (stenoV2 as any).plugins = [{
+      const internalsV2 = getInternals(stenoV2);
+      await internalsV2.themeLoadingPromise;
+      await internalsV2.pluginsLoadingPromise;
+      internalsV2.plugins = [{
         name: "signature-plugin",
         transformHtml: (html: string) => `<div>plugin-v2</div>${html}`,
       }];
@@ -791,6 +806,42 @@ Hello.
       assertStringIncludes(html, "<p>Ship fast - Acme</p>");
 
       Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "build: dev rebuild discovers added and removed pages",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const configPath = join(contentDir, ".steno", "config.yml");
+      const addedPage = join(contentDir, "added.md");
+      const addedOutput = join(outputDir, "added.html");
+
+      try {
+        Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+        Deno.writeTextFileSync(
+          configPath,
+          `title: "Dev Discovery"\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+        );
+        Deno.writeTextFileSync(join(contentDir, "index.md"), "# Home");
+
+        const steno = new Steno(configPath, false);
+        const internals = getInternals(steno);
+        await internals.devBuild();
+
+        Deno.writeTextFileSync(addedPage, "# Added during dev");
+        await internals.devBuild();
+        assertEquals(fileExists(addedOutput), true);
+
+        Deno.removeSync(addedPage);
+        await internals.devBuild();
+        assertEquals(fileExists(addedOutput), false);
+      } finally {
+        Deno.removeSync(tempDir, { recursive: true });
+      }
     },
   });
 

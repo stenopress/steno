@@ -1,7 +1,7 @@
 /** Parsed CLI state for a Steno invocation. */
 export interface CliOptions {
-  /** The command to execute, either "build", "dev", or "help". */
-  command: "build" | "dev" | "help";
+  /** The command to execute. */
+  command: "build" | "dev" | "doctor" | "help";
   /** The path to the configuration file. */
   configPath: string;
 }
@@ -38,7 +38,7 @@ export function parseCliArgs(args: string[]): CliOptions {
       continue;
     }
 
-    if (arg === "build" || arg === "dev") {
+    if (arg === "build" || arg === "dev" || arg === "doctor") {
       command = arg;
       continue;
     }
@@ -59,20 +59,21 @@ export function printHelp(): void {
 steno - static site generator
 
 Usage:
-  deno run -A ./mod.ts [command] [options]
+  deno run -A jsr:@steno/steno [command] [options]
 
 Commands:
   build                Build the site into dist/ (default)
   dev                  Start dev server with live reload
+  doctor               Show runtime and native-engine diagnostics
 
 Options:
   -c, --config <path>  Path to config file (default: content/.steno/config.yml)
   -h, --help           Show help
 
 Examples:
-  deno run -A ./mod.ts
-  deno run -A ./mod.ts build
-  deno run -A ./mod.ts dev
-  deno run -A ./mod.ts build --config content/.steno/config.yml
+  deno run -A jsr:@steno/steno build
+  deno run -A jsr:@steno/steno dev
+  deno run -A jsr:@steno/steno doctor
+  deno run -A jsr:@steno/steno build --config content/.steno/config.yml
 `);
 }

@@ -8,12 +8,12 @@ on:
   pull_request:
 
 jobs:
-  test:
+  quality-and-portable:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -28,5 +28,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deno-
 
-      - name: Run tests
-        run: deno test -A
+      - name: Check formatting, lint, and types
+        run: deno task check
+
+      - name: Test portable engine
+        run: deno task test:portable
+
+  native-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test native engine
+        run: deno task test:native

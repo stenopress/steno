@@ -1,16 +1,116 @@
 name: Publish
+
 on:
   release:
     types: [published]
 
 jobs:
+  build-unix-native:
+    name: Native ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            package_target: darwin-aarch64
+            library: libsteno_core.dylib
+            linux: false
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            package_target: darwin-x86_64
+            library: libsteno_core.dylib
+            linux: false
+          - runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            package_target: linux-x86_64
+            library: libsteno_core.so
+            linux: true
+          - runner: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            package_target: linux-aarch64
+            library: libsteno_core.so
+            linux: true
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - if: matrix.linux
+        uses: mlugg/setup-zig@v2
+      - if: matrix.linux
+        name: Install Linux compatibility builder
+        run: cargo install cargo-zigbuild --version 0.22.3 --locked
+      - if: matrix.linux
+        name: Build native library with glibc 2.17 compatibility
+        run: cargo zigbuild --locked --release --manifest-path crates/steno_core/Cargo.toml --target ${{ matrix.target }}.2.17
+      - if: ${{ matrix.linux == false }}
+        name: Build native library
+        run: cargo build --locked --release --manifest-path crates/steno_core/Cargo.toml --target ${{ matrix.target }}
+      - name: Verify library can be loaded
+        env:
+          STENO_NATIVE: required
+          STENO_NATIVE_PATH: ${{ github.workspace }}/crates/steno_core/target/${{ matrix.target }}/release/${{ matrix.library }}
+        run: deno run -A mod.ts doctor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package_target }}
+          path: crates/steno_core/target/${{ matrix.target }}/release/${{ matrix.library }}
+          if-no-files-found: error
+
+  build-windows-native:
+    name: Native ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            package_target: windows-x86_64
+          - runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            package_target: windows-aarch64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build native library
+        run: cargo build --locked --release --manifest-path crates/steno_core/Cargo.toml --target ${{ matrix.target }}
+      - name: Verify library can be loaded
+        env:
+          STENO_NATIVE: required
+          STENO_NATIVE_PATH: ${{ github.workspace }}/crates/steno_core/target/${{ matrix.target }}/release/steno_core.dll
+        run: deno run -A mod.ts doctor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package_target }}
+          path: crates/steno_core/target/${{ matrix.target }}/release/steno_core.dll
+          if-no-files-found: error
+
   publish:
+    name: Publish hybrid JSR package
+    needs: [build-unix-native, build-windows-native]
     runs-on: ubuntu-latest
-    if: github.event.release.target_commitish == 'main'
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "*-*"
+          path: native
+      - name: Verify complete hybrid package
+        run: deno task release:check
       - name: Publish package
-        run: npx jsr publish
+        run: deno publish

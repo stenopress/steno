@@ -1,3 +1,5 @@
+# STENO HYBRID RUNTIME EXPERIMENT. NOT STABLE
+
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/c8955414-6790-40fb-b38b-1a64cf11c0c3">
@@ -5,7 +7,7 @@
     <img width="233" height="81" alt="Steno Logo" src="https://github.com/user-attachments/assets/1659f847-7180-4539-8ce9-57b610669d51">
   </picture>
   <br><br>
-  <p><strong>An ultra-lightweight, sub-millisecond static site generator powered by Deno.</strong></p>
+  <p><strong>An ultra-lightweight static site generator powered by the Steno Hybrid Runtime.</strong></p>
   <small>Sponsored by <a href="https://tuta.com">Tuta</a></small>
   <br><br>
 
@@ -17,11 +19,13 @@
 
 <br>
 
-Steno is a high-performance, developer-first static site generator built on
-Deno. By pairing an asynchronous file-system pipeline with Scribe (a custom
-compiled templating runtime combining Svelte and Astro syntax), Steno compiles
-thousands of pages in fractions of a second, shipping with a local dev server,
-instant live-reloading, and near-zero external dependencies.
+Steno is a high-performance, developer-first static site generator built on the
+**Steno Hybrid Runtime**: a native Rust build engine paired with a flexible Deno
+runtime. Rust handles performance-critical Markdown processing and file output,
+while Deno provides configuration, themes, plugins, hooks, the development
+server, and live reload. Together with Scribe, Steno's custom template runtime,
+the two engines compile thousands of pages in fractions of a second without
+giving up TypeScript extensibility.
 
 ## Performance Benchmarks
 
@@ -32,14 +36,69 @@ enforced via our local benchmark suite to prevent regression:
   pages in <0.5 seconds**.
 - **Incremental Rebuilds:** Powered by a layered in-memory + on-disk cache to
   compile changes instantly.
-- **Cold Starts:** Under 20ms startup time thanks to Deno's native TypeScript
-  runtime and a zero-dependency architecture.
+- **Cold Builds:** The native fast path builds 1,000 flat-URL pages in roughly
+  55ms, or roughly 73ms with short URLs and their per-page directories, on the
+  reference development machine.
 
 To run performance diagnostics locally:
 
 ```sh
 deno task bench            # Run the benchmark suite
 deno task bench:check      # Assert performance budget thresholds
+```
+
+## Steno Hybrid Runtime
+
+The **Steno Hybrid Runtime** is Steno's dual Rust/Deno architecture. It keeps
+native compilation work close to the filesystem while retaining Deno's simple,
+secure TypeScript extension model.
+
+| Runtime               | Responsibilities                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Rust build engine** | Reads Markdown, validates YAML/TOML frontmatter, converts Markdown to HTML in parallel, resolves output paths, writes pages, and maintains the native build cache.             |
+| **Deno runtime**      | Loads configuration and themes, runs plugins and hooks, renders Scribe layouts and collections, watches files, serves the development site, and broadcasts live-reload events. |
+
+Steno selects the shortest valid execution path for each build:
+
+- A site without a theme or page transforms uses the **native fast path**. Rust
+  produces the final files directly, while Deno orchestrates the build and
+  lifecycle hooks.
+- A site using Scribe themes, collections, plugins, or page hooks uses the
+  **hybrid path**. Rust performs the native Markdown stage, then Deno applies
+  the features that require the TypeScript runtime.
+- `steno dev` uses the same Rust-powered build pipeline. Deno owns file
+  watching, the HTTP server, and SSE live reload; each initial or incremental
+  build is delegated through the appropriate native or hybrid path.
+
+Official JSR releases bundle precompiled native engines for macOS, Linux, and
+Windows on both ARM64 and x64. Steno selects the matching library automatically,
+so users get the hybrid runtime without installing Rust or running a setup step:
+
+```sh
+deno run -A jsr:@steno/steno dev
+```
+
+If the platform is unsupported or FFI permission is unavailable, Steno
+gracefully uses its **portable Deno engine**. Builds, themes, plugins,
+development serving, and live reload remain functional; only native acceleration
+is unavailable.
+
+Use the built-in diagnostics to see which engine is active:
+
+```sh
+deno run -A jsr:@steno/steno doctor
+```
+
+In a source checkout, `deno task setup` builds and selects the local native
+engine automatically. The release library is written to
+`crates/steno_core/target/release/` and loaded through Deno's native FFI.
+
+Engine selection can also be controlled explicitly:
+
+```sh
+STENO_NATIVE=off       # Always use the portable engine
+STENO_NATIVE=required  # Fail with setup guidance unless native loading succeeds
+STENO_NATIVE_PATH=...  # Load a specific compatible library
 ```
 
 ---
@@ -66,8 +125,8 @@ deno task bench:check      # Assert performance budget thresholds
   Node-builtin imports unless explicitly allowed.
 - **Scribe Templating:** Premium Svelte and Astro style syntax parsing with
   native layout and component structures.
-- **Double-Engine Frontmatter:** First-class, rapid parsing for both `---`
-  (YAML) and `+++` (TOML).
+- **Dual-Format Frontmatter:** First-class, rapid parsing for both `---` (YAML)
+  and `+++` (TOML).
 - **Sub-Millisecond Live Reload:** Driven by a native Server-Sent Events (SSE)
   server for instant browser updates on `http://localhost:5735`.
 - **Hybrid Caching:** Advanced recursive compilation with layered memory caching
@@ -258,13 +317,15 @@ custom:
 ## Developer Workflow
 
 We love contributors. The Steno repository contains a fully configured workspace
-so you can test changes immediately.
+whose sandbox imports the local source rather than the published package.
 
 ```sh
-deno task dev     # Starts the sandbox development app under /test
-deno task test    # Runs the complete test harness
-deno lint         # Enforce standard code styling
-deno check        # Type check the codebase
+deno task setup          # Build Rust and cache local Deno dependencies
+deno task dev            # Build Rust, then start the local sandbox
+deno task dev:portable   # Start the sandbox without requiring Rust
+deno task test:native    # Require and test the native engine
+deno task test:portable  # Test the JSR-compatible portable engine
+deno task check          # Format, lint, and type-check the repository
 ```
 
 For a comprehensive guide on building themes, writing filters, or extending the

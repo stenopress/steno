@@ -1,6 +1,9 @@
-test
+/test/dist/
+/test/content/.steno/build-cache.json
 theme-example
 .idea
 .DS_Store
 ROADMAP.md
 benchmarks/.bench-history
+crates/steno_core/target
+test

@@ -18,6 +18,14 @@ export function registerCliTests(): void {
     });
   });
 
+  Deno.test("cli: parses doctor command", () => {
+    const options = parseCliArgs(["doctor"]);
+    assertEquals(options, {
+      command: "doctor",
+      configPath: "content/.steno/config.yml",
+    });
+  });
+
   Deno.test("cli: parses build command and custom config", () => {
     const options = parseCliArgs([
       "build",

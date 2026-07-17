@@ -1,4 +1,4 @@
-import { Theme } from "../theme/theme.ts";
+import type { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
 import { DEFAULT_DEV_PORT, startDevServer } from "../utils/server.ts";
@@ -109,7 +109,6 @@ export class Steno {
       plugins: this.plugins,
       hooks: this.hooks,
       state: this.buildState,
-      pages: project.pages,
       dev: true,
     });
   }

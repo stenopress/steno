@@ -21,17 +21,17 @@ const MAX_PORT = 65535;
 
 type PortAvailabilityCheck = (port: number) => Promise<boolean>;
 
-async function isPortAvailable(
+function isPortAvailable(
   port: number,
   hostname: string,
 ): Promise<boolean> {
   let listener: Deno.Listener | undefined;
   try {
     listener = Deno.listen({ hostname, port });
-    return true;
+    return Promise.resolve(true);
   } catch (error) {
     if (error instanceof Deno.errors.AddrInUse) {
-      return false;
+      return Promise.resolve(false);
     }
     throw error;
   } finally {

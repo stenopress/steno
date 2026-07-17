@@ -11,6 +11,11 @@ import { registerPluginTests } from "./src/plugins/plugins_test.ts";
 import { registerCollectionTests } from "./src/core/collections_test.ts";
 import { registerProjectTests } from "./src/core/project_test.ts";
 import { registerDataTests } from "./src/core/data_test.ts";
+import { getNativeBuildInfo } from "./src/core/native.ts";
+
+// Load acceleration before per-test permission scopes are applied. When no
+// compatible library exists, the same suite exercises the portable engine.
+getNativeBuildInfo();
 
 registerCliTests();
 registerConfigTests();
