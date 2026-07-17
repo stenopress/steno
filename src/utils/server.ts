@@ -1,5 +1,6 @@
 import { join } from "@std/path";
 import { isPathInsideOrEqual } from "../core/path_utils.ts";
+import { changeDetected, devServerReady } from "./output.ts";
 
 export const DEFAULT_DEV_PORT = 5735;
 
@@ -159,22 +160,7 @@ export async function startDevServer(
 
   Deno.serve({ port, handler });
 
-  if (port !== preferredPort) {
-    console.warn(
-      `  \x1b[33mport ${preferredPort} is in use, switched to ${port}\x1b[0m`,
-    );
-  }
-
-  console.log("");
-  console.log("  \x1b[32msteno\x1b[0m  \x1b[90mdev server\x1b[0m");
-  console.log("");
-  console.log(
-    `  \x1b[90m➜\x1b[0m  \x1b[1mLocal\x1b[0m:   \x1b[36mhttp://localhost:${port}/\x1b[0m`,
-  );
-  console.log(
-    `  \x1b[90m➜\x1b[0m  \x1b[1mNetwork\x1b[0m: \x1b[36mhttp://0.0.0.0:${port}/\x1b[0m`,
-  );
-  console.log("");
+  devServerReady(port, preferredPort);
 
   for await (const event of watcher) {
     if (
@@ -192,7 +178,7 @@ export async function startDevServer(
         continue;
       }
 
-      console.log(`  \x1b[90mchange detected, rebuilding...\x1b[0m`);
+      changeDetected();
       await buildFn();
       broadcastReload();
     }

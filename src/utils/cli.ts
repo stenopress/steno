@@ -1,7 +1,9 @@
+import { c } from "./output.ts";
+
 /** Parsed CLI state for a Steno invocation. */
 export interface CliOptions {
-  /** The command to execute, either "build", "dev", or "help". */
-  command: "build" | "dev" | "help";
+  /** The command to execute, either "build", "dev", "help", or "doctor". */
+  command: "build" | "dev" | "help" | "doctor";
   /** The path to the configuration file. */
   configPath: string;
 }
@@ -38,7 +40,7 @@ export function parseCliArgs(args: string[]): CliOptions {
       continue;
     }
 
-    if (arg === "build" || arg === "dev") {
+    if (arg === "build" || arg === "dev" || arg === "doctor") {
       command = arg;
       continue;
     }
@@ -56,23 +58,25 @@ export function parseCliArgs(args: string[]): CliOptions {
 /** Writes the CLI usage summary to stdout. */
 export function printHelp(): void {
   console.log(`
-steno - static site generator
+${c.bold}steno${c.reset} - static site generator
 
-Usage:
-  deno run -A ./mod.ts [command] [options]
+${c.bold}Usage:${c.reset}
+  deno x jsr:@steno/steno ${c.gray}[command] [options]${c.reset}
 
-Commands:
-  build                Build the site into dist/ (default)
-  dev                  Start dev server with live reload
+${c.bold}Commands:${c.reset}
+  ${c.green}build${c.reset}                Build the site into dist/ ${c.gray}(default)${c.reset}
+  ${c.green}dev${c.reset}                  Start dev server with live reload
+  ${c.green}doctor${c.reset}               Check your project for common issues
 
-Options:
-  -c, --config <path>  Path to config file (default: content/.steno/config.yml)
-  -h, --help           Show help
+${c.bold}Options:${c.reset}
+  ${c.cyan}-c, --config${c.reset} ${c.gray}<path>${c.reset}  Path to config file ${c.gray}(default: content/.steno/config.yml)${c.reset}
+  ${c.cyan}-h, --help${c.reset}           Show help
 
-Examples:
-  deno run -A ./mod.ts
-  deno run -A ./mod.ts build
-  deno run -A ./mod.ts dev
-  deno run -A ./mod.ts build --config content/.steno/config.yml
+${c.bold}Examples:${c.reset}
+  ${c.gray}deno x jsr:@steno/steno${c.reset}
+  ${c.gray}deno x jsr:@steno/steno build${c.reset}
+  ${c.gray}deno x jsr:@steno/steno dev${c.reset}
+  ${c.gray}deno x jsr:@steno/steno doctor${c.reset}
+  ${c.gray}deno x jsr:@steno/steno build --config content/.steno/config.yml${c.reset}
 `);
 }

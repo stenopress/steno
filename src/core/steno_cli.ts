@@ -1,5 +1,6 @@
 import { parseCliArgs, printHelp } from "../utils/cli.ts";
 import { Steno } from "./steno.ts";
+import { runDoctor } from "./doctor.ts";
 
 /** Runs the public CLI command for a Steno project. */
 export async function runStenoCli(args: string[]): Promise<void> {
@@ -7,6 +8,11 @@ export async function runStenoCli(args: string[]): Promise<void> {
 
   if (options.command === "help") {
     printHelp();
+    return;
+  }
+
+  if (options.command === "doctor") {
+    await runDoctor(options.configPath);
     return;
   }
 
