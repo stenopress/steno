@@ -202,12 +202,16 @@ export class Theme {
     }
     return render({
       template: layoutTemplate,
-      context: {
-        content,
-        ...variables,
-      },
+      context: { content, ...variables },
       components: this.themeData.components || {},
       filePath: this.layoutPaths[layoutName],
+      includeResolver: (path) => {
+        const component = this.themeData.components?.[path];
+        if (component) return component;
+        throw new Error(
+            `Include "${path}" not found in theme "${this.name}".`,
+        );
+      },
     });
   }
 

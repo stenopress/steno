@@ -6,6 +6,7 @@ import { runAstTransforms, runHtmlTransforms } from "../plugins/plugins.ts";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { Theme } from "../theme/theme.ts";
+import { processIncludes } from "./includes.ts";
 import { buildRedirects } from "./redirects.ts";
 import {
   resolveMarkdownScanIgnorePaths,
@@ -288,20 +289,28 @@ export async function buildSite({
       continue;
     }
 
+    const processedBody = processIncludes(page.body, page.fullPath, contentDir);
     let htmlContent: string | undefined;
     if (needsRender) {
-      htmlContent = cachedPage?.body === page.body &&
+      const processedBody = processIncludes(
+        page.body,
+        page.fullPath,
+        contentDir,
+      );
+
+      htmlContent = cachedPage?.body === processedBody &&
           typeof cachedPage.htmlContent === "string"
         ? cachedPage.htmlContent
         : undefined;
+
       if (htmlContent === undefined) {
-        let tokens = marked.lexer(page.body);
+        let tokens = marked.lexer(processedBody); // ← reuse, don't redeclare
         tokens = await runAstTransforms(tokens, plugins);
         const parsedHtmlContent = marked.parser(tokens);
         htmlContent = await runHtmlTransforms(parsedHtmlContent, plugins);
       }
-      const finalHtmlContent = htmlContent;
 
+      const finalHtmlContent = htmlContent;
       ensureDirSync(dirname(outputFilePath));
 
       const layoutName = typeof page.frontmatter.layout === "string"
@@ -345,7 +354,7 @@ export async function buildSite({
       relPath: page.relPath,
       outputPath: outputFilePath,
       sourceText: page.sourceText,
-      body: page.body,
+      body: processedBody,
       htmlContent: needsRender ? htmlContent : cachedPage?.htmlContent,
     });
   }

@@ -16,6 +16,8 @@ export interface ScribeOptions {
   components: Record<string, string>; // Maps "Nav" -> "raw .scr template content"
   /** Optional file path of the template being rendered, used for descriptive syntax error reporting. */
   filePath?: string;
+  /** TODO: ADD DESCRIPTION */
+  includeResolver?: (path: string) => string;
 }
 
 type FilterFunction = (val: unknown, ...args: unknown[]) => unknown;
@@ -28,6 +30,7 @@ interface ScribeHelpers {
     props: Record<string, unknown>,
     parentContext: Record<string, unknown>,
   ) => string;
+  resolveInclude: (path: string, context: Record<string, unknown>) => string;
 }
 
 type CompiledTemplateFn = (
@@ -39,7 +42,7 @@ const TEMPLATE_CACHE_LIMIT = 512;
 const templateCache = new Map<string, CompiledTemplateFn>();
 
 interface Node {
-  type: "text" | "expression" | "html" | "if" | "each" | "component";
+  type: "text" | "expression" | "html" | "if" | "each" | "component" | "include";
   value?: string;
   expression?: string;
   filters?: { name: string; args: string[] }[];
@@ -51,6 +54,7 @@ interface Node {
   alternate?: Node[];
   componentName?: string;
   props?: Record<string, string>;
+  includePath?: string;
 }
 
 /** Built-in template filters available to expressions. */
@@ -217,6 +221,28 @@ class ScribeParser {
     }
   }
 
+  private parseIncludeBlock(): Node {
+    this.consumeString("{@include ");
+    // skip optional opening quote
+    const quoteChar = this.input[this.pos] === '"' || this.input[this.pos] === "'"
+        ? this.input[this.pos++]
+        : null;
+    const start = this.pos;
+    while (
+        this.pos < this.input.length &&
+        (quoteChar ? this.input[this.pos] !== quoteChar : this.input[this.pos] !== "}")
+        ) {
+      this.pos++;
+    }
+    const includePath = this.input.substring(start, this.pos).trim();
+    if (quoteChar) this.pos++; // skip closing quote
+    this.consumeString("}");
+    return {
+      type: "include",
+      includePath,
+    };
+  }
+
   public parseBlock(endTags: string[] = []): Node[] {
     const nodes: Node[] = [];
     while (this.pos < this.input.length) {
@@ -233,6 +259,8 @@ class ScribeParser {
         nodes.push(this.parseIfBlock());
       } else if (this.match("{#each ")) {
         nodes.push(this.parseEachBlock());
+      } else if (this.match("{@include ")) {
+        nodes.push(this.parseIncludeBlock());
       } else if (this.match("{@html ")) {
         nodes.push(this.parseHtmlBlock());
       } else if (
@@ -435,6 +463,7 @@ class ScribeParser {
         this.match("{#if ") ||
         this.match("{#each ") ||
         this.match("{@html ") ||
+        this.match("{@include ") ||
         (this.peek() === "{" &&
           this.peek(1) !== "#" &&
           this.peek(1) !== "/" &&
@@ -469,6 +498,8 @@ function compileNodes(nodes: Node[]): string {
       code += `html.push(helpers.escapeHtml(${expr}));\n`;
     } else if (node.type === "html") {
       code += `html.push(String(${node.expression}));\n`;
+    } else if (node.type === "include") {
+      code += `html.push(helpers.resolveInclude(${JSON.stringify(node.includePath)}, context));\n`;
     } else if (node.type === "if") {
       code += `if (${node.condition}) {\n`;
       code += compileNodes(node.consequent || []);
@@ -570,6 +601,21 @@ function renderWithCompiledTemplate(
   const helpers = {
     escapeHtml,
     filters,
+    resolveInclude: (path: string, ctx: Record<string, unknown>) => {
+      if (!options.includeResolver) {
+        throw new Error(
+            `{@include "${path}"} used in template but no includeResolver was provided.`,
+        );
+      }
+      const includedTemplate = options.includeResolver(path);
+      return render({
+        template: includedTemplate,
+        context: ctx,
+        components: options.components,
+        filePath: path,
+        includeResolver: options.includeResolver,
+      });
+    },
     renderComponent: (
       name: string,
       props: Record<string, unknown>,
