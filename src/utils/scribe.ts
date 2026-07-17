@@ -16,7 +16,7 @@ export interface ScribeOptions {
   components: Record<string, string>; // Maps "Nav" -> "raw .scr template content"
   /** Optional file path of the template being rendered, used for descriptive syntax error reporting. */
   filePath?: string;
-  /** TODO: ADD DESCRIPTION */
+  /** Optional function to resolve included templates by their path. */
   includeResolver?: (path: string) => string;
 }
 
