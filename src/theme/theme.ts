@@ -209,7 +209,7 @@ export class Theme {
         const component = this.themeData.components?.[path];
         if (component) return component;
         throw new Error(
-            `Include "${path}" not found in theme "${this.name}".`,
+          `Include "${path}" not found in theme "${this.name}".`,
         );
       },
     });

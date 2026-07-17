@@ -883,16 +883,16 @@ Page content
       Deno.mkdirSync(join(contentDir, "partials"), { recursive: true });
 
       Deno.writeTextFileSync(
-          join(contentDir, ".steno", "config.yml"),
-          `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+        join(contentDir, ".steno", "config.yml"),
+        `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
       );
       Deno.writeTextFileSync(
-          join(contentDir, "index.md"),
-          `---\ntitle: "Home"\n---\n# Hello\n{@include "partials/cta.md"}`,
+        join(contentDir, "index.md"),
+        `---\ntitle: "Home"\n---\n# Hello\n{@include "partials/cta.md"}`,
       );
       Deno.writeTextFileSync(
-          join(contentDir, "partials", "cta.md"),
-          `Sign up today!`,
+        join(contentDir, "partials", "cta.md"),
+        `Sign up today!`,
       );
 
       const steno = new Steno(join(contentDir, ".steno", "config.yml"), false);
