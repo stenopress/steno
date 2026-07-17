@@ -346,4 +346,192 @@ custom:
       assertEquals(collections.blog.items[0].frontmatter.title, "Live");
     },
   });
+
+  Deno.test({
+    name: "collections: throws when required field is missing",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      Deno.mkdirSync(join(contentDir, "blog"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        join(contentDir, "blog", "post.md"),
+        `---\ntitle: "My Post"\n---\nContent.`,
+      );
+
+      let threw = false;
+      try {
+        await buildCollections(
+          contentDir,
+          makeConfig({
+            collections: {
+              blog: {
+                schema: {
+                  title: { type: "string", required: true },
+                  date: { type: "string", required: true }, // missing
+                },
+              },
+            },
+          }),
+          [],
+        );
+      } catch (e) {
+        threw = true;
+        assertStringIncludes((e as Error).message, "date");
+        assertStringIncludes((e as Error).message, "required but missing");
+        assertStringIncludes((e as Error).message, "blog");
+      }
+
+      assertEquals(threw, true);
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "collections: throws when field has wrong type",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      Deno.mkdirSync(join(contentDir, "blog"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        join(contentDir, "blog", "post.md"),
+        `---\ntitle: 42\n---\nContent.`, // title is number, not string
+      );
+
+      let threw = false;
+      try {
+        await buildCollections(
+          contentDir,
+          makeConfig({
+            collections: {
+              blog: {
+                schema: {
+                  title: { type: "string", required: true },
+                },
+              },
+            },
+          }),
+          [],
+        );
+      } catch (e) {
+        threw = true;
+        assertStringIncludes((e as Error).message, "title");
+        assertStringIncludes((e as Error).message, `type "string"`);
+        assertStringIncludes((e as Error).message, `got "number"`);
+      }
+
+      assertEquals(threw, true);
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name:
+      "collections: passes when all required fields are present and correct",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      Deno.mkdirSync(join(contentDir, "blog"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        join(contentDir, "blog", "post.md"),
+        `---\ntitle: "My Post"\ndate: "2026-01-01"\ntags:\n  - deno\n---\nContent.`,
+      );
+
+      // should not throw
+      const collections = await buildCollections(
+        contentDir,
+        makeConfig({
+          collections: {
+            blog: {
+              schema: {
+                title: { type: "string", required: true },
+                date: { type: "string", required: true },
+                tags: { type: "array", required: false },
+              },
+            },
+          },
+        }),
+        [],
+      );
+
+      assertEquals(collections.blog.items.length, 1);
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "collections: optional field missing does not throw",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      Deno.mkdirSync(join(contentDir, "blog"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        join(contentDir, "blog", "post.md"),
+        `---\ntitle: "My Post"\n---\nContent.`,
+      );
+
+      // tags is optional — should not throw even though it's missing
+      const collections = await buildCollections(
+        contentDir,
+        makeConfig({
+          collections: {
+            blog: {
+              schema: {
+                title: { type: "string", required: true },
+                tags: { type: "array", required: false },
+              },
+            },
+          },
+        }),
+        [],
+      );
+
+      assertEquals(collections.blog.items.length, 1);
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "collections: error message includes page path and collection name",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      Deno.mkdirSync(join(contentDir, "blog"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        join(contentDir, "blog", "my-post.md"),
+        `---\ntitle: "Post"\n---\nContent.`,
+      );
+
+      let errorMessage = "";
+      try {
+        await buildCollections(
+          contentDir,
+          makeConfig({
+            collections: {
+              blog: {
+                schema: {
+                  date: { type: "string", required: true },
+                },
+              },
+            },
+          }),
+          [],
+        );
+      } catch (e) {
+        errorMessage = (e as Error).message;
+      }
+
+      assertStringIncludes(errorMessage, "blog/my-post.md");
+      assertStringIncludes(errorMessage, "blog");
+    },
+  });
 }
