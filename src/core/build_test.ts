@@ -870,4 +870,38 @@ Page content
       }
     },
   });
+
+  Deno.test({
+    name: "build: processes {@include} directives in markdown",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.mkdirSync(join(contentDir, "partials"), { recursive: true });
+
+      Deno.writeTextFileSync(
+          join(contentDir, ".steno", "config.yml"),
+          `title: "Test"\ndescription: ""\nauthor: ""\ncontentDir: "${contentDir}"\noutput: "${outputDir}"\n`,
+      );
+      Deno.writeTextFileSync(
+          join(contentDir, "index.md"),
+          `---\ntitle: "Home"\n---\n# Hello\n{@include "partials/cta.md"}`,
+      );
+      Deno.writeTextFileSync(
+          join(contentDir, "partials", "cta.md"),
+          `Sign up today!`,
+      );
+
+      const steno = new Steno(join(contentDir, ".steno", "config.yml"), false);
+      await steno.build();
+
+      const html = Deno.readTextFileSync(join(outputDir, "index.html"));
+      assertStringIncludes(html, "Sign up today!");
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
 }
