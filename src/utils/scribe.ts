@@ -42,7 +42,14 @@ const TEMPLATE_CACHE_LIMIT = 512;
 const templateCache = new Map<string, CompiledTemplateFn>();
 
 interface Node {
-  type: "text" | "expression" | "html" | "if" | "each" | "component" | "include";
+  type:
+    | "text"
+    | "expression"
+    | "html"
+    | "if"
+    | "each"
+    | "component"
+    | "include";
   value?: string;
   expression?: string;
   filters?: { name: string; args: string[] }[];
@@ -224,14 +231,17 @@ class ScribeParser {
   private parseIncludeBlock(): Node {
     this.consumeString("{@include ");
     // skip optional opening quote
-    const quoteChar = this.input[this.pos] === '"' || this.input[this.pos] === "'"
+    const quoteChar =
+      this.input[this.pos] === '"' || this.input[this.pos] === "'"
         ? this.input[this.pos++]
         : null;
     const start = this.pos;
     while (
-        this.pos < this.input.length &&
-        (quoteChar ? this.input[this.pos] !== quoteChar : this.input[this.pos] !== "}")
-        ) {
+      this.pos < this.input.length &&
+      (quoteChar
+        ? this.input[this.pos] !== quoteChar
+        : this.input[this.pos] !== "}")
+    ) {
       this.pos++;
     }
     const includePath = this.input.substring(start, this.pos).trim();
@@ -499,7 +509,9 @@ function compileNodes(nodes: Node[]): string {
     } else if (node.type === "html") {
       code += `html.push(String(${node.expression}));\n`;
     } else if (node.type === "include") {
-      code += `html.push(helpers.resolveInclude(${JSON.stringify(node.includePath)}, context));\n`;
+      code += `html.push(helpers.resolveInclude(${
+        JSON.stringify(node.includePath)
+      }, context));\n`;
     } else if (node.type === "if") {
       code += `if (${node.condition}) {\n`;
       code += compileNodes(node.consequent || []);
@@ -604,7 +616,7 @@ function renderWithCompiledTemplate(
     resolveInclude: (path: string, ctx: Record<string, unknown>) => {
       if (!options.includeResolver) {
         throw new Error(
-            `{@include "${path}"} used in template but no includeResolver was provided.`,
+          `{@include "${path}"} used in template but no includeResolver was provided.`,
         );
       }
       const includedTemplate = options.includeResolver(path);

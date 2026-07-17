@@ -114,14 +114,14 @@ export function registerScribeTests(): void {
 
   Deno.test("scribe: {@include} throws when no includeResolver provided", () => {
     assertThrows(
-        () =>
-            render({
-              template: `{@include "missing.scr"}`,
-              context: {},
-              components: {},
-            }),
-        Error,
-        "no includeResolver was provided",
+      () =>
+        render({
+          template: `{@include "missing.scr"}`,
+          context: {},
+          components: {},
+        }),
+      Error,
+      "no includeResolver was provided",
     );
   });
 
