@@ -1,26 +1,18 @@
-/**
- * @module
- * Scribe: A lightweight, custom template engine for Steno.
- *
- * This module parses template strings with support for control flow (`{#if}`, `{#each}`),
- * expressions, global filters, and capitalized component tags (e.g. `<Header />`).
- */
+import { type Node, ScribeParser } from "./scribe_parser.ts";
 
-/** Inputs required to render a Scribe template. */
 export interface ScribeOptions {
-  /** The raw template string to compile and render. */
   template: string;
-  /** Context data containing variables accessible inside the template. */
   context: Record<string, unknown>;
-  /** Dictionary of custom component templates, mapping component tag names (e.g. "Header") to their raw template string. */
-  components: Record<string, string>; // Maps "Nav" -> "raw .scr template content"
-  /** Optional file path of the template being rendered, used for descriptive syntax error reporting. */
+  components: Record<string, string>;
   filePath?: string;
-  /** Optional function to resolve included templates by their path. */
   includeResolver?: (path: string) => string;
 }
 
 type FilterFunction = (val: unknown, ...args: unknown[]) => unknown;
+type CompiledTemplateFn = (
+  context: Record<string, unknown>,
+  helpers: ScribeHelpers,
+) => string;
 
 interface ScribeHelpers {
   escapeHtml: (val: unknown) => string;
@@ -33,465 +25,36 @@ interface ScribeHelpers {
   resolveInclude: (path: string, context: Record<string, unknown>) => string;
 }
 
-type CompiledTemplateFn = (
-  context: Record<string, unknown>,
-  helpers: ScribeHelpers,
-) => string;
-
-const TEMPLATE_CACHE_LIMIT = 512;
 const templateCache = new Map<string, CompiledTemplateFn>();
 
-interface Node {
-  type:
-    | "text"
-    | "expression"
-    | "html"
-    | "if"
-    | "each"
-    | "component"
-    | "include";
-  value?: string;
-  expression?: string;
-  filters?: { name: string; args: string[] }[];
-  condition?: string;
-  array?: string;
-  item?: string;
-  indexVar?: string;
-  consequent?: Node[];
-  alternate?: Node[];
-  componentName?: string;
-  props?: Record<string, string>;
-  includePath?: string;
-}
-
-/** Built-in template filters available to expressions. */
 export const filters: Record<string, FilterFunction> = {
-  date: (val: unknown) => {
+  date: (val) => {
     if (!val) return "";
-    const normalizedVal =
+    const d = new Date(
       typeof val === "string" || typeof val === "number" || val instanceof Date
         ? val
-        : String(val);
-    const d = new Date(normalizedVal);
+        : String(val),
+    );
     return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString();
   },
-  truncate: (val: unknown, len: unknown = 100) => {
+  truncate: (val, len = 100) => {
     if (val === null || val === undefined) return "";
-    const s = String(val);
     const parsedLen = typeof len === "string" ? parseInt(len, 10) : Number(len);
     const finalLen = isNaN(parsedLen) ? 100 : parsedLen;
-    return s.length > finalLen ? s.slice(0, finalLen) + "..." : s;
+    return String(val).length > finalLen
+      ? String(val).slice(0, finalLen) + "..."
+      : String(val);
   },
-  upper: (val: unknown) => (val ? String(val).toUpperCase() : ""),
-  lower: (val: unknown) => (val ? String(val).toLowerCase() : ""),
+  upper: (val) => (val ? String(val).toUpperCase() : ""),
+  lower: (val) => (val ? String(val).toLowerCase() : ""),
 };
 
-/** Escapes HTML-sensitive characters in a value. */
 export function escapeHtml(val: unknown): string {
   if (val === null || val === undefined) return "";
-  return String(val)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function parseProps(attrString: string): Record<string, string> {
-  const props: Record<string, string> = {};
-  let i = 0;
-  while (i < attrString.length) {
-    // Skip whitespace
-    while (i < attrString.length && /\s/.test(attrString[i])) {
-      i++;
-    }
-    if (i >= attrString.length) break;
-
-    // Shorthand brace {post}
-    if (attrString[i] === "{") {
-      i++;
-      const start = i;
-      let braceCount = 1;
-      while (i < attrString.length && braceCount > 0) {
-        if (attrString[i] === "{") braceCount++;
-        else if (attrString[i] === "}") braceCount--;
-        if (braceCount > 0) i++;
-      }
-      const propName = attrString.substring(start, i).trim();
-      props[propName] = propName; // shorthand
-      i++; // skip '}'
-      continue;
-    }
-
-    // Parse attribute name
-    const nameStart = i;
-    while (i < attrString.length && !/[\s=>\/]/.test(attrString[i])) {
-      i++;
-    }
-    const name = attrString.substring(nameStart, i);
-    if (!name) {
-      i++;
-      continue;
-    }
-
-    // Skip spaces before '='
-    while (i < attrString.length && /\s/.test(attrString[i])) {
-      i++;
-    }
-
-    if (attrString[i] === "=") {
-      i++;
-      // Skip spaces after '='
-      while (i < attrString.length && /\s/.test(attrString[i])) {
-        i++;
-      }
-      if (attrString[i] === "{") {
-        // Dynamic attribute
-        i++;
-        const start = i;
-        let braceCount = 1;
-        while (i < attrString.length && braceCount > 0) {
-          if (attrString[i] === "{") braceCount++;
-          else if (attrString[i] === "}") braceCount--;
-          if (braceCount > 0) i++;
-        }
-        props[name] = attrString.substring(start, i).trim();
-        i++; // skip '}'
-      } else if (attrString[i] === '"' || attrString[i] === "'") {
-        // Quoted string attribute
-        const quote = attrString[i];
-        i++;
-        const start = i;
-        while (i < attrString.length && attrString[i] !== quote) {
-          i++;
-        }
-        const val = attrString.substring(start, i);
-        props[name] = JSON.stringify(val); // expression for string literal
-        i++; // skip quote
-      } else {
-        // Unquoted attribute value
-        const start = i;
-        while (i < attrString.length && !/[\s>\/]/.test(attrString[i])) {
-          i++;
-        }
-        const val = attrString.substring(start, i);
-        props[name] = JSON.stringify(val);
-      }
-    } else {
-      // Boolean attribute
-      props[name] = "true";
-    }
-  }
-  return props;
-}
-
-class ScribeParser {
-  private readonly input: string;
-  private readonly filePath?: string;
-  private pos = 0;
-
-  constructor(input: string, filePath?: string) {
-    this.input = input;
-    this.filePath = filePath;
-  }
-
-  private getLineAndCol(): { line: number; col: number } {
-    const textBefore = this.input.substring(0, this.pos);
-    const lines = textBefore.split("\n");
-    return {
-      line: lines.length,
-      col: lines[lines.length - 1].length + 1,
-    };
-  }
-
-  private throwError(message: string): never {
-    const { line, col } = this.getLineAndCol();
-    const prefix = this.filePath
-      ? `${this.filePath}:${line}:${col}: `
-      : `Line ${line}, col ${col}: `;
-    throw new Error(prefix + message);
-  }
-
-  private peek(offset = 0): string {
-    return this.input[this.pos + offset] || "";
-  }
-
-  private match(str: string): boolean {
-    return this.input.substring(this.pos, this.pos + str.length) === str;
-  }
-
-  private consumeString(str: string): void {
-    if (this.match(str)) {
-      this.pos += str.length;
-    } else {
-      this.throwError(`Expected "${str}"`);
-    }
-  }
-
-  private parseIncludeBlock(): Node {
-    this.consumeString("{@include ");
-    // skip optional opening quote
-    const quoteChar =
-      this.input[this.pos] === '"' || this.input[this.pos] === "'"
-        ? this.input[this.pos++]
-        : null;
-    const start = this.pos;
-    while (
-      this.pos < this.input.length &&
-      (quoteChar
-        ? this.input[this.pos] !== quoteChar
-        : this.input[this.pos] !== "}")
-    ) {
-      this.pos++;
-    }
-    const includePath = this.input.substring(start, this.pos).trim();
-    if (quoteChar) this.pos++; // skip closing quote
-    this.consumeString("}");
-    return {
-      type: "include",
-      includePath,
-    };
-  }
-
-  public parseBlock(endTags: string[] = []): Node[] {
-    const nodes: Node[] = [];
-    while (this.pos < this.input.length) {
-      let hitEndTag = false;
-      for (const tag of endTags) {
-        if (this.match(tag)) {
-          hitEndTag = true;
-          break;
-        }
-      }
-      if (hitEndTag) break;
-
-      if (this.match("{#if ")) {
-        nodes.push(this.parseIfBlock());
-      } else if (this.match("{#each ")) {
-        nodes.push(this.parseEachBlock());
-      } else if (this.match("{@include ")) {
-        nodes.push(this.parseIncludeBlock());
-      } else if (this.match("{@html ")) {
-        nodes.push(this.parseHtmlBlock());
-      } else if (
-        this.peek() === "{" &&
-        this.peek(1) !== "#" &&
-        this.peek(1) !== "/" &&
-        this.peek(1) !== ":" &&
-        this.peek(1) !== "@"
-      ) {
-        nodes.push(this.parseVariableBlock());
-      } else if (this.peek() === "<" && /[A-Z]/.test(this.peek(1))) {
-        nodes.push(this.parseComponentBlock());
-      } else {
-        nodes.push(this.parseTextNode(endTags));
-      }
-    }
-    return nodes;
-  }
-
-  private parseIfBlock(): Node {
-    this.consumeString("{#if ");
-    const condStart = this.pos;
-    while (this.pos < this.input.length && this.input[this.pos] !== "}") {
-      this.pos++;
-    }
-    const condition = this.input.substring(condStart, this.pos).trim();
-    this.consumeString("}");
-
-    const consequent = this.parseBlock(["{:else if ", "{:else}", "{/if}"]);
-    let alternate: Node[] = [];
-
-    if (this.match("{:else if ")) {
-      const elseIfNode = this.parseIfBlock();
-      alternate = [elseIfNode];
-    } else if (this.match("{:else}")) {
-      this.consumeString("{:else}");
-      alternate = this.parseBlock(["{/if}"]);
-      this.consumeString("{/if}");
-    } else if (this.match("{/if}")) {
-      this.consumeString("{/if}");
-    }
-
-    return {
-      type: "if",
-      condition,
-      consequent,
-      alternate,
-    };
-  }
-
-  private parseEachBlock(): Node {
-    this.consumeString("{#each ");
-    const start = this.pos;
-    while (this.pos < this.input.length && this.input[this.pos] !== "}") {
-      this.pos++;
-    }
-    const rawEach = this.input.substring(start, this.pos).trim();
-    this.consumeString("}");
-
-    const asIndex = rawEach.indexOf(" as ");
-    if (asIndex === -1) {
-      this.throwError(
-        `Invalid each block syntax: "${rawEach}". Expected "as" keyword.`,
-      );
-    }
-    const array = rawEach.substring(0, asIndex).trim();
-    const itemPart = rawEach.substring(asIndex + 4).trim();
-
-    let item = itemPart;
-    let indexVar = "";
-    if (itemPart.includes(",")) {
-      const parts = itemPart.split(",");
-      item = parts[0].trim();
-      indexVar = parts[1].trim();
-    }
-
-    const consequent = this.parseBlock(["{/each}"]);
-    this.consumeString("{/each}");
-
-    return {
-      type: "each",
-      array,
-      item,
-      indexVar,
-      consequent,
-    };
-  }
-
-  private parseHtmlBlock(): Node {
-    this.consumeString("{@html ");
-    const start = this.pos;
-    while (this.pos < this.input.length && this.input[this.pos] !== "}") {
-      this.pos++;
-    }
-    const expression = this.input.substring(start, this.pos).trim();
-    this.consumeString("}");
-    return {
-      type: "html",
-      expression,
-    };
-  }
-
-  private parseVariableBlock(): Node {
-    this.consumeString("{");
-    const start = this.pos;
-    let braceCount = 1;
-    while (this.pos < this.input.length && braceCount > 0) {
-      if (this.input[this.pos] === "{") braceCount++;
-      else if (this.input[this.pos] === "}") braceCount--;
-      if (braceCount > 0) this.pos++;
-    }
-    const raw = this.input.substring(start, this.pos).trim();
-    this.consumeString("}");
-
-    const parts = raw.split("|");
-    const expression = parts[0].trim();
-    const parsedFilters = parts.slice(1).map((f) => {
-      const term = f.trim();
-      const parenIndex = term.indexOf("(");
-      if (parenIndex !== -1 && term.endsWith(")")) {
-        const name = term.substring(0, parenIndex).trim();
-        const args = term
-          .substring(parenIndex + 1, term.length - 1)
-          .split(",")
-          .map((arg) => arg.trim())
-          .filter(Boolean);
-        return { name, args };
-      }
-      return { name: term, args: [] };
-    });
-
-    return {
-      type: "expression",
-      expression,
-      filters: parsedFilters,
-    };
-  }
-
-  private parseComponentBlock(): Node {
-    this.consumeString("<");
-    const start = this.pos;
-    let braceCount = 0;
-    let inQuotes = false;
-    let quoteChar = "";
-    while (this.pos < this.input.length) {
-      const char = this.input[this.pos];
-      if (inQuotes) {
-        if (char === quoteChar && this.input[this.pos - 1] !== "\\") {
-          inQuotes = false;
-        }
-      } else {
-        if (char === '"' || char === "'") {
-          inQuotes = true;
-          quoteChar = char;
-        } else if (char === "{") {
-          braceCount++;
-        } else if (char === "}") {
-          braceCount--;
-        } else if (
-          char === "/" && this.input[this.pos + 1] === ">" && braceCount === 0
-        ) {
-          break;
-        }
-      }
-      this.pos++;
-    }
-    const componentStr = this.input.substring(start, this.pos).trim();
-    this.consumeString("/>");
-
-    const spaceIndex = componentStr.search(/\s/);
-    let componentName = componentStr;
-    let attrString = "";
-    if (spaceIndex !== -1) {
-      componentName = componentStr.substring(0, spaceIndex).trim();
-      attrString = componentStr.substring(spaceIndex).trim();
-    }
-
-    const props = parseProps(attrString);
-
-    return {
-      type: "component",
-      componentName,
-      props,
-    };
-  }
-
-  private parseTextNode(endTags: string[]): Node {
-    const start = this.pos;
-    while (this.pos < this.input.length) {
-      let hitEnd = false;
-      for (const tag of endTags) {
-        if (this.match(tag)) {
-          hitEnd = true;
-          break;
-        }
-      }
-      if (hitEnd) break;
-
-      if (
-        this.match("{#if ") ||
-        this.match("{#each ") ||
-        this.match("{@html ") ||
-        this.match("{@include ") ||
-        (this.peek() === "{" &&
-          this.peek(1) !== "#" &&
-          this.peek(1) !== "/" &&
-          this.peek(1) !== ":" &&
-          this.peek(1) !== "@") ||
-        (this.peek() === "<" && /[A-Z]/.test(this.peek(1)))
-      ) {
-        break;
-      }
-
-      this.pos++;
-    }
-    const value = this.input.substring(start, this.pos);
-    return {
-      type: "text",
-      value,
-    };
-  }
+  return String(val).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(
+    />/g,
+    "&gt;",
+  ).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 function compileNodes(nodes: Node[]): string {
@@ -502,8 +65,9 @@ function compileNodes(nodes: Node[]): string {
     } else if (node.type === "expression") {
       let expr = node.expression;
       for (const filter of node.filters || []) {
-        const filterArgs = [expr, ...filter.args].join(", ");
-        expr = `helpers.filters.${filter.name}(${filterArgs})`;
+        expr = `helpers.filters.${filter.name}(${
+          [expr, ...filter.args].join(", ")
+        })`;
       }
       code += `html.push(helpers.escapeHtml(${expr}));\n`;
     } else if (node.type === "html") {
@@ -513,32 +77,27 @@ function compileNodes(nodes: Node[]): string {
         JSON.stringify(node.includePath)
       }, context));\n`;
     } else if (node.type === "if") {
-      code += `if (${node.condition}) {\n`;
-      code += compileNodes(node.consequent || []);
-      if (node.alternate && node.alternate.length > 0) {
-        code += `} else {\n`;
-        code += compileNodes(node.alternate);
-      }
-      code += `}\n`;
+      code += `if (${node.condition}) {\n${
+        compileNodes(node.consequent || [])
+      }}`;
+      if (node.alternate?.length) {
+        code += ` else {\n${compileNodes(node.alternate)}}\n`;
+      } else code += "\n";
     } else if (node.type === "each") {
       code +=
         `if (${node.array} && typeof ${node.array}[Symbol.iterator] === 'function') {\n`;
-      if (node.indexVar) {
-        code += `  let ${node.indexVar} = 0;\n`;
-      }
-      code += `  for (const ${node.item} of ${node.array}) {\n`;
-      code += compileNodes(node.consequent || []);
-      if (node.indexVar) {
-        code += `    ${node.indexVar}++;\n`;
-      }
-      code += `  }\n`;
-      code += `}\n`;
+      if (node.indexVar) code += `  let ${node.indexVar} = 0;\n`;
+      code += `  for (const ${node.item} of ${node.array}) {\n${
+        compileNodes(node.consequent || [])
+      }`;
+      if (node.indexVar) code += `    ${node.indexVar}++;\n`;
+      code += `  }\n}\n`;
     } else if (node.type === "component") {
-      const propsPairs = [];
-      for (const [propName, expr] of Object.entries(node.props || {})) {
-        propsPairs.push(`${JSON.stringify(propName)}: ${expr}`);
-      }
-      const propsObj = `{ ${propsPairs.join(", ")} }`;
+      const propsObj = `{ ${
+        Object.entries(node.props || {}).map(([k, v]) =>
+          `${JSON.stringify(k)}: ${v}`
+        ).join(", ")
+      } }`;
       code += `html.push(helpers.renderComponent(${
         JSON.stringify(node.componentName)
       }, ${propsObj}, context));\n`;
@@ -547,37 +106,19 @@ function compileNodes(nodes: Node[]): string {
   return code;
 }
 
-export /**
- * Compiles a Scribe template string into an executable renderer.
- *
- * @param template - The raw template source.
- * @param filePath - Optional file path used in syntax errors.
- * @returns A compiled renderer function.
- */
-function compileToFunction(
+export function compileToFunction(
   template: string,
   filePath?: string,
 ): CompiledTemplateFn {
-  const parser = new ScribeParser(template, filePath);
-  const ast = parser.parseBlock();
-  const body = compileNodes(ast);
-
-  const functionCode = `
-    const html = [];
-    with (context) {
-      ${body}
-    }
-    return html.join("");
-  `;
-
+  const body = compileNodes(new ScribeParser(template, filePath).parseBlock());
   try {
     return new Function(
       "context",
       "helpers",
-      functionCode,
+      `const html = []; with (context) {\n${body}\n} return html.join("");`,
     ) as CompiledTemplateFn;
   } catch (err) {
-    console.error("Failed to compile template:", functionCode);
+    console.error("Failed to compile template execution body.");
     throw err;
   }
 }
@@ -593,14 +134,10 @@ function getCompiledTemplate(
     templateCache.set(key, cached);
     return cached;
   }
-
   const compiled = compileToFunction(template, filePath);
   templateCache.set(key, compiled);
-  if (templateCache.size > TEMPLATE_CACHE_LIMIT) {
-    const oldestKey = templateCache.keys().next().value;
-    if (oldestKey) {
-      templateCache.delete(oldestKey);
-    }
+  if (templateCache.size > 512) {
+    templateCache.delete(templateCache.keys().next().value!);
   }
   return compiled;
 }
@@ -619,13 +156,11 @@ function renderWithCompiledTemplate(
           `{@include "${path}"} used in template but no includeResolver was provided.`,
         );
       }
-      const includedTemplate = options.includeResolver(path);
       return render({
-        template: includedTemplate,
+        ...options,
+        template: options.includeResolver(path),
         context: ctx,
-        components: options.components,
         filePath: path,
-        includeResolver: options.includeResolver,
       });
     },
     renderComponent: (
@@ -633,27 +168,14 @@ function renderWithCompiledTemplate(
       props: Record<string, unknown>,
       parentContext: Record<string, unknown>,
     ) => {
-      let componentTemplate = options.components[name];
+      const componentTemplate = options.components[name] ??
+        options.components[name.charAt(0).toLowerCase() + name.slice(1)];
       if (componentTemplate === undefined) {
-        const altName = name.charAt(0).toLowerCase() + name.slice(1);
-        componentTemplate = options.components[altName];
-      }
-
-      if (componentTemplate === undefined) {
-        throw new Error(
-          `Component "${name}" not found. Available components: ${
-            Object.keys(options.components).join(", ")
-          }`,
-        );
+        throw new Error(`Component "${name}" not found.`);
       }
 
       let componentRenderFn = componentFnCache.get(componentTemplate);
-      const globals = parentContext.globals;
-      const scopedGlobals =
-        globals && typeof globals === "object" && !Array.isArray(globals)
-          ? globals as Record<string, unknown>
-          : {};
-      if (componentRenderFn === undefined) {
+      if (!componentRenderFn) {
         componentRenderFn = getCompiledTemplate(
           componentTemplate,
           options.filePath,
@@ -661,63 +183,46 @@ function renderWithCompiledTemplate(
         componentFnCache.set(componentTemplate, componentRenderFn);
       }
 
-      const localContext = {
-        ...scopedGlobals,
-        globals: scopedGlobals,
-        site: parentContext.site,
-        theme: parentContext.theme,
-        ...props,
-      };
-
-      return renderWithCompiledTemplate(
-        componentRenderFn,
-        {
-          ...options,
-          template: componentTemplate,
-          context: localContext,
+      const globals =
+        parentContext.globals && typeof parentContext.globals === "object" &&
+          !Array.isArray(parentContext.globals)
+          ? parentContext.globals
+          : {};
+      return renderWithCompiledTemplate(componentRenderFn, {
+        ...options,
+        template: componentTemplate,
+        context: {
+          ...globals,
+          globals,
+          site: parentContext.site,
+          theme: parentContext.theme,
+          ...props,
         },
-        componentFnCache,
-      );
+      }, componentFnCache);
     },
   };
 
   const contextProxy = new Proxy(options.context, {
-    has(_target, key) {
-      if (typeof key === "symbol") return false;
-      return !(key === "html" || key === "helpers" || key === "context");
-    },
-    get(target, key) {
+    has: (_, key) =>
+      typeof key !== "symbol" &&
+      !["html", "helpers", "context"].includes(key as string),
+    get: (target, key) => {
       if (key === Symbol.unscopables) return undefined;
       if (key in target) return target[key as string];
       if (key in helpers) return undefined;
-      if (typeof globalThis !== "undefined" && key in globalThis) {
-        return (globalThis as Record<PropertyKey, unknown>)[key];
-      }
-      return undefined;
+      return typeof globalThis !== "undefined" && key in globalThis
+        ? (globalThis as any)[key]
+        : undefined;
     },
   });
 
   return renderFn(contextProxy, helpers);
 }
 
-/**
- * Renders a Scribe template with the provided context and components.
- *
- * @param options - Configuration options for Scribe including template, context, and components.
- * @returns The rendered template as a string.
- *
- * @example
- * ```ts
- * import { render } from "@steno/steno";
- *
- * const HTML = render({
- *   template: "<h1>{title}</h1>",
- *   context: { title: "Hello World" },
- *   components: {}
- * });
- * ```
- */
 export function render(options: ScribeOptions): string {
-  const renderFn = getCompiledTemplate(options.template, options.filePath);
-  return renderWithCompiledTemplate(renderFn, options, new Map());
+  return renderWithCompiledTemplate(
+    getCompiledTemplate(options.template, options.filePath),
+    options,
+    new Map(),
+  );
 }

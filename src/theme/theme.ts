@@ -43,31 +43,21 @@ export class Theme {
     this.version = themeData.version;
     this.plugins = themeData.plugins ?? [];
 
-    const schemaDefaults = this.resolveSchemaDefaults(themeData.configSchema);
-
     this.config = {
-      ...schemaDefaults,
+      ...this.resolveSchemaDefaults(themeData.configSchema),
       ...themeData.defaultConfig,
       ...userConfig,
     };
   }
 
-  /**
-   * Resolves default values for theme configuration based on the provided schema.
-   * @param schema The theme configuration schema.
-   * @returns An object containing default values.
-   */
   private resolveSchemaDefaults(
     schema?: Record<string, ThemeConfigField>,
   ): ThemeConfig {
     if (!schema) return {};
-    const result: ThemeConfig = {};
-    for (const [key, field] of Object.entries(schema)) {
-      if (field.default !== undefined) {
-        result[key] = field.default;
-      }
-    }
-    return result;
+    return Object.entries(schema).reduce((acc, [key, field]) => {
+      if (field.default !== undefined) acc[key] = field.default;
+      return acc;
+    }, {} as ThemeConfig);
   }
 
   /**
@@ -81,50 +71,84 @@ export class Theme {
     dir: string,
     userConfig: ThemeConfig = {},
   ): Theme {
-    let yamlContent = "";
-    let yamlPath = join(dir, "theme.yaml");
-    try {
-      yamlContent = Deno.readTextFileSync(yamlPath);
-    } catch {
-      yamlPath = join(dir, "theme.yml");
-      yamlContent = Deno.readTextFileSync(yamlPath);
-    }
-
-    const parsedMetadata = parseYaml(yamlContent);
-    const metadata: ThemeDirectoryMetadata =
-      parsedMetadata && typeof parsedMetadata === "object"
-        ? (parsedMetadata as ThemeDirectoryMetadata)
-        : {};
+    const metadata = Theme.loadMetadata(dir);
     const name = metadata.name || "unnamed";
     const version = metadata.version || "1.0.0";
 
+    const { layouts, layoutPaths } = Theme.loadLayouts(dir);
+    const { components, componentPaths } = Theme.loadComponents(
+      dir,
+      metadata.components,
+    );
+    const assets = Theme.loadAssets(dir);
+
+    const themeInstance = new Theme({
+      name,
+      version,
+      layouts,
+      components,
+      assets,
+      defaultConfig: metadata.defaultConfig || {},
+      configSchema: metadata.configSchema,
+    }, userConfig);
+
+    themeInstance.layoutPaths = layoutPaths;
+    themeInstance.componentPaths = componentPaths;
+    return themeInstance;
+  }
+
+  /**
+   * Loads the metadata for a theme from its directory.
+   *
+   * @param dir - The path to the theme directory.
+   * @returns The parsed theme metadata.
+   */
+  private static loadMetadata(dir: string): ThemeDirectoryMetadata {
+    let yamlContent = "";
+    try {
+      yamlContent = Deno.readTextFileSync(join(dir, "theme.yaml"));
+    } catch {
+      try {
+        yamlContent = Deno.readTextFileSync(join(dir, "theme.yml"));
+      } catch {
+        return {};
+      }
+    }
+    const parsed = parseYaml(yamlContent);
+    return parsed && typeof parsed === "object"
+      ? (parsed as ThemeDirectoryMetadata)
+      : {};
+  }
+
+  private static loadLayouts(dir: string) {
     const layouts: Record<string, string> = {};
     const layoutPaths: Record<string, string> = {};
     const layoutsDir = join(dir, "layouts");
     try {
-      const layoutsStat = Deno.statSync(layoutsDir);
-      if (layoutsStat.isDirectory) {
+      if (Deno.statSync(layoutsDir).isDirectory) {
         for (const entry of Deno.readDirSync(layoutsDir)) {
-          if (
-            entry.isFile &&
-            (entry.name.endsWith(".scr") || entry.name.endsWith(".liquid"))
-          ) {
+          if (entry.isFile && /\.(scr|liquid)$/.test(entry.name)) {
             const key = entry.name.replace(/\.(scr|liquid)$/, "");
-            const fullLayoutPath = join(layoutsDir, entry.name);
-            layouts[key] = Deno.readTextFileSync(fullLayoutPath);
-            layoutPaths[key] = fullLayoutPath;
+            const fullPath = join(layoutsDir, entry.name);
+            layouts[key] = Deno.readTextFileSync(fullPath);
+            layoutPaths[key] = fullPath;
           }
         }
       }
-    } catch {
-      // continue
-    }
+    } catch { /* Layouts missing is fine */ }
 
+    return { layouts, layoutPaths };
+  }
+
+  private static loadComponents(
+    dir: string,
+    rawComponents?: Record<string, string>,
+  ) {
     const components: Record<string, string> = {};
     const componentPaths: Record<string, string> = {};
-    if (metadata.components) {
-      for (const [key, relPath] of Object.entries(metadata.components)) {
-        // Capitalize component name
+
+    if (rawComponents) {
+      for (const [key, relPath] of Object.entries(rawComponents)) {
         const capKey = key.charAt(0).toUpperCase() + key.slice(1);
         const fullPath = join(dir, relPath);
         try {
@@ -138,144 +162,116 @@ export class Theme {
         }
       }
     }
+    return { components, componentPaths };
+  }
 
-    const assets: Record<string, string | Uint8Array | URL> = {};
+  private static loadAssets(dir: string): Record<string, URL> {
+    const assets: Record<string, URL> = {};
     const assetsDir = join(dir, "assets");
+
     try {
-      const assetsStat = Deno.statSync(assetsDir);
-      if (assetsStat.isDirectory) {
-        const addAssetsRecursively = (currentDir: string, relPrefix = "") => {
+      if (Deno.statSync(assetsDir).isDirectory) {
+        const walk = (currentDir: string, relPrefix = "") => {
           for (const entry of Deno.readDirSync(currentDir)) {
             const fullPath = join(currentDir, entry.name);
             const relPath = relPrefix
               ? `${relPrefix}/${entry.name}`
               : entry.name;
-            if (entry.isDirectory) {
-              addAssetsRecursively(fullPath, relPath);
-            } else if (entry.isFile) {
+            if (entry.isDirectory) walk(fullPath, relPath);
+            else if (entry.isFile) {
               assets[relPath] = new URL(`file://${fullPath}`);
             }
           }
         };
-        addAssetsRecursively(assetsDir);
+        walk(assetsDir);
       }
-    } catch {
-      // Assets directory not found, continue
-    }
+    } catch { /* Assets missing is fine */ }
 
-    const themeData: StenoTheme = {
-      name,
-      version,
-      layouts,
-      components,
-      assets,
-      defaultConfig: metadata.defaultConfig || {},
-      configSchema: metadata.configSchema,
-    };
+    return assets;
+  }
 
-    const themeInstance = new Theme(themeData, userConfig);
-    themeInstance.layoutPaths = layoutPaths;
-    themeInstance.componentPaths = componentPaths;
-    return themeInstance;
+  /**
+   * Internal common renderer wrapper to dry up Scribe orchestrations.
+   */
+  private executeRender(
+    template: string,
+    context: Record<string, unknown>,
+    filePath?: string,
+  ): string {
+    return render({
+      template,
+      context,
+      components: this.themeData.components || {},
+      filePath,
+      includeResolver: (path) => {
+        const component = this.themeData.components?.[path];
+        if (component) return component;
+        throw new Error(`Include "${path}" not found in theme "${this.name}".`);
+      },
+    });
   }
 
   /**
    * Renders a layout template with content and page variables using Scribe.
-   *
-   * @param layoutName - The name of the layout to render.
-   * @param content - The pre-rendered HTML body content.
-   * @param variables - Object containing page-level variables.
-   * @returns The rendered layout HTML string.
-   * @throws {Error} If the specified layout is not found in the theme.
    */
   public renderLayout(
     layoutName: string,
     content: string,
     variables: Record<string, unknown>,
   ): string {
-    const layoutTemplate = this.themeData.layouts[layoutName];
-    if (!layoutTemplate) {
-      const available = Object.keys(this.themeData.layouts).join(", ");
+    const template = this.themeData.layouts[layoutName];
+    if (!template) {
       throw new Error(
-        `Layout "${layoutName}" not found in theme "${this.name}". Available layouts: ${available}`,
+        `Layout "${layoutName}" not found in theme "${this.name}". Available layouts: ${
+          Object.keys(this.themeData.layouts).join(", ")
+        }`,
       );
     }
-    return render({
-      template: layoutTemplate,
-      context: { content, ...variables },
-      components: this.themeData.components || {},
-      filePath: this.layoutPaths[layoutName],
-      includeResolver: (path) => {
-        const component = this.themeData.components?.[path];
-        if (component) return component;
-        throw new Error(
-          `Include "${path}" not found in theme "${this.name}".`,
-        );
-      },
-    });
+    return this.executeRender(
+      template,
+      { content, ...variables },
+      this.layoutPaths[layoutName],
+    );
   }
 
   /**
    * Renders a theme component using Scribe.
-   *
-   * @param componentName - The name of the component to render.
-   * @param variables - Object containing variables for the component.
-   * @returns The rendered component HTML string.
-   * @throws {Error} If the specified component is not found in the theme.
    */
   public renderComponent(
     componentName: string,
     variables: Record<string, unknown>,
   ): string {
-    const componentTemplate = this.themeData.components?.[componentName];
-    if (!componentTemplate) {
+    const template = this.themeData.components?.[componentName];
+    if (!template) {
       throw new Error(
         `Component "${componentName}" not found in theme "${this.name}".`,
       );
     }
-    return render({
-      template: componentTemplate,
-      context: variables,
-      components: this.themeData.components || {},
-      filePath: this.componentPaths[componentName],
-    });
+    return this.executeRender(
+      template,
+      variables,
+      this.componentPaths[componentName],
+    );
   }
 
   /**
    * Returns deterministic theme data used in build cache signatures.
-   * Template contents are included so layout/component edits invalidate cached pages.
    */
-  public getBuildSignatureData(): {
-    name: string;
-    version: string;
-    config: ThemeConfig;
-    layouts: Array<[string, string]>;
-    components: Array<[string, string]>;
-  } {
-    const layouts = Object.entries(this.themeData.layouts).sort((
-      [left],
-      [right],
-    ) => left.localeCompare(right));
-    const components = Object.entries(this.themeData.components ?? {}).sort((
-      [left],
-      [right],
-    ) => left.localeCompare(right));
+  public getBuildSignatureData() {
+    const sortEntries = (obj: Record<string, string> = {}) =>
+      Object.entries(obj).sort(([l], [r]) => l.localeCompare(r));
 
     return {
       name: this.name,
       version: this.version,
       config: this.config,
-      layouts,
-      components,
+      layouts: sortEntries(this.themeData.layouts),
+      components: sortEntries(this.themeData.components),
     };
   }
 
   /**
    * Copies all theme assets to the output directory (e.g., dist/assets/).
-   *
-   * @param outputDir - The root output/dist directory path.
-   * @returns A promise that resolves when copying is finished.
-   * @throws {Error} If an asset cannot be fetched or written to disk.
    */
   public async copyAssets(outputDir: string): Promise<void> {
     if (!this.themeData.assets) return;
@@ -294,8 +290,10 @@ export class Theme {
         if (!response.ok) {
           throw new Error(`Failed to fetch theme asset: ${source.href}`);
         }
-        const buffer = new Uint8Array(await response.arrayBuffer());
-        Deno.writeFileSync(destPath, buffer);
+        Deno.writeFileSync(
+          destPath,
+          new Uint8Array(await response.arrayBuffer()),
+        );
       }
     }
   }
