@@ -6,7 +6,7 @@ import { registerScribeTests } from "./src/utils/scribe_test.ts";
 import { registerThemeTests } from "./src/theme/theme_test.ts";
 import { registerServerTests } from "./src/utils/server_test.ts";
 import { registerPublicApiTests } from "./src/public_api_test.ts";
-import { registerBuildTests } from "./src/core/build_test.ts";
+import { registerBuildTests } from "./src/core/build/build_test.ts";
 import { registerPluginTests } from "./src/plugins/plugins_test.ts";
 import { registerCollectionTests } from "./src/core/collections_test.ts";
 import { registerProjectTests } from "./src/core/project_test.ts";
