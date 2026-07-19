@@ -3,7 +3,7 @@ import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
 import { DEFAULT_DEV_PORT, startDevServer } from "../utils/server.ts";
 import { loadPlugins } from "./config.ts";
-import { buildSite, type BuildState } from "./steno_build.ts";
+import { buildSite, type BuildState } from "./build/build.ts";
 import { loadTheme } from "./steno_theme.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
 import { join } from "@std/path";
@@ -42,8 +42,9 @@ export class Steno {
     const project = await this.projectPromise;
     await this.themeLoadingPromise;
     const sitePlugins = await loadPlugins(project.config);
-    const allowThemePlugins = project.config.custom?.pluginSecurity
-      ?.allowThemePlugins !== false;
+    const allowThemePlugins =
+      project.config.custom?.pluginSecurity?.allowThemePlugins !== false;
+
     const themePlugins = allowThemePlugins
       ? (this.theme?.plugins ?? []).filter((plugin, index) => {
         if (!isStenoPlugin(plugin)) {
@@ -65,8 +66,8 @@ export class Steno {
     this.plugins = [...themePlugins, ...sitePlugins];
   }
 
-  /** Builds the site once using the loaded configuration and theme. */
-  public async build(): Promise<void> {
+  /** Core execution method for triggering a site build orchestration. */
+  private async executeBuild(dev: boolean): Promise<void> {
     const project = await this.projectPromise;
     await this.themeLoadingPromise;
     await this.pluginsLoadingPromise;
@@ -78,8 +79,13 @@ export class Steno {
       hooks: this.hooks,
       state: this.buildState,
       pages: project.pages,
-      dev: false,
+      dev,
     });
+  }
+
+  /** Builds the site once using the loaded configuration and theme. */
+  public async build(): Promise<void> {
+    return this.executeBuild(false);
   }
 
   /** Starts the development server with live reload. */
@@ -90,27 +96,11 @@ export class Steno {
     const devPort = project.config.custom?.devPort ?? DEFAULT_DEV_PORT;
     await startDevServer(
       outputDir,
-      () => this.devBuild(),
+      () => this.executeBuild(true),
       contentDir,
       [join(contentDir, ".steno"), outputDir],
       devPort,
     );
-  }
-
-  private async devBuild(): Promise<void> {
-    const project = await this.projectPromise;
-    await this.themeLoadingPromise;
-    await this.pluginsLoadingPromise;
-
-    await buildSite({
-      config: project.config,
-      theme: this.theme,
-      plugins: this.plugins,
-      hooks: this.hooks,
-      state: this.buildState,
-      pages: project.pages,
-      dev: true,
-    });
   }
 
   /** Triggers the initial build unless dev mode is active. */

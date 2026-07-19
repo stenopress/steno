@@ -1,6 +1,6 @@
 import { join } from "@std/path";
 import type { SiteConfig } from "../src/types.ts";
-import { buildSite, type BuildState } from "../src/core/steno_build.ts";
+import { buildSite, type BuildState } from "../src/core/build/build.ts";
 
 interface BuildFixture {
   contentDir: string;
