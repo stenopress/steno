@@ -1,6 +1,6 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
-import { buildSite } from "./steno_build.ts";
+import { buildSite } from "./build/build.ts";
 import { loadTheme } from "./steno_theme.ts";
 import { resolveProject } from "./project.ts";
 
