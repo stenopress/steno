@@ -1,8 +1,8 @@
 # Security Policy
 
-We take the security of Steno, its template engine Scribe, and the wider
-ecosystem seriously. This document outlines our supported versions, built-in
-security features, and the process for reporting vulnerabilities.
+We take the security of Steno, its template engine Tau, and the wider ecosystem
+seriously. This document outlines our supported versions, built-in security
+features, and the process for reporting vulnerabilities.
 
 ---
 
@@ -45,7 +45,7 @@ dedicated, deny-by-default subprocess. The capability model, adversarial threat
 model, and exclusions are documented in
 [`docs/plugin_sandbox.md`](docs/plugin_sandbox.md).
 
-Theme modules, Scribe templates, and theme-bundled plugins are not currently
+Theme modules, Tau templates, and theme-bundled plugins are not currently
 isolated. Only install themes you trust, pin their versions, review updates, and
 grant Steno the least Deno permissions practical for the project.
 

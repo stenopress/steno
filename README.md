@@ -18,7 +18,7 @@
 <br>
 
 Steno is a high-performance, developer-first static site generator built on
-Deno. By pairing an asynchronous file-system pipeline with Scribe (a custom
+Deno. By pairing an asynchronous file-system pipeline with Tau (a custom
 compiled templating runtime combining Svelte and Astro syntax), Steno compiles
 thousands of pages in fractions of a second, shipping with a local dev server,
 instant live-reloading, and near-zero external dependencies.
@@ -56,16 +56,16 @@ deno task bench:check      # Assert performance budget thresholds
   to blocked addresses. The dev server automatically detects if your preferred
   port (default 5735) is in use and seamlessly increments to the next available
   port.
-- **Scribe Pipe-Syntax Filters:** Format your template variables elegantly.
-  Scribe supports Unix-style pipes for clean, readable layout transformations
-  like formatting dates or joining arrays inside your HTML.
+- **Tau Pipe-Syntax Filters:** Format your template variables elegantly. Tau
+  supports Unix-style pipes for clean, readable layout transformations like
+  formatting dates or joining arrays inside your HTML.
 - **Trusted Plugin Architecture:** Extend the build pipeline with compile-time
   plugins loaded from JSR, npm, or explicitly enabled sources.
 - **Plugin Source Policy:** Restrict top-level plugin specifiers by protocol.
   Plugins execute in-process with Steno's Deno permissions, so only trusted
   packages should be configured.
-- **Scribe Templating:** Premium Svelte and Astro style syntax parsing with
-  native layout and component structures.
+- **Tau Templating:** Premium Svelte and Astro style syntax parsing with native
+  layout and component structures.
 - **Double-Engine Frontmatter:** First-class, rapid parsing for both `---`
   (YAML) and `+++` (TOML).
 - **Sub-Millisecond Live Reload:** Driven by a native Server-Sent Events (SSE)
@@ -155,7 +155,7 @@ layout: layout
 
 # Hello World
 
-Welcome to an ultra-fast site powered by Steno and Scribe.
+Welcome to an ultra-fast site powered by Steno and Tau.
 ```
 
 3. **Run** the development server with real-time live reload:
@@ -172,11 +172,11 @@ deno run -A jsr:@steno/steno build
 
 ---
 
-## Themes & Scribe Templating
+## Themes & Tau Templating
 
-Steno themes are powered by **Scribe**, our custom compiled template engine.
-Themes live in a directory or can be resolved as remote module imports (`jsr:`,
-`npm:`, `https:`).
+Steno themes are powered by **Tau**, our custom compiled template engine. Themes
+live in a directory or can be resolved as remote module imports (`jsr:`, `npm:`,
+`https:`).
 
 ### Project Layout
 
@@ -186,16 +186,16 @@ themes/minimalist/
 ├── assets/
 │   └── style.css
 ├── components/
-│   └── header.scr
+│   └── header.tau
 └── layouts/
-    └── layout.scr
+    └── layout.tau
 ```
 
-### Scribe Syntax Example
+### Tau Syntax Example
 
-Write clean, declarative markup in your `.scr` templates:
+Write clean, declarative markup in your `.tau` templates:
 
-```scr
+```tau
 {#if title}
   <Header/>
 {/if}

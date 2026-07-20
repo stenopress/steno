@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import { Theme } from "./theme.ts";
 
@@ -80,14 +80,18 @@ export function registerThemeTests(): void {
 
       Deno.writeTextFileSync(
         join(themeDir, "theme.yaml"),
-        `name: Demo\nversion: 1.0.0\ncomponents:\n  header: components/header.scr\ndefaultConfig:\n  author: demo\n`,
+        `name: Demo\nversion: 1.0.0\ncomponents:\n  header: components/header.tau\ndefaultConfig:\n  author: demo\n`,
       );
       Deno.writeTextFileSync(
-        join(themeDir, "layouts", "layout.scr"),
+        join(themeDir, "layouts", "layout.tau"),
         `<Header />{@html content}`,
       );
       Deno.writeTextFileSync(
-        join(themeDir, "components", "header.scr"),
+        join(themeDir, "layouts", "legacy.liquid"),
+        `This must not be loaded as Tau.`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "components", "header.tau"),
         `<h1>{ site.title }</h1>`,
       );
       Deno.writeTextFileSync(join(themeDir, "assets", "style.css"), `body {}`);
@@ -99,6 +103,11 @@ export function registerThemeTests(): void {
       });
 
       assertStringIncludes(rendered, "<h1>My Site</h1>");
+      assertThrows(
+        () => theme.renderLayout("legacy", "", {}),
+        Error,
+        'Layout "legacy" not found',
+      );
 
       const outputDir = join(tempDir, "dist");
       await theme.copyAssets(outputDir);

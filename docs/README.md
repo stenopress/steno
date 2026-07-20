@@ -3,7 +3,7 @@
 - [Getting started](getting_started.md)
 - [Configuration reference](config_reference.md)
 - [Content, data, and collections](content.md)
-- [Themes and Scribe](theme_development.md)
+- [Themes and Tau](theme_development.md)
 - [Theme specification](theme-specification.md)
 - [Plugins](plugins.md)
 - [Plugin sandbox](plugin_sandbox.md)

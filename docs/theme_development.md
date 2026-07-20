@@ -1,4 +1,4 @@
-# Themes and Scribe
+# Themes and Tau
 
 A local theme is a directory with layouts, optional registered components, and
 optional assets:
@@ -7,9 +7,9 @@ optional assets:
 theme/
 ├── theme.yaml
 ├── layouts/
-│   └── layout.scr
+│   └── layout.tau
 ├── components/
-│   └── Header.scr
+│   └── Header.tau
 └── assets/
     └── site.css
 ```
@@ -19,15 +19,15 @@ theme/
 name: example-theme
 version: 1.0.0
 components:
-  header: components/Header.scr
+  header: components/Header.tau
 defaultConfig:
   brand: Steno
 configSchema:
   showSearch: { type: boolean, default: true, description: Show search }
 ```
 
-Layout files can be `.scr` or `.liquid`; their base filename is the layout name.
-A page without `layout` uses `layout`, so it needs `layouts/layout.scr`.
+Layout files use the `.tau` extension; their base filename is the layout name. A
+page without `layout` uses `layout`, so it needs `layouts/layout.tau`.
 Components must be declared in `theme.yaml`; their declared key is capitalized
 when loaded (`header` becomes `<Header />`). Assets are copied to
 `<output>/assets/`.
@@ -50,7 +50,7 @@ Component contexts include their props plus `site`, `theme`, `globals`, and the
 global values themselves. They do not implicitly inherit arbitrary page
 frontmatter.
 
-## Scribe syntax
+## Tau syntax
 
 Expressions are JavaScript expressions and are HTML-escaped:
 

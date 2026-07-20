@@ -1,8 +1,7 @@
 # Theme specification
 
 Themes are either modules that export a `StenoTheme` object or local directories
-loaded with the conventions described in
-[Themes and Scribe](theme_development.md).
+loaded with the conventions described in [Themes and Tau](theme_development.md).
 
 ```ts
 import type { StenoTheme } from "jsr:@steno/steno";

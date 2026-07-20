@@ -19,9 +19,9 @@ export type {
   CollectionMap,
 } from "./src/core/collections.ts";
 /** Built-in template filters and the template renderer. */
-export { filters, render } from "./src/utils/scribe.ts";
-/** Options used by the Scribe template renderer. */
-export type { ScribeOptions } from "./src/utils/scribe.ts";
+export { filters, render } from "./src/utils/tau.ts";
+/** Options used by the Tau template renderer. */
+export type { TauOptions } from "./src/utils/tau.ts";
 /** Core site and theme configuration types. */
 export type {
   CollectionConfig,

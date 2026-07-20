@@ -16,7 +16,7 @@ steno/
 ├── mod.ts               # Public SDK and CLI entrypoint
 ├── src/
 │   ├── core/            # Config parsing, collection engines, and build orchestration
-│   ├── theme/           # Theme rendering runtime and Scribe integrations
+│   ├── theme/           # Theme rendering runtime and Tau integrations
 │   ├── utils/           # Parser utilities, CLI arguments, file systems, and dev servers
 │   └── types.ts         # Shared public TypeScript type definitions and contracts
 ```

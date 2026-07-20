@@ -79,7 +79,7 @@ function createFixture(): TestFixture {
       }
 
       const componentEntries = Object.entries(components)
-        .map(([name]) => `  ${name}: "components/${name}.scr"`)
+        .map(([name]) => `  ${name}: "components/${name}.tau"`)
         .join("\n");
 
       Deno.writeTextFileSync(
@@ -91,13 +91,13 @@ function createFixture(): TestFixture {
 
       for (const [name, content] of Object.entries(layouts)) {
         Deno.writeTextFileSync(
-          join(themeDir, "layouts", `${name}.scr`),
+          join(themeDir, "layouts", `${name}.tau`),
           content,
         );
       }
       for (const [name, content] of Object.entries(components)) {
         Deno.writeTextFileSync(
-          join(themeDir, "components", `${name}.scr`),
+          join(themeDir, "components", `${name}.tau`),
           content,
         );
       }
@@ -190,7 +190,7 @@ export function registerBuildTests(): void {
         `---\ntitle: "Error page"\nlayout: "layout"\n---\nContent\n`,
       );
 
-      const layoutPath = join(themeDir, "layouts", "layout.scr");
+      const layoutPath = join(themeDir, "layouts", "layout.tau");
       const steno = new Steno(f.configPath, false);
       const err = await assertRejects(() => steno.build());
       assertStringIncludes((err as Error).message, layoutPath);
@@ -377,7 +377,7 @@ export function registerBuildTests(): void {
       );
 
       Deno.writeTextFileSync(
-        join(themeDir, "layouts", "layout.scr"),
+        join(themeDir, "layouts", "layout.tau"),
         `<html><body><p>layout-v2</p>{@html content}</body></html>`,
       );
 

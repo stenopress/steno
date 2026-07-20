@@ -21,7 +21,7 @@ loads a convention-based local theme. `renderLayout(name, content, variables)`
 and `renderComponent(name, variables)` render templates; `copyAssets(outputDir)`
 writes its assets.
 
-## Scribe
+## Tau
 
 `render({ template, context, components, filePath?, includeResolver? })` renders
 a template. `components` is required (use `{}` when none). `filters` is the

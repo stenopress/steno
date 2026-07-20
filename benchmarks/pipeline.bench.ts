@@ -1,6 +1,6 @@
 import { marked } from "marked";
 import { parseFrontmatter } from "../src/utils/frontmatter.ts";
-import { render } from "../src/utils/scribe.ts";
+import { render } from "../src/utils/tau.ts";
 
 const paragraph = "Steno benchmark content for realistic end-to-end rendering.";
 const standardBody = Array.from({ length: 80 }, () => paragraph).join("\n\n");
@@ -63,14 +63,14 @@ function runPagePipeline(markdown: string): string {
 }
 
 Deno.bench(
-  "pipeline (typical page parse->markdown->scribe)",
+  "pipeline (typical page parse->markdown->tau)",
   { group: "pipeline", baseline: true },
   () => {
     runPagePipeline(pageTemplate);
   },
 );
 
-Deno.bench("pipeline (large page parse->markdown->scribe)", {
+Deno.bench("pipeline (large page parse->markdown->tau)", {
   group: "pipeline",
 }, () => {
   runPagePipeline(largePageTemplate);

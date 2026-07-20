@@ -14,10 +14,10 @@ const BUDGET_MULTIPLIER_ENV = "STENO_BENCH_BUDGET_MULTIPLIER";
 const BENCH_BUDGETS_NS: Record<string, number> = {
   "build (warm, 1000 pages unchanged)": 45 * NS_PER_MS,
   "build (atomic incremental, 1 changed page of 1000)": 250 * NS_PER_MS,
-  "pipeline (typical page parse->markdown->scribe)": 250 * NS_PER_US,
-  "pipeline (large page parse->markdown->scribe)": 1_000 * NS_PER_US,
-  "scribe render (simple)": 8 * NS_PER_US,
-  "scribe render (list of 1000 items)": 6 * NS_PER_MS,
+  "pipeline (typical page parse->markdown->tau)": 250 * NS_PER_US,
+  "pipeline (large page parse->markdown->tau)": 1_000 * NS_PER_US,
+  "tau render (simple)": 8 * NS_PER_US,
+  "tau render (list of 1000 items)": 6 * NS_PER_MS,
   "parseFrontmatter (yaml)": 6 * NS_PER_US,
   "parseFrontmatter (yaml + 10k-word body)": 3 * NS_PER_US,
 };

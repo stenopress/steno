@@ -287,7 +287,7 @@ custom:
       );
 
       Deno.writeTextFileSync(
-        join(themeDir, "layouts", "layout.scr"),
+        join(themeDir, "layouts", "layout.tau"),
         `{#each collections.blog.items as post}<a href={post.url}>{post.frontmatter.title}</a>{/each}`,
       );
 

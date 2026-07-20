@@ -44,5 +44,5 @@ navigation. A `steno` object in a single page's frontmatter can set `title`,
 
 - [Configuration](config_reference.md) for site settings.
 - [Content](content.md) for frontmatter, data, collections, and includes.
-- [Themes and Scribe](theme_development.md) to customize output.
+- [Themes and Tau](theme_development.md) to customize output.
 - [Plugins](plugins.md) for build-time extensions.

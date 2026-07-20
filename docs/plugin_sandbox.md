@@ -94,8 +94,8 @@ exfiltrate those variables. Grants should therefore be narrow.
 The following are not claimed to be sandboxed:
 
 - Plugins configured with `mode: trusted` or the string shorthand.
-- Theme modules, Scribe templates, and theme-bundled plugins. Themes are loaded
-  and rendered in-process. Set `allowThemePlugins: false` to disable bundled
+- Theme modules, Tau templates, and theme-bundled plugins. Themes are loaded and
+  rendered in-process. Set `allowThemePlugins: false` to disable bundled
   plugins, but only install themes you trust.
 - The Steno parent process itself.
 - Denial of service outside the worker's V8 heap, such as kernel or Deno runtime

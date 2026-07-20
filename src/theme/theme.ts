@@ -1,4 +1,4 @@
-import { render } from "../utils/scribe.ts";
+import { render } from "../utils/tau.ts";
 import type { StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
 import { dirname, join, resolve } from "@std/path";
 import { ensureDirSync } from "../utils/fileUtils.ts";
@@ -127,8 +127,8 @@ export class Theme {
     try {
       if (Deno.statSync(layoutsDir).isDirectory) {
         for (const entry of Deno.readDirSync(layoutsDir)) {
-          if (entry.isFile && /\.(scr|liquid)$/.test(entry.name)) {
-            const key = entry.name.replace(/\.(scr|liquid)$/, "");
+          if (entry.isFile && entry.name.endsWith(".tau")) {
+            const key = entry.name.slice(0, -".tau".length);
             const fullPath = join(layoutsDir, entry.name);
             layouts[key] = Deno.readTextFileSync(fullPath);
             layoutPaths[key] = fullPath;
@@ -191,7 +191,7 @@ export class Theme {
   }
 
   /**
-   * Internal common renderer wrapper to dry up Scribe orchestrations.
+   * Internal common renderer wrapper to dry up Tau orchestrations.
    */
   private executeRender(
     template: string,
@@ -212,7 +212,7 @@ export class Theme {
   }
 
   /**
-   * Renders a layout template with content and page variables using Scribe.
+   * Renders a layout template with content and page variables using Tau.
    */
   public renderLayout(
     layoutName: string,
@@ -235,7 +235,7 @@ export class Theme {
   }
 
   /**
-   * Renders a theme component using Scribe.
+   * Renders a theme component using Tau.
    */
   public renderComponent(
     componentName: string,
