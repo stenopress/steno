@@ -28,8 +28,8 @@ instant live-reloading, and near-zero external dependencies.
 Steno is engineered for speed. Built-in performance budgets are strictly
 enforced via our local benchmark suite to prevent regression:
 
-- **Compile Speed:** Built to handle scale, compiling **4,000+ rich markdown
-  pages in <0.5 seconds**.
+- **Compile speed:** Builds 1,000 Markdown pages in approximately 130 ms on
+  modern hardware, with unchanged warm builds completing in approximately 30 ms.
 - **Incremental Rebuilds:** Powered by a layered in-memory + on-disk cache to
   compile changes instantly.
 - **Cold Starts:** Under 20ms startup time thanks to Deno's native TypeScript
@@ -72,6 +72,9 @@ deno task bench:check      # Assert performance budget thresholds
   server for instant browser updates on `http://localhost:5735`.
 - **Hybrid Caching:** Advanced recursive compilation with layered memory caching
   to only rebuild what changed.
+- **Transactional Output:** Builds pages, assets, redirects, and plugin output
+  in staging, then promotes the complete tree with rollback and interruption
+  recovery.
 - **Interactive Scaffolding:** Spin up modern theme templates instantly with a
   dedicated initializer.
 

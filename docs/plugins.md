@@ -32,6 +32,12 @@ Plugins run in declaration order. AST/HTML transforms apply to page bodies and
 collection content. Theme plugins run before configured site plugins and can be
 disabled with `allowThemePlugins: false`.
 
+Build lifecycle hooks operate on Steno's staging output. `config.output` points
+to that staging directory. Plugin `afterPage` receives the staging file as
+`path` and its eventual published location as `finalPath`. Extensions must not
+write directly to the final output; see
+[Transactional builds](atomic_builds.md).
+
 ## Trust and permissions
 
 Plugin factories and hooks run in the Steno process. They inherit every Deno
