@@ -1,169 +1,73 @@
-# Steno Theme Development Guide
+# Themes and Scribe
 
-Steno's theming system is designed to be flexible, allowing you to define
-layouts, components, and static assets to control the look and feel of your
-site.
+A local theme is a directory with layouts, optional registered components, and
+optional assets:
 
-## Theme Structure
-
-A Steno theme is typically a directory containing:
-
+```text
+theme/
+├── theme.yaml
+├── layouts/
+│   └── layout.scr
+├── components/
+│   └── Header.scr
+└── assets/
+    └── site.css
 ```
-my-theme/
-├── theme.yaml          # Theme metadata and configuration
-├── layouts/            # Scribe templates for page layouts
-│   ├── default.scr
-│   └── post.scr
-├── components/         # Scribe templates for reusable UI components
-│   ├── Header.scr
-│   └── Footer.scr
-└── assets/             # Static assets (CSS, JS, images)
-    ├── css/
-    │   └── style.css
-    └── js/
-        └── main.js
-```
-
-## `theme.yaml`
-
-This file defines your theme's metadata and default configuration.
 
 ```yaml
-# theme/theme.yaml
-name: "My Awesome Theme"
-version: "1.0.0"
-description: "A custom theme for Steno"
-
-# Define components and their paths relative to the theme root
+# theme.yaml
+name: example-theme
+version: 1.0.0
 components:
-  header: "components/Header.scr"
-  footer: "components/Footer.scr"
-
-# Define default configuration for your theme
+  header: components/Header.scr
 defaultConfig:
-  brand: "My Site Brand"
-  menu:
-    - name: "Home"
-      url: "/"
-    - name: "About"
-      url: "/about"
+  brand: Steno
+configSchema:
+  showSearch: { type: boolean, default: true, description: Show search }
 ```
 
-## Layouts (`.scr` files)
+Layout files can be `.scr` or `.liquid`; their base filename is the layout name.
+A page without `layout` uses `layout`, so it needs `layouts/layout.scr`.
+Components must be declared in `theme.yaml`; their declared key is capitalized
+when loaded (`header` becomes `<Header />`). Assets are copied to
+`<output>/assets/`.
 
-Layouts are the main templates that wrap your content. They are Scribe templates
-and typically reside in the `layouts/` directory.
+## Layout context
 
-When a Markdown file specifies `layout: "post"`, Steno will look for
-`theme/layouts/post.scr`. If no layout is specified, it defaults to
-`layout: "layout"` (or `default` if configured).
-
-Inside a layout, you have access to several variables:
-
-- **`site`**: Global site configuration (e.g., `site.title`, `site.description`,
-  `site.author`, `site.custom`).
-- **`theme`**: Theme metadata and merged theme configuration (e.g.,
-  `theme.name`, `theme.version`, `theme.brand`, `theme.menu`).
-- **`globals`**: Values from `custom.globals` in site config (e.g.,
-  `globals.company`, `globals.tagline`).
-- **Frontmatter keys**: All keys defined in the Markdown file's frontmatter
-  (e.g., `title`, `date`, `tags`).
-- **`content`**: The already-rendered HTML body of the Markdown file.
-
-**Example (`layouts/default.scr`):**
+Every layout receives `content` (compiled Markdown), `site`, `theme`, `data`,
+`collections`, `env`, `globals`, public environment variables, and all page
+frontmatter. `theme` contains its name/version plus merged configuration.
 
 ```html
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{ title } - { site.title }</title>
-    <link rel="stylesheet" href="/assets/css/style.css">
-  </head>
-  <body>
-    <header /> {# Render the Header component #}
-    <main>
-      <h1>{ title }</h1>
-      {#if date}
-      <p>Published on { date | date("MMMM D, YYYY") }</p>
-      {/if} {@html content} {# Inject the Markdown content here #}
-    </main>
-    <footer /> {# Render the Footer component #}
-  </body>
-</html>
+<!doctype html>
+<title>{title} · {site.title}</title>
+<link rel="stylesheet" href="/assets/site.css">
+<Header title={site.title} />
+<article>{@html content}</article>
 ```
 
-## Components (`.scr` files)
+Component contexts include their props plus `site`, `theme`, `globals`, and the
+global values themselves. They do not implicitly inherit arbitrary page
+frontmatter.
 
-Components are reusable Scribe templates for smaller UI elements. They are
-defined in `theme.yaml` and can be placed anywhere within your theme directory.
+## Scribe syntax
 
-**Example (`components/Header.scr`):**
+Expressions are JavaScript expressions and are HTML-escaped:
 
 ```html
-<header>
-  <nav>
-    <a href="/">
-      { theme.brand || site.title }
-    </a>
-    <ul>
-      {#each theme.menu as item}
-      <li><a href="{ item.url }">{ item.name }</a></li>
-      {/each}
-    </ul>
-  </nav>
-</header>
+<h1>{title | upper}</h1>
+{#if date}
+  <time>{date | date}</time>
+{:else}
+  <span>Undated</span>
+{/if}
+{#each tags as tag, index}<span>{index}: {tag}</span>{/each}
 ```
 
-To use a component in a layout or another component, use its capitalized name as
-a self-closing tag: `<Header />`.
+Use `{@html expression}` only for trusted HTML, such as Steno's generated
+`content`. Built-in filters are `date`, `truncate(length)`, `upper`, and
+`lower`. Invoke a component with `<Header />`; props may be literals,
+expressions (`title={title}`), or shorthand (`{title}`).
 
-## Assets (`assets/` directory)
-
-The `assets/` directory holds your static files like CSS, JavaScript, images,
-fonts, etc. Steno automatically copies the contents of this directory to
-`dist/assets/` during the build process.
-
-You can reference these assets in your layouts using relative paths from the
-root of your site (e.g., `/assets/css/style.css`).
-
-## Scribe Template Language
-
-Steno uses a custom template language called Scribe. Here are some key features:
-
-- **Expressions**: `{ variable }` or `{ variable | filterName("arg") }`
-- **HTML Passthrough**: `{@html rawHtmlVariable}` (for injecting unescaped HTML,
-  like your Markdown content)
-- **Conditionals**: `{#if condition} ... {/if}`,
-  `{#if condition} ... {#else} ... {/if}`
-- **Loops**: `{#each array as item} ... {/each}`
-- **Components**: `<ComponentName />`
-
-### Built-in Filters
-
-- **`date(format?: string)`**: Formats a `Date` object or date string. Uses
-  `YYYY-MM-DD` by default, or a custom format string (e.g., `"MMMM D, YYYY"`).
-
-## Using Your Theme
-
-To use your custom theme, update your site's `content/.steno/config.yml`:
-
-```yaml
-# content/.steno/config.yml
-custom:
-  theme: "./theme" # Path to your theme directory
-  themeConfig: # Optional: pass configuration to your theme
-    brand: "My Custom Brand"
-    menu:
-      - name: "Home"
-        url: "/"
-      - name: "Blog"
-        url: "/blog"
-  globals: # Optional: global values available in every layout/component
-    company: "My Company"
-    tagline: "Ship docs fast"
-```
-
-Steno will automatically detect and load your theme from the specified local
-path.
+`{@include "name"}` in a theme resolves a registered component name through the
+theme renderer. For Markdown source-file includes, see [Content](content.md).

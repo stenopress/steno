@@ -4,13 +4,20 @@ on:
     types: [published]
 
 jobs:
+  quality:
+    if: github.event.release.target_commitish == 'main'
+    uses: ./.github/workflows/ci.yml
+
   publish:
+    needs: quality
     runs-on: ubuntu-latest
     if: github.event.release.target_commitish == 'main'
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Publish package
         run: npx jsr publish
