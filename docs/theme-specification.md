@@ -18,8 +18,9 @@ export default {
 ```
 
 `name`, `version`, and `layouts` are required. `assets` map output-relative
-paths to strings, `Uint8Array`s, or URLs. Optional `plugins` run with the site's
-plugins unless `custom.pluginSecurity.allowThemePlugins` is `false`.
+paths to strings, `Uint8Array`s, or URLs. Optional `plugins` are trusted,
+in-process code and run with Steno's Deno permissions unless
+`custom.pluginSourcePolicy.allowThemePlugins` is `false`.
 
 `configSchema` declares string, number, or boolean settings with optional
 defaults/descriptions. Schema defaults, `defaultConfig`, and site

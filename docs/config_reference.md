@@ -57,23 +57,45 @@ server port; Steno finds a later available port when necessary.
 `stylesheets` is a theme-facing configuration value; Steno exposes it but does
 not inject tags automatically.
 
-## Plugin security
+## Plugin source policy
 
-Plugins from `jsr:` and `npm:` are allowed. Local file URLs, HTTP(S), and
-`node:` builtins require an explicit opt-in; `data:` and `blob:` are never
-allowed.
+Top-level plugin specifiers from `jsr:` and `npm:` are allowed. Local file URLs,
+HTTP(S), and `node:` specifiers require an explicit opt-in; `data:` and `blob:`
+are never allowed.
 
 ```yaml
 custom:
-  pluginSecurity:
+  pluginSourcePolicy:
     allowLocal: true
     allowRemoteHttp: false
     allowNodeBuiltins: false
     allowThemePlugins: true # default
 ```
 
-See [Plugins](plugins.md) before enabling sources that can execute arbitrary
-code.
+These settings are source filters rather than a runtime sandbox. They do not
+inspect transitive imports or reduce plugin permissions. All configured and
+theme-bundled plugins run in-process with the permissions granted to Steno.
+
+The historical `custom.pluginSecurity` name remains accepted as a deprecated
+compatibility alias. New projects should use `custom.pluginSourcePolicy`.
+
+`allowNodeBuiltins` controls only a configured top-level `node:` specifier. It
+cannot prevent a JSR, npm, file, or HTTP(S) plugin from importing a Node
+built-in internally.
+
+See [Plugins](plugins.md) before enabling or installing code that executes
+during a build.
+
+### Isolated plugin entries
+
+Object plugin entries can set `mode: isolated`. Isolated plugins accept
+`permissions` allowlists for `read`, `write`, `net`, `env`, `run`, `ffi`, `sys`,
+and remote `import` hosts. They also accept `timeoutMs`, `maxOutputBytes`,
+`memoryMb`, `lockFile`, and an optional `integrity` value.
+
+String entries and entries without a mode remain `trusted` and run in-process
+for compatibility. See the [plugin sandbox](plugin_sandbox.md) before granting
+capabilities.
 
 ## CLI
 

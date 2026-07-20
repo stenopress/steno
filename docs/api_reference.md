@@ -31,6 +31,7 @@ before rendering.
 ## Types
 
 Exports include `SiteConfig`, `StenoTheme`, `StenoPlugin`, `StenoHooks`,
-`PluginEntry`, `PluginSecurityConfig`, `CollectionConfig`, `NavigationNode`,
-`ThemeConfigField`, `Collection`, `CollectionItem`, and `CollectionMap`. The
-authoritative contracts are in `src/types.ts` and are exported from `mod.ts`.
+`PluginEntry`, `PluginSourcePolicy`, the deprecated `PluginSecurityConfig`
+alias, `CollectionConfig`, `NavigationNode`, `ThemeConfigField`, `Collection`,
+`CollectionItem`, and `CollectionMap`. The authoritative contracts are in
+`src/types.ts` and are exported from `mod.ts`.
