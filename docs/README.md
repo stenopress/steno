@@ -6,5 +6,6 @@
 - [Themes and Scribe](theme_development.md)
 - [Theme specification](theme-specification.md)
 - [Plugins](plugins.md)
+- [Plugin sandbox](plugin_sandbox.md)
 - [API reference](api_reference.md)
 - [Contribution guidelines](contribution_guidelines.md)

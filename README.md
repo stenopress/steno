@@ -59,11 +59,11 @@ deno task bench:check      # Assert performance budget thresholds
 - **Scribe Pipe-Syntax Filters:** Format your template variables elegantly.
   Scribe supports Unix-style pipes for clean, readable layout transformations
   like formatting dates or joining arrays inside your HTML.
-- **Sandboxed Plugin Architecture:** Dynamically extend your build pipeline with
-  modular compile-time plugins loaded directly from JSR or npm.
-- **Strict Security Guardrails:** Out-of-the-box protection that sandboxes
-  plugin environments, blocking unauthorized local filesystem, remote HTTP, or
-  Node-builtin imports unless explicitly allowed.
+- **Trusted Plugin Architecture:** Extend the build pipeline with compile-time
+  plugins loaded from JSR, npm, or explicitly enabled sources.
+- **Plugin Source Policy:** Restrict top-level plugin specifiers by protocol.
+  Plugins execute in-process with Steno's Deno permissions, so only trusted
+  packages should be configured.
 - **Scribe Templating:** Premium Svelte and Astro style syntax parsing with
   native layout and component structures.
 - **Double-Engine Frontmatter:** First-class, rapid parsing for both `---`
@@ -230,28 +230,37 @@ steno [command] [options]
 
 ---
 
-## Plugins & Security Sandboxing
+## Plugins & Source Policy
 
-Steno features a robust, extensible plugin ecosystem alongside built-in security
-profiles. You can register custom build pipeline plugins directly via JSR or npm
-inside your `config.yml`:
+Steno features an extensible, trusted plugin ecosystem. You can register custom
+build pipeline plugins directly via JSR or npm inside your `config.yml`:
 
 ```yaml
 # Add plugins directly to your build pipeline
 plugins:
-  - "jsr:@stenodevs/my-plugin"
-  - package: "npm:@steno/html-minifier"
+  - "jsr:@stenodevs/my-trusted-plugin@1.0.0"
+  - package: "npm:@steno/html-minifier@1.0.0"
+    mode: isolated
     options:
       collapseWhitespace: true
 
 # Control import access policies for third-party extensions
 custom:
-  pluginSecurity:
-    allowLocal: false # Block/allow local file:// imports
-    allowRemoteHttp: false # Block/allow untrusted remote HTTP imports
-    allowNodeBuiltins: false # Prevent plugins from accessing Node.js system APIs
+  pluginSourcePolicy:
+    allowLocal: false # Allow top-level file:// plugin specifiers
+    allowRemoteHttp: false # Allow top-level HTTP(S) plugin specifiers
+    allowNodeBuiltins: false # Allow top-level node: plugin specifiers
     allowThemePlugins: true # Enable/disable plugins bundled within themes
 ```
+
+The source policy filters only the configured top-level specifier. Plugins
+configured with `mode: isolated` run in a dedicated deny-by-default Deno
+subprocess with explicit capability grants, hook deadlines, bounded messages, a
+heap ceiling, and crash containment. String plugins and plugins configured with
+`mode: trusted` run in-process with Steno's permissions.
+
+Themes and theme-bundled plugins are currently trusted, not sandboxed. See the
+[plugin sandbox](docs/plugin_sandbox.md) for the threat model and limitations.
 
 ---
 
