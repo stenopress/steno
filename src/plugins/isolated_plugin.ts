@@ -1,4 +1,5 @@
 import type {
+  GeneratedPage,
   IsolatedPluginPermissions,
   PluginEntry,
   SiteConfig,
@@ -307,7 +308,7 @@ export async function loadIsolatedPlugin(
       client.call("transformHtml", html) as Promise<string>;
   }
   if (hooks.has("afterPage")) {
-    plugin.afterPage = (page: { path: string; html: string }) =>
+    plugin.afterPage = (page: GeneratedPage) =>
       client.call("afterPage", page).then(() => undefined);
   }
   plugin.afterBuild = async (config: SiteConfig) => {

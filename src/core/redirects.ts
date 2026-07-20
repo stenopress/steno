@@ -1,4 +1,4 @@
-import { dirname, join } from "@std/path";
+import { dirname, join, resolve } from "@std/path";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 
 function buildRedirectHtml(to: string): string {
@@ -46,6 +46,7 @@ export function buildRedirects(
   outputDir: string,
   redirects: Record<string, string>,
   shortUrls: boolean,
+  occupiedPaths: Set<string> = new Set(),
 ): void {
   for (const [from, to] of Object.entries(redirects)) {
     if (!from.startsWith("/")) {
@@ -63,6 +64,13 @@ export function buildRedirects(
     }
 
     const outputPath = resolveRedirectOutputPath(outputDir, from, shortUrls);
+    const normalizedOutputPath = resolve(outputPath);
+    if (occupiedPaths.has(normalizedOutputPath)) {
+      throw new Error(
+        `Output collision: redirect "${from}" would overwrite "${outputPath}".`,
+      );
+    }
+    occupiedPaths.add(normalizedOutputPath);
     Deno.writeTextFileSync(outputPath, buildRedirectHtml(to));
     console.log(`[redirects] ${from} → ${to}`);
   }
