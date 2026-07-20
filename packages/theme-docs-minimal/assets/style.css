@@ -15,6 +15,15 @@
   --accent-fg: var(--accent-fg, #ffffff);
   --code-bg: #f4f4f5;
 
+  /* A fluid, readable type scale for long-form documentation. */
+  --size-step-0: clamp(1rem, 0.96rem + 0.22vw, 1.13rem);
+  --size-step-1: clamp(1.25rem, 1.16rem + 0.43vw, 1.5rem);
+  --size-step-2: clamp(1.56rem, 1.41rem + 0.76vw, 2rem);
+  --size-step-3: clamp(1.95rem, 1.71rem + 1.24vw, 2.66rem);
+  --size-step-4: clamp(2.44rem, 2.05rem + 1.93vw, 3.55rem);
+  --space-flow: clamp(1.35rem, 1.08rem + 1vw, 2rem);
+  --space-section: clamp(2.5rem, 2rem + 2vw, 4rem);
+
   /* Radii */
   --radius-lg: 12px;
   --radius-md: 8px;
@@ -53,7 +62,8 @@ body {
   font-family: var(--font-sans);
   color: var(--text-main);
   background-color: var(--bg-app);
-  line-height: 1.625;
+  font-size: var(--size-step-0);
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -179,7 +189,7 @@ body {
 
 /* Content Area */
 .main-content {
-  padding: 3rem 4rem;
+  padding: var(--space-section) 4rem;
   overflow-y: auto;
 }
 
@@ -196,8 +206,21 @@ body {
 }
 
 .content-wrapper {
-  max-width: 48rem;
+  max-width: 65ch;
   margin: 0 auto;
+}
+
+/* Give consecutive content elements a consistent, type-relative rhythm. */
+.content-wrapper > * + * {
+  margin-block-start: var(--flow-space, var(--space-flow));
+}
+
+.content-wrapper > :is(h1, h2, h3, h4, h5, h6, blockquote) {
+  --flow-space: var(--space-section);
+}
+
+.content-wrapper > :is(h1, h2, h3, h4, h5, h6) + * {
+  --flow-space: 0.75em;
 }
 
 /* Typography styles */
@@ -209,49 +232,59 @@ body {
 .content-wrapper h6 {
   color: var(--text-main);
   font-weight: 700;
-  line-height: 1.25;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
+  line-height: 1.1;
+  margin: 0;
   letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 .content-wrapper h1 {
-  font-size: 2.5rem;
-  margin-top: 0;
-  margin-bottom: 1.5rem;
+  font-size: var(--size-step-4);
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.75rem;
 }
 
 .content-wrapper h2 {
-  font-size: 1.75rem;
+  font-size: var(--size-step-3);
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.4rem;
 }
 
 .content-wrapper h3 {
-  font-size: 1.35rem;
+  font-size: var(--size-step-2);
 }
 
 .content-wrapper p {
-  margin-bottom: 1.25rem;
+  margin: 0;
+}
+
+.content-wrapper :is(.lede, h1 + p) {
+  --flow-space: 0.75em;
+  max-width: 50ch;
+  font-size: var(--size-step-1);
+  font-style: italic;
+  text-wrap: balance;
+}
+
+.content-wrapper :is(.lede, h1 + p) + * {
+  --flow-space: var(--space-section);
 }
 
 .content-wrapper a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 500;
-  border-bottom: 1px solid transparent;
+  color: currentColor;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.18em;
   transition: var(--transition);
 }
 
 .content-wrapper a:hover {
-  border-bottom-color: var(--accent);
+  color: var(--accent);
 }
 
 .content-wrapper ul,
 .content-wrapper ol {
-  margin-bottom: 1.25rem;
+  margin: 0;
   padding-left: 1.5rem;
 }
 
@@ -294,7 +327,9 @@ code {
 blockquote {
   border-left: 4px solid var(--accent);
   padding: 0.5rem 0 0.5rem 1.25rem;
-  margin: 1.5rem 0;
+  margin: 0;
+  max-width: 50ch;
+  font-size: var(--size-step-1);
   color: var(--text-muted);
   font-style: italic;
   background-color: var(--accent-alpha);
@@ -957,4 +992,27 @@ time {
 ::selection {
   background-color: var(--accent);
   color: var(--accent-fg);
+}
+
+/*
+ * Keep this after component styles: several components reset `margin`, which
+ * would otherwise cancel the article rhythm. `:not(style)` adds just enough
+ * specificity to win over their element selectors without using !important.
+ */
+.content-wrapper > * + :not(style) {
+  margin-block-start: var(--flow-space, var(--space-flow));
+}
+
+.content-wrapper > * + :is(h1, h2, h3, h4, h5, h6, blockquote) {
+  margin-block-start: var(--space-section);
+}
+
+.content-wrapper > :is(h1, h2, h3, h4, h5, h6) + :not(style),
+.content-wrapper > :is(.lede, h1 + p) + :not(style) {
+  margin-block-start: 0.75em;
+}
+
+.content-wrapper > h1 + p + :not(style),
+.content-wrapper > .lede + :not(style) {
+  margin-block-start: var(--space-section);
 }
