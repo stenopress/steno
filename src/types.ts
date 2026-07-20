@@ -130,8 +130,19 @@ export interface StenoPlugin {
     | Promise<import("marked").TokensList>;
   transformHtml?: (html: string) => string | Promise<string>;
   beforeBuild?: (config: SiteConfig) => void | Promise<void>;
-  afterPage?: (page: { path: string; html: string }) => void | Promise<void>;
+  afterPage?: (page: GeneratedPage) => void | Promise<void>;
   afterBuild?: (config: SiteConfig) => void | Promise<void>;
+}
+
+/** A generated page passed to build and plugin lifecycle hooks. */
+export interface GeneratedPage {
+  /** Writable staging path for plugins; final path for caller hooks. */
+  path: string;
+  html: string;
+  /** Final published path when `path` points into staging. */
+  finalPath?: string;
+  /** Writable staging path when `path` is the final published path. */
+  stagingPath?: string;
 }
 
 /** The data contract for a loaded theme. */
@@ -149,6 +160,6 @@ export interface StenoTheme {
 /** Lifecycle hooks exposed to Steno callers. */
 export interface StenoHooks {
   beforeBuild?: (config: SiteConfig) => void | Promise<void>;
-  afterPage?: (page: { path: string; html: string }) => void | Promise<void>;
+  afterPage?: (page: GeneratedPage) => void | Promise<void>;
   afterBuild?: (config: SiteConfig) => void | Promise<void>;
 }

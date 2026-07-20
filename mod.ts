@@ -25,6 +25,7 @@ export type { ScribeOptions } from "./src/utils/scribe.ts";
 /** Core site and theme configuration types. */
 export type {
   CollectionConfig,
+  GeneratedPage,
   IsolatedPluginPermissions,
   NavigationNode,
   PluginEntry,

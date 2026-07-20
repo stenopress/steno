@@ -1,6 +1,6 @@
 import { render } from "../utils/scribe.ts";
 import type { StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
-import { dirname, join } from "@std/path";
+import { dirname, join, resolve } from "@std/path";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 import { parse as parseYaml } from "@std/yaml";
 
@@ -279,12 +279,26 @@ export class Theme {
   /**
    * Copies all theme assets to the output directory (e.g., dist/assets/).
    */
-  public async copyAssets(outputDir: string): Promise<void> {
+  public async copyAssets(
+    outputDir: string,
+    occupiedPaths: Set<string> = new Set(),
+  ): Promise<void> {
     if (!this.themeData.assets) return;
     const assetsDir = join(outputDir, "assets");
 
-    for (const [relPath, source] of Object.entries(this.themeData.assets)) {
+    const assets = Object.entries(this.themeData.assets).sort((
+      [left],
+      [right],
+    ) => left.localeCompare(right));
+    for (const [relPath, source] of assets) {
       const destPath = join(assetsDir, relPath);
+      const normalizedDestPath = resolve(destPath);
+      if (occupiedPaths.has(normalizedDestPath)) {
+        throw new Error(
+          `Output collision: theme asset "${relPath}" would overwrite "${destPath}".`,
+        );
+      }
+      occupiedPaths.add(normalizedDestPath);
       ensureDirSync(dirname(destPath));
 
       if (typeof source === "string") {
