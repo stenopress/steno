@@ -64,7 +64,6 @@ export function registerPluginTests(): void {
   });
 
   Deno.test("plugins: runHtmlTransforms skips plugins without transformHtml", async () => {
-    const tokens = marked.lexer("hello");
     const plugins: StenoPlugin[] = [{
       name: "ast-only",
       transformAst: (t) => t,
