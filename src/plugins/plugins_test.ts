@@ -159,7 +159,7 @@ export function registerPluginTests(): void {
         description: "",
         author: "",
         custom: {
-          pluginSecurity: {
+          pluginSourcePolicy: {
             allowLocal: true,
           },
         },
@@ -171,6 +171,105 @@ export function registerPluginTests(): void {
 
       assertEquals(result.length, 1);
       assertEquals(result[0].name, "my-plugin");
+    },
+  });
+
+  Deno.test({
+    name: "plugins: deprecated pluginSecurity alias remains supported",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const pluginPath = join(tempDir, "legacy-policy-plugin.ts");
+      Deno.writeTextFileSync(
+        pluginPath,
+        `export default function() { return { name: "legacy-policy" }; }`,
+      );
+
+      const result = await loadPlugins({
+        title: "",
+        description: "",
+        author: "",
+        custom: {
+          pluginSecurity: {
+            allowLocal: true,
+          },
+        },
+        plugins: [`file://${pluginPath}`],
+      });
+
+      assertEquals(result.map((plugin) => plugin.name), ["legacy-policy"]);
+    },
+  });
+
+  Deno.test({
+    name: "plugins: pluginSourcePolicy takes precedence over deprecated alias",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const pluginPath = join(tempDir, "policy-precedence-plugin.ts");
+      Deno.writeTextFileSync(
+        pluginPath,
+        `export default function() { return { name: "must-not-load" }; }`,
+      );
+
+      const originalError = console.error;
+      console.error = () => {};
+      try {
+        const result = await loadPlugins({
+          title: "",
+          description: "",
+          author: "",
+          custom: {
+            pluginSourcePolicy: {
+              allowLocal: false,
+            },
+            pluginSecurity: {
+              allowLocal: true,
+            },
+          },
+          plugins: [`file://${pluginPath}`],
+        });
+
+        assertEquals(result, []);
+      } finally {
+        console.error = originalError;
+      }
+    },
+  });
+
+  Deno.test({
+    name: "plugins: source policy does not restrict transitive imports",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const pluginPath = join(tempDir, "transitive-node-plugin.ts");
+      Deno.writeTextFileSync(
+        pluginPath,
+        `
+          import { sep } from "node:path";
+          export default function() {
+            return { name: sep ? "transitive-node-import" : "invalid" };
+          }
+        `,
+      );
+
+      const result = await loadPlugins({
+        title: "",
+        description: "",
+        author: "",
+        custom: {
+          pluginSourcePolicy: {
+            allowLocal: true,
+            allowNodeBuiltins: false,
+          },
+        },
+        plugins: [`file://${pluginPath}`],
+      });
+
+      assertEquals(
+        result.map((plugin) => plugin.name),
+        ["transitive-node-import"],
+      );
     },
   });
 
@@ -190,7 +289,7 @@ export function registerPluginTests(): void {
         description: "",
         author: "",
         custom: {
-          pluginSecurity: {
+          pluginSourcePolicy: {
             allowLocal: true,
           },
         },
