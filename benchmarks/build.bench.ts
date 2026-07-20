@@ -102,6 +102,7 @@ async function runBuild(config: SiteConfig, state?: BuildState): Promise<void> {
 
 const coldFixture = createFixture("cold", 250);
 const coldLargeFixture = createFixture("cold-large", 1000);
+const coldScaleFixture = createFixture("cold-scale", 4000);
 const warmFixture = createFixture("warm", 1000);
 
 await runBuild(warmFixture.config, warmFixture.state);
@@ -134,6 +135,17 @@ Deno.bench("build (cold, 1000 pages)", { group: "build-cold" }, async (b) => {
   b.end();
 });
 
+Deno.bench("build (cold, 4000 pages)", { group: "build-cold" }, async (b) => {
+  removePathIfPresent(coldScaleFixture.outputDir);
+  removePathIfPresent(coldScaleFixture.cachePath);
+  coldScaleFixture.state.signature = null;
+  coldScaleFixture.state.pages.clear();
+
+  b.start();
+  await runBuild(coldScaleFixture.config, coldScaleFixture.state);
+  b.end();
+});
+
 Deno.bench(
   "build (warm, 1000 pages unchanged)",
   { group: "build-warm", baseline: true },
@@ -145,7 +157,7 @@ Deno.bench(
 );
 
 Deno.bench(
-  "build (incremental, 1 changed page of 1000)",
+  "build (atomic incremental, 1 changed page of 1000)",
   { group: "build-warm" },
   async (b) => {
     changedRevision++;

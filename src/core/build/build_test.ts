@@ -8,6 +8,10 @@ import { join } from "@std/path";
 import { Steno } from "../../../mod.ts";
 import type { StenoPlugin } from "../../types.ts";
 import { buildSite } from "./build.ts";
+import {
+  beginOutputTransaction,
+  rollbackOutputTransaction,
+} from "./output_transaction.ts";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -644,6 +648,231 @@ export default theme;`,
       );
 
       f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: failed plugin hook preserves the previous output",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nStable output.`);
+      const steno = new Steno(f.configPath, false);
+      await steno.build();
+      const outputPath = join(f.outputDir, "index.html");
+      const previousOutput = Deno.readTextFileSync(outputPath);
+      const cachePath = join(f.contentDir, ".steno", "build-cache.json");
+      const previousCache = Deno.readTextFileSync(cachePath);
+
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nUnsafe update.`);
+      await replacePlugins(steno, [{
+        name: "failing-after-build",
+        afterBuild: () => {
+          throw new Error("deliberate post-build failure");
+        },
+      }]);
+
+      await assertRejects(
+        () => steno.build(),
+        Error,
+        "deliberate post-build failure",
+      );
+      assertEquals(Deno.readTextFileSync(outputPath), previousOutput);
+      assertEquals(Deno.readTextFileSync(cachePath), previousCache);
+      assertEquals(
+        [...Deno.readDirSync(f.tempDir)].some((entry) =>
+          entry.name.startsWith(".dist.steno-stage-")
+        ),
+        false,
+      );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: lifecycle hooks receive the staging output directory",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nAtomic.`);
+      let lifecycleOutput = "";
+
+      await new Steno(f.configPath, false, {
+        afterBuild: (config) => {
+          lifecycleOutput = config.output ?? "";
+          Deno.writeTextFileSync(
+            join(lifecycleOutput, "hook-output.txt"),
+            "committed",
+          );
+          assertEquals(fileExists(f.outputDir), false);
+        },
+      }).build();
+
+      assertEquals(lifecycleOutput === f.outputDir, false);
+      assertEquals(
+        Deno.readTextFileSync(join(f.outputDir, "hook-output.txt")),
+        "committed",
+      );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: removes stale pages and theme assets on commit",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme(
+        undefined,
+        undefined,
+        { "old.css": "old" },
+      );
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHome.`);
+      f.writePage("old.md", `---\ntitle: "Old"\n---\nOld.`);
+      await new Steno(f.configPath, false).build();
+
+      Deno.removeSync(join(f.contentDir, "old.md"));
+      Deno.removeSync(join(themeDir, "assets", "old.css"));
+      await new Steno(f.configPath, false).build();
+
+      assertEquals(fileExists(join(f.outputDir, "old.html")), false);
+      assertEquals(fileExists(join(f.outputDir, "assets", "old.css")), false);
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: rejects page output collisions without promotion",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig(`custom:\n  shortUrls: true\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nStable.`);
+      await new Steno(f.configPath, false).build();
+      const previousOutput = Deno.readTextFileSync(
+        join(f.outputDir, "index.html"),
+      );
+
+      f.writePage("about.md", `---\ntitle: "About"\n---\nOne.`);
+      f.writePage(
+        "about/index.md",
+        `---\ntitle: "About index"\n---\nTwo.`,
+      );
+      await assertRejects(
+        () => new Steno(f.configPath, false).build(),
+        Error,
+        "Output collision",
+      );
+      assertEquals(
+        Deno.readTextFileSync(join(f.outputDir, "index.html")),
+        previousOutput,
+      );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: rejects redirect collisions without promotion",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nStable.`);
+      await new Steno(f.configPath, false).build();
+      const previousOutput = Deno.readTextFileSync(
+        join(f.outputDir, "index.html"),
+      );
+
+      f.writeConfig(`redirects:\n  /index: /elsewhere\n`);
+      await assertRejects(
+        () => new Steno(f.configPath, false).build(),
+        Error,
+        "Output collision",
+      );
+      assertEquals(
+        Deno.readTextFileSync(join(f.outputDir, "index.html")),
+        previousOutput,
+      );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: clean builds are byte deterministic",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme(
+        undefined,
+        undefined,
+        { "style.css": "body { color: black; }" },
+      );
+      f.writeConfig(
+        `custom:\n  theme: "${themeDir}"\nredirects:\n  /old: /new\n`,
+      );
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nDeterministic.`);
+
+      const snapshot = async (): Promise<Record<string, string>> => {
+        const files: Record<string, string> = {};
+        const walk = async (directory: string, prefix = ""): Promise<void> => {
+          const entries = [...Deno.readDirSync(directory)].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          );
+          for (const entry of entries) {
+            const path = join(directory, entry.name);
+            const relativePath = prefix
+              ? `${prefix}/${entry.name}`
+              : entry.name;
+            if (entry.isDirectory) {
+              await walk(path, relativePath);
+            } else if (entry.isFile) {
+              const digest = await crypto.subtle.digest(
+                "SHA-256",
+                Deno.readFileSync(path),
+              );
+              files[relativePath] = Array.from(new Uint8Array(digest))
+                .map((byte) => byte.toString(16).padStart(2, "0"))
+                .join("");
+            }
+          }
+        };
+        await walk(f.outputDir);
+        return files;
+      };
+
+      await new Steno(f.configPath, false).build();
+      const first = await snapshot();
+      Deno.removeSync(f.outputDir, { recursive: true });
+      await new Steno(f.configPath, false).build();
+      assertEquals(await snapshot(), first);
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: recovers an output backup left by interrupted promotion",
+    permissions: { read: true, write: true },
+    fn: () => {
+      const tempDir = Deno.makeTempDirSync();
+      const outputDir = join(tempDir, "dist");
+      const backupDir = join(tempDir, ".dist.steno-backup");
+      Deno.mkdirSync(backupDir);
+      Deno.writeTextFileSync(join(backupDir, "index.html"), "last-good");
+
+      const transaction = beginOutputTransaction(outputDir);
+      assertEquals(
+        Deno.readTextFileSync(join(outputDir, "index.html")),
+        "last-good",
+      );
+      rollbackOutputTransaction(transaction);
+      assertEquals(
+        Deno.readTextFileSync(join(outputDir, "index.html")),
+        "last-good",
+      );
+      Deno.removeSync(tempDir, { recursive: true });
     },
   });
 }
