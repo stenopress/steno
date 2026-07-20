@@ -9,6 +9,7 @@ type BenchJson = {
 
 const NS_PER_US = 1_000;
 const NS_PER_MS = 1_000_000;
+const BUDGET_MULTIPLIER_ENV = "STENO_BENCH_BUDGET_MULTIPLIER";
 
 const BENCH_BUDGETS_NS: Record<string, number> = {
   "build (warm, 1000 pages unchanged)": 45 * NS_PER_MS,
@@ -20,6 +21,19 @@ const BENCH_BUDGETS_NS: Record<string, number> = {
   "parseFrontmatter (yaml)": 6 * NS_PER_US,
   "parseFrontmatter (yaml + 10k-word body)": 3 * NS_PER_US,
 };
+
+function readBudgetMultiplier(): number {
+  const raw = Deno.env.get(BUDGET_MULTIPLIER_ENV);
+  if (raw === undefined) return 1;
+
+  const multiplier = Number(raw);
+  if (!Number.isFinite(multiplier) || multiplier <= 0) {
+    throw new Error(
+      `${BUDGET_MULTIPLIER_ENV} must be a positive number, received "${raw}".`,
+    );
+  }
+  return multiplier;
+}
 
 function formatNs(ns: number): string {
   if (ns >= NS_PER_MS) return `${(ns / NS_PER_MS).toFixed(2)} ms`;
@@ -45,8 +59,16 @@ async function runBenchJson(): Promise<BenchJson> {
 const output = await runBenchJson();
 const benches = output.benches ?? [];
 const failures: string[] = [];
+const budgetMultiplier = readBudgetMultiplier();
 
-for (const [name, budgetNs] of Object.entries(BENCH_BUDGETS_NS)) {
+if (budgetMultiplier !== 1) {
+  console.log(
+    `Applying benchmark budget multiplier: ${budgetMultiplier.toFixed(2)}x`,
+  );
+}
+
+for (const [name, baseBudgetNs] of Object.entries(BENCH_BUDGETS_NS)) {
+  const budgetNs = baseBudgetNs * budgetMultiplier;
   const bench = benches.find((entry) => entry.name === name);
   if (!bench) {
     failures.push(`${name}: missing benchmark result`);

@@ -43,3 +43,8 @@ jobs:
 
       - name: Check performance budgets
         run: deno task bench:check
+        env:
+          # Hosted runners are shared and materially slower/noisier than the
+          # development baseline. Keep local budgets strict while still
+          # rejecting substantial CI regressions.
+          STENO_BENCH_BUDGET_MULTIPLIER: "1.5"
