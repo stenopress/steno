@@ -6,9 +6,10 @@ on:
       - main
       - master
   pull_request:
+  workflow_call:
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,5 +29,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deno-
 
+      - name: Check formatting
+        run: deno fmt --check
+
+      - name: Lint
+        run: deno lint
+
+      - name: Type check
+        run: deno check mod.ts
+
       - name: Run tests
-        run: deno test -A
+        run: deno task test
+
+      - name: Check performance budgets
+        run: deno task bench:check
