@@ -257,7 +257,13 @@ export class Theme {
   /**
    * Returns deterministic theme data used in build cache signatures.
    */
-  public getBuildSignatureData() {
+  public getBuildSignatureData(): {
+    name: string;
+    version: string;
+    config: ThemeConfig;
+    layouts: [string, string][];
+    components: [string, string][];
+  } {
     const sortEntries = (obj: Record<string, string> = {}) =>
       Object.entries(obj).sort(([l], [r]) => l.localeCompare(r));
 

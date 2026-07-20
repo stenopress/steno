@@ -97,7 +97,8 @@ function printBanner(): void {
     `\x1b[35mSSS\x1b[0m    \x1b[33mEEEE\x1b[0m      \x1b[34mOOOO\x1b[0m`,
   ];
 
-  const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
+  const stripAnsi = (s: string) =>
+    s.replace(new RegExp(`${ESC}[0-9;]*m`, "g"), "");
   const logoWidth = Math.max(...logo.map((l) => stripAnsi(l).length));
 
   const tagline = "A fast Deno-powered static site generator";
