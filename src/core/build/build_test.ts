@@ -437,7 +437,7 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
-    name: "build: theme plugins can be disabled via pluginSecurity config",
+    name: "build: theme plugins can be disabled via plugin source policy",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
@@ -468,7 +468,7 @@ export default theme;`,
       );
 
       f.writeConfig(
-        `custom:\n  theme: "${themeModulePath}"\n  pluginSecurity:\n    allowThemePlugins: false\n`,
+        `custom:\n  theme: "${themeModulePath}"\n  pluginSourcePolicy:\n    allowThemePlugins: false\n`,
       );
       await new Steno(f.configPath, false).build();
       assertEquals(

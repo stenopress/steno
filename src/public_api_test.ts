@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { filters, render, runStenoCli, Steno, Theme } from "../mod.ts";
 import type {
   PluginEntry,
+  PluginSourcePolicy,
   SiteConfig,
   StenoHooks,
   StenoPlugin,
@@ -23,17 +24,20 @@ export function registerPublicApiTests(): void {
     const legacyTheme: LegacyStenoTheme = theme;
     const plugin: StenoPlugin = { name: "plugin" };
     const pluginEntry: PluginEntry = { package: "demo-plugin" };
+    const pluginSourcePolicy: PluginSourcePolicy = { allowLocal: false };
     const hooks: StenoHooks = {};
     const config: SiteConfig = {
       title: "Demo",
       description: "Demo",
       author: "Author",
       plugins: [pluginEntry],
+      custom: { pluginSourcePolicy },
     };
 
     assertEquals(legacyTheme.name, theme.name);
     assertEquals(hooks.beforeBuild, undefined);
     assertEquals(plugin.name, "plugin");
     assertEquals(config.plugins?.[0], pluginEntry);
+    assertEquals(config.custom?.pluginSourcePolicy, pluginSourcePolicy);
   });
 }
