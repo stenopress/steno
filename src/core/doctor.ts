@@ -140,17 +140,41 @@ export async function runDoctor(configPath: string): Promise<void> {
   const plugins = config.plugins ?? [];
   if (plugins.length > 0) {
     ok(`${plugins.length} plugin${plugins.length === 1 ? "" : "s"} declared`);
-
-    // check security config
-    const security = config.custom?.pluginSecurity;
-    if (security?.allowLocal) {
-      warn(
-        `pluginSecurity.allowLocal is enabled — local plugins can run arbitrary code`,
+    const isolatedCount = plugins.filter((plugin) =>
+      typeof plugin === "object" && plugin.mode === "isolated"
+    ).length;
+    const trustedCount = plugins.length - isolatedCount;
+    if (isolatedCount > 0) {
+      ok(
+        `${isolatedCount} plugin${
+          isolatedCount === 1 ? "" : "s"
+        } configured for subprocess isolation`,
       );
     }
-    if (security?.allowRemoteHttp) {
+    if (trustedCount > 0) {
       warn(
-        `pluginSecurity.allowRemoteHttp is enabled — remote http:// plugins can run arbitrary code`,
+        `${trustedCount} trusted plugin${
+          trustedCount === 1 ? "" : "s"
+        } run in-process with Steno's Deno permissions`,
+      );
+    }
+
+    // Check the top-level plugin source policy. This is not a runtime sandbox.
+    const sourcePolicy = config.custom?.pluginSourcePolicy ??
+      config.custom?.pluginSecurity;
+    if (sourcePolicy?.allowLocal) {
+      warn(
+        `pluginSourcePolicy.allowLocal is enabled — trusted local plugins may be loaded`,
+      );
+    }
+    if (sourcePolicy?.allowRemoteHttp) {
+      warn(
+        `pluginSourcePolicy.allowRemoteHttp is enabled — mutable URL plugins may be loaded`,
+      );
+    }
+    if (sourcePolicy?.allowNodeBuiltins) {
+      warn(
+        "pluginSourcePolicy.allowNodeBuiltins permits top-level node: sources; it does not control transitive imports",
       );
     }
 

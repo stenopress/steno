@@ -1,20 +1,68 @@
-/** A plugin package and its optional initialization options. */
+/**
+ * A trusted, in-process plugin package and its optional initialization options.
+ *
+ * Plugins execute with the permissions granted to the Steno process.
+ */
 export interface PluginEntry {
   package: string;
   options?: Record<string, unknown>;
+  /** Execute in-process (`trusted`) or in a restricted subprocess (`isolated`). */
+  mode?: "trusted" | "isolated";
+  /** Capability grants for an isolated plugin. All capabilities default to denied. */
+  permissions?: IsolatedPluginPermissions;
+  /** Maximum time for initialization or an individual hook call. */
+  timeoutMs?: number;
+  /** Maximum serialized response size for an individual worker message. */
+  maxOutputBytes?: number;
+  /** Maximum V8 heap size for the isolated worker. */
+  memoryMb?: number;
+  /** Frozen Deno lockfile used for the isolated plugin's remote module graph. */
+  lockFile?: string;
+  /** Optional SHA-256 integrity value for supported plugin sources. */
+  integrity?: string;
 }
 
-/** Security controls for plugin module loading. */
-export interface PluginSecurityConfig {
-  /** Allow loading plugins from local `file://` module specifiers. */
+/** Explicit capabilities that may be granted to an isolated plugin process. */
+export interface IsolatedPluginPermissions {
+  read?: string[];
+  write?: string[];
+  net?: string[];
+  env?: string[];
+  run?: string[];
+  ffi?: string[];
+  sys?: string[];
+  /** Hosts from which the plugin module graph may be imported. */
+  import?: string[];
+}
+
+/**
+ * Source-policy controls for top-level plugin module specifiers.
+ *
+ * This policy is not an execution sandbox. It does not inspect transitive
+ * imports or reduce the permissions available to plugin code.
+ */
+export interface PluginSourcePolicy {
+  /** Allow top-level plugin specifiers using `file://`. */
   allowLocal?: boolean;
-  /** Allow loading plugins from remote `http://` or `https://` URLs. */
+  /** Allow top-level plugin specifiers using `http://` or `https://`. */
   allowRemoteHttp?: boolean;
-  /** Allow loading plugins from `node:` built-in module specifiers. */
+  /**
+   * Allow top-level plugin specifiers using `node:`.
+   *
+   * This does not block Node built-ins imported transitively by another
+   * allowed plugin.
+   */
   allowNodeBuiltins?: boolean;
-  /** Allow plugins bundled by the active theme to run. */
+  /**
+   * Allow trusted plugins bundled by the active theme to run in-process.
+   *
+   * Theme plugins inherit the permissions granted to Steno.
+   */
   allowThemePlugins?: boolean;
 }
+
+/** @deprecated Use {@link PluginSourcePolicy}; this policy is not a sandbox. */
+export type PluginSecurityConfig = PluginSourcePolicy;
 
 /** A single field definition in a collection frontmatter schema. */
 export interface CollectionFieldSchema {
@@ -56,6 +104,8 @@ export interface SiteConfig {
     theme?: string;
     themeConfig?: Record<string, unknown>;
     globals?: Record<string, unknown>;
+    pluginSourcePolicy?: PluginSourcePolicy;
+    /** @deprecated Use `pluginSourcePolicy`. */
     pluginSecurity?: PluginSecurityConfig;
   };
   navigation?: NavigationNode[];
@@ -68,7 +118,11 @@ export interface ThemeConfigField {
   description?: string;
 }
 
-/** A plugin hook contract used by Steno and themes. */
+/**
+ * A trusted plugin hook contract used by Steno and themes.
+ *
+ * Hooks run in-process with the permissions granted to Steno.
+ */
 export interface StenoPlugin {
   name: string;
   transformAst?: (tokens: import("marked").TokensList) =>
