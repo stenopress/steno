@@ -1,6 +1,7 @@
 import type { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
+import { disposeIsolatedPlugins } from "../plugins/isolated_plugin.ts";
 import { DEFAULT_DEV_PORT, startDevServer } from "../utils/server.ts";
 import { loadPlugins } from "./config.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
@@ -42,8 +43,9 @@ export class Steno {
     const project = await this.projectPromise;
     await this.themeLoadingPromise;
     const sitePlugins = await loadPlugins(project.config);
-    const allowThemePlugins =
-      project.config.custom?.pluginSecurity?.allowThemePlugins !== false;
+    const sourcePolicy = project.config.custom?.pluginSourcePolicy ??
+      project.config.custom?.pluginSecurity;
+    const allowThemePlugins = sourcePolicy?.allowThemePlugins !== false;
 
     const themePlugins = allowThemePlugins
       ? (this.theme?.plugins ?? []).filter((plugin, index) => {
@@ -59,7 +61,7 @@ export class Steno {
 
     if (!allowThemePlugins && (this.theme?.plugins?.length ?? 0) > 0) {
       console.warn(
-        "Theme plugins are disabled by `custom.pluginSecurity.allowThemePlugins: false`.",
+        "Theme plugins are disabled by `custom.pluginSourcePolicy.allowThemePlugins: false`.",
       );
     }
 
@@ -72,20 +74,29 @@ export class Steno {
     await this.themeLoadingPromise;
     await this.pluginsLoadingPromise;
 
-    await buildSite({
-      config: project.config,
-      theme: this.theme,
-      plugins: this.plugins,
-      hooks: this.hooks,
-      state: this.buildState,
-      pages: project.pages,
-      dev,
-    });
+    try {
+      await buildSite({
+        config: project.config,
+        theme: this.theme,
+        plugins: this.plugins,
+        hooks: this.hooks,
+        state: this.buildState,
+        pages: project.pages,
+        dev,
+      });
+    } finally {
+      disposeIsolatedPlugins(this.plugins);
+    }
   }
 
   /** Builds the site once using the loaded configuration and theme. */
   public build(): Promise<void> {
     return this.executeBuild(false);
+  }
+
+  /** Cancels active isolated-plugin work by terminating its worker processes. */
+  public cancel(): void {
+    disposeIsolatedPlugins(this.plugins);
   }
 
   /** Starts the development server with live reload. */

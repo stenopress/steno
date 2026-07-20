@@ -25,9 +25,11 @@ export type { ScribeOptions } from "./src/utils/scribe.ts";
 /** Core site and theme configuration types. */
 export type {
   CollectionConfig,
+  IsolatedPluginPermissions,
   NavigationNode,
   PluginEntry,
   PluginSecurityConfig,
+  PluginSourcePolicy,
   SiteConfig,
   StenoHooks,
   StenoPlugin,

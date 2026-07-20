@@ -2,33 +2,36 @@ import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
 import type {
   PluginEntry,
-  PluginSecurityConfig,
+  PluginSourcePolicy,
   SiteConfig,
   StenoPlugin,
 } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
+import { loadIsolatedPlugin } from "../plugins/isolated_plugin.ts";
 
 type PluginFactory = (
   options: Record<string, unknown>,
 ) => StenoPlugin | Promise<StenoPlugin>;
 
-type ResolvedPluginSecurityConfig = Required<PluginSecurityConfig>;
+type ResolvedPluginSourcePolicy = Required<PluginSourcePolicy>;
 
-function resolvePluginSecurityConfig(
+function resolvePluginSourcePolicy(
   config: SiteConfig,
-): ResolvedPluginSecurityConfig {
-  const security = config.custom?.pluginSecurity ?? {};
+): ResolvedPluginSourcePolicy {
+  const policy = config.custom?.pluginSourcePolicy ??
+    config.custom?.pluginSecurity ??
+    {};
   return {
-    allowLocal: security.allowLocal === true,
-    allowRemoteHttp: security.allowRemoteHttp === true,
-    allowNodeBuiltins: security.allowNodeBuiltins === true,
-    allowThemePlugins: security.allowThemePlugins !== false,
+    allowLocal: policy.allowLocal === true,
+    allowRemoteHttp: policy.allowRemoteHttp === true,
+    allowNodeBuiltins: policy.allowNodeBuiltins === true,
+    allowThemePlugins: policy.allowThemePlugins !== false,
   };
 }
 
 function getBlockedPluginReason(
   packageName: string,
-  security: ResolvedPluginSecurityConfig,
+  policy: ResolvedPluginSourcePolicy,
 ): string | null {
   if (!packageName.trim()) {
     return "plugin package specifier cannot be empty.";
@@ -53,18 +56,18 @@ function getBlockedPluginReason(
     case "npm:":
       return null;
     case "file:":
-      return security.allowLocal
+      return policy.allowLocal
         ? null
-        : "local `file://` plugin imports are disabled by default. Set `custom.pluginSecurity.allowLocal: true` to allow them.";
+        : "local `file://` plugin imports are disabled by default. Set `custom.pluginSourcePolicy.allowLocal: true` to allow them.";
     case "http:":
     case "https:":
-      return security.allowRemoteHttp
+      return policy.allowRemoteHttp
         ? null
-        : "remote `http(s)://` plugin imports are disabled by default. Set `custom.pluginSecurity.allowRemoteHttp: true` to allow them.";
+        : "remote `http(s)://` plugin imports are disabled by default. Set `custom.pluginSourcePolicy.allowRemoteHttp: true` to allow them.";
     case "node:":
-      return security.allowNodeBuiltins
+      return policy.allowNodeBuiltins
         ? null
-        : "`node:` builtin plugin imports are disabled by default. Set `custom.pluginSecurity.allowNodeBuiltins: true` to allow them.";
+        : "`node:` builtin plugin imports are disabled by default. Set `custom.pluginSourcePolicy.allowNodeBuiltins: true` to allow them.";
     case "data:":
     case "blob:":
       return `\`${url.protocol}\` plugin imports are not allowed.`;
@@ -86,19 +89,67 @@ function toPluginEntry(input: unknown): PluginEntry | null {
     return null;
   }
 
-  if (candidate.options === undefined) {
-    return { package: candidate.package };
-  }
   if (
-    !candidate.options || typeof candidate.options !== "object" ||
-    Array.isArray(candidate.options)
+    candidate.options !== undefined &&
+    (!candidate.options || typeof candidate.options !== "object" ||
+      Array.isArray(candidate.options))
   ) {
     return null;
   }
 
+  if (
+    candidate.mode !== undefined &&
+    candidate.mode !== "trusted" &&
+    candidate.mode !== "isolated"
+  ) return null;
+
+  const permissions = candidate.permissions;
+  if (
+    permissions !== undefined &&
+    (!permissions || typeof permissions !== "object" ||
+      Array.isArray(permissions) ||
+      Object.values(permissions).some((value) =>
+        !Array.isArray(value) ||
+        value.some((entry) => typeof entry !== "string")
+      ))
+  ) return null;
+
+  if (
+    candidate.timeoutMs !== undefined &&
+    (typeof candidate.timeoutMs !== "number" ||
+      !Number.isFinite(candidate.timeoutMs) || candidate.timeoutMs <= 0)
+  ) return null;
+  if (
+    candidate.maxOutputBytes !== undefined &&
+    (typeof candidate.maxOutputBytes !== "number" ||
+      !Number.isInteger(candidate.maxOutputBytes) ||
+      candidate.maxOutputBytes <= 0)
+  ) return null;
+  if (
+    candidate.memoryMb !== undefined &&
+    (typeof candidate.memoryMb !== "number" ||
+      !Number.isInteger(candidate.memoryMb) ||
+      candidate.memoryMb < 16)
+  ) return null;
+  if (
+    candidate.integrity !== undefined &&
+    typeof candidate.integrity !== "string"
+  ) return null;
+  if (
+    candidate.lockFile !== undefined &&
+    typeof candidate.lockFile !== "string"
+  ) return null;
+
   return {
     package: candidate.package,
-    options: candidate.options as Record<string, unknown>,
+    options: candidate.options as Record<string, unknown> | undefined,
+    mode: candidate.mode as PluginEntry["mode"],
+    permissions: permissions as PluginEntry["permissions"],
+    timeoutMs: candidate.timeoutMs as number | undefined,
+    maxOutputBytes: candidate.maxOutputBytes as number | undefined,
+    memoryMb: candidate.memoryMb as number | undefined,
+    lockFile: candidate.lockFile as string | undefined,
+    integrity: candidate.integrity as string | undefined,
   };
 }
 
@@ -109,14 +160,72 @@ function clonePluginOptions(
   return Object.freeze(cloned);
 }
 
-/** Loads plugin factories declared in the site config. */
+function isPinnedRegistryPlugin(packageName: string): boolean {
+  if (packageName.startsWith("jsr:")) {
+    return /^jsr:(?:@[^/]+\/[^@]+|[^@]+)@[^/]+/.test(packageName);
+  }
+  if (packageName.startsWith("npm:")) {
+    return /^npm:(?:@[^/]+\/[^@]+|[^@]+)@[^/]+/.test(packageName);
+  }
+  return true;
+}
+
+function encodeBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+async function verifyPluginIntegrity(entry: PluginEntry): Promise<void> {
+  if (!entry.integrity) return;
+  if (!entry.integrity.startsWith("sha256-")) {
+    throw new Error("Plugin integrity must use the `sha256-<base64>` format.");
+  }
+
+  let source: Uint8Array;
+  if (entry.package.startsWith("file://")) {
+    source = await Deno.readFile(new URL(entry.package));
+  } else if (
+    entry.package.startsWith("https://") ||
+    entry.package.startsWith("http://")
+  ) {
+    const response = await fetch(entry.package);
+    if (!response.ok) {
+      throw new Error(
+        `Unable to fetch plugin for integrity verification: HTTP ${response.status}.`,
+      );
+    }
+    source = new Uint8Array(await response.arrayBuffer());
+  } else {
+    throw new Error(
+      "Per-plugin integrity currently supports `file://` and HTTP(S) sources. Use a frozen Deno lockfile for JSR/npm plugins.",
+    );
+  }
+
+  const digest = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", source.slice().buffer),
+  );
+  const actual = `sha256-${encodeBase64(digest)}`;
+  if (actual !== entry.integrity) {
+    throw new Error(
+      `Plugin integrity mismatch: expected "${entry.integrity}", received "${actual}".`,
+    );
+  }
+}
+
+/**
+ * Loads trusted plugin factories declared in the site config.
+ *
+ * The configured source policy filters top-level module specifiers only.
+ * Loaded plugins execute in-process with Steno's Deno permissions.
+ */
 export async function loadPlugins(
   config: SiteConfig,
 ): Promise<StenoPlugin[]> {
   if (!config.plugins?.length) return [];
 
   const plugins: StenoPlugin[] = [];
-  const security = resolvePluginSecurityConfig(config);
+  const sourcePolicy = resolvePluginSourcePolicy(config);
 
   for (const configuredEntry of config.plugins) {
     const entry = toPluginEntry(configuredEntry);
@@ -128,15 +237,40 @@ export async function loadPlugins(
     const packageName = entry.package;
     const options = entry.options ?? {};
 
-    const blockedReason = getBlockedPluginReason(packageName, security);
+    const blockedReason = getBlockedPluginReason(packageName, sourcePolicy);
     if (blockedReason) {
       console.error(
-        `Blocked plugin "${packageName}": ${blockedReason}`,
+        `Blocked plugin source "${packageName}": ${blockedReason}`,
       );
       continue;
     }
 
     try {
+      if (
+        entry.mode === "isolated" &&
+        !isPinnedRegistryPlugin(packageName)
+      ) {
+        throw new Error(
+          `Isolated registry plugin "${packageName}" must include an explicit version.`,
+        );
+      }
+      if (
+        entry.mode === "isolated" &&
+        (packageName.startsWith("http://") ||
+          packageName.startsWith("https://")) &&
+        !entry.integrity
+      ) {
+        throw new Error(
+          `Isolated URL plugin "${packageName}" must include a SHA-256 integrity value.`,
+        );
+      }
+      await verifyPluginIntegrity(entry);
+
+      if (entry.mode === "isolated") {
+        plugins.push(await loadIsolatedPlugin(entry));
+        continue;
+      }
+
       const mod = await import(packageName);
       const factory = mod.default ?? mod;
 
@@ -159,6 +293,14 @@ export async function loadPlugins(
 
       plugins.push(plugin);
     } catch (err) {
+      if (entry.mode === "isolated") {
+        throw new Error(
+          `Failed to load isolated plugin "${packageName}": ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+          { cause: err },
+        );
+      }
       console.error(`Failed to load plugin "${packageName}":`, err);
     }
   }
