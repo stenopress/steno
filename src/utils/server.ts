@@ -20,12 +20,14 @@ const reloadScript = `
 const textEncoder = new TextEncoder();
 const MAX_PORT = 65535;
 
-type PortAvailabilityCheck = (port: number) => Promise<boolean>;
+type PortAvailabilityCheck = (
+  port: number,
+) => boolean | Promise<boolean>;
 
-async function isPortAvailable(
+function isPortAvailable(
   port: number,
   hostname: string,
-): Promise<boolean> {
+): boolean {
   let listener: Deno.Listener | undefined;
   try {
     listener = Deno.listen({ hostname, port });

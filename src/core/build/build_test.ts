@@ -6,6 +6,7 @@ import {
 } from "@std/assert";
 import { join } from "@std/path";
 import { Steno } from "../../../mod.ts";
+import type { StenoPlugin } from "../../types.ts";
 import { buildSite } from "./build.ts";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -103,6 +104,20 @@ function createFixture(): TestFixture {
       return themeDir;
     },
   };
+}
+
+async function replacePlugins(
+  steno: Steno,
+  plugins: StenoPlugin[],
+): Promise<void> {
+  const internals = steno as unknown as {
+    themeLoadingPromise: Promise<void>;
+    pluginsLoadingPromise: Promise<void>;
+    plugins: StenoPlugin[];
+  };
+  await internals.themeLoadingPromise;
+  await internals.pluginsLoadingPromise;
+  internals.plugins = plugins;
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -223,9 +238,7 @@ export function registerBuildTests(): void {
         },
       });
 
-      await (steno as any).themeLoadingPromise;
-      await (steno as any).pluginsLoadingPromise;
-      (steno as any).plugins = [{
+      await replacePlugins(steno, [{
         name: "test",
         beforeBuild: () => {
           order.push("plugin:beforeBuild");
@@ -236,7 +249,7 @@ export function registerBuildTests(): void {
         afterBuild: () => {
           order.push("plugin:afterBuild");
         },
-      }];
+      }]);
 
       await steno.build();
 
@@ -391,12 +404,10 @@ export function registerBuildTests(): void {
       f.writePage("index.md", `---\ntitle: "Home"\n---\nHome.`);
 
       const stenoV1 = new Steno(f.configPath, false);
-      await (stenoV1 as any).themeLoadingPromise;
-      await (stenoV1 as any).pluginsLoadingPromise;
-      (stenoV1 as any).plugins = [{
+      await replacePlugins(stenoV1, [{
         name: "sig",
         transformHtml: (html: string) => `<div>plugin-v1</div>${html}`,
-      }];
+      }]);
       await stenoV1.build();
       assertStringIncludes(
         Deno.readTextFileSync(join(f.outputDir, "index.html")),
@@ -409,12 +420,10 @@ export function registerBuildTests(): void {
           rendered.push(path);
         },
       });
-      await (stenoV2 as any).themeLoadingPromise;
-      await (stenoV2 as any).pluginsLoadingPromise;
-      (stenoV2 as any).plugins = [{
+      await replacePlugins(stenoV2, [{
         name: "sig",
         transformHtml: (html: string) => `<div>plugin-v2</div>${html}`,
-      }];
+      }]);
       await stenoV2.build();
 
       assertEquals(rendered, [join(f.outputDir, "index.html")]);

@@ -84,7 +84,7 @@ export class Steno {
   }
 
   /** Builds the site once using the loaded configuration and theme. */
-  public async build(): Promise<void> {
+  public build(): Promise<void> {
     return this.executeBuild(false);
   }
 

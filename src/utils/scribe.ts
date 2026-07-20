@@ -211,7 +211,7 @@ function renderWithCompiledTemplate(
       if (key in target) return target[key as string];
       if (key in helpers) return undefined;
       return typeof globalThis !== "undefined" && key in globalThis
-        ? (globalThis as any)[key]
+        ? Reflect.get(globalThis, key)
         : undefined;
     },
   });
