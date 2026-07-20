@@ -13,7 +13,7 @@ import {
   rollbackOutputTransaction,
 } from "./output_transaction.ts";
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// help
 
 function fileExists(path: string): boolean {
   try {
@@ -124,7 +124,7 @@ async function replacePlugins(
   internals.plugins = plugins;
 }
 
-// ── tests ─────────────────────────────────────────────────────────────────────
+// tests
 
 export function registerBuildTests(): void {
   Deno.test({
