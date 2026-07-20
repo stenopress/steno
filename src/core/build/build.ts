@@ -74,11 +74,9 @@ export async function buildSite({
   let committed = false;
 
   try {
-    // ── lifecycle: beforeBuild ──────────────────────────────────────
     for (const plugin of plugins) await plugin.beforeBuild?.(stagedConfig);
     await hooks.beforeBuild?.(stagedConfig);
 
-    // ── setup ───────────────────────────────────────────────────────
     const data = loadDataFiles(contentDir);
     const globalVars = resolveConfigGlobals(config);
     const publicEnv = getPublicEnvVars();
@@ -89,7 +87,6 @@ export async function buildSite({
       ignorePaths: resolveMarkdownScanIgnorePaths(contentDir, outputDir),
     });
 
-    // ── cache resolution ────────────────────────────────────────────
     const buildSignature = createBuildSignature(config, theme, plugins);
     const previousPages = new Map<string, BuildStateEntry>();
 
@@ -136,7 +133,6 @@ export async function buildSite({
       return;
     }
 
-    // ── collections (lazy) ──────────────────────────────────────────
     let collections: CollectionMap | undefined;
     const getCollections = async (): Promise<CollectionMap> => {
       if (collections) return collections;
@@ -149,7 +145,6 @@ export async function buildSite({
       return collections;
     };
 
-    // ── page render loop ────────────────────────────────────────────
     const nextPages = new Map<string, BuildStateEntry>();
     const occupiedPaths = new Set<string>();
     const unchangedFiles: Array<{ source: string; destination: string }> = [];
@@ -268,7 +263,6 @@ export async function buildSite({
     }
     await copyFilesToStaging(unchangedFiles);
 
-    // ── post-build ──────────────────────────────────────────────────
     if (theme) await theme.copyAssets(stagingDir, occupiedPaths);
 
     if (config.redirects && Object.keys(config.redirects).length > 0) {
@@ -283,7 +277,6 @@ export async function buildSite({
     for (const plugin of plugins) await plugin.afterBuild?.(stagedConfig);
     await hooks.afterBuild?.(stagedConfig);
 
-    // ── commit output + state ───────────────────────────────────────
     commitOutputTransaction(transaction);
     committed = true;
 

@@ -49,7 +49,6 @@ export async function runDoctor(configPath: string): Promise<void> {
 
   let hasErrors = false;
 
-  // ── Deno version ──────────────────────────────────────────────────
   const denoVersion = Deno.version.deno;
   const [major, minor] = denoVersion.split(".").map(Number);
   if (major > 2 || (major === 2 && minor >= 0)) {
@@ -58,7 +57,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     warn(`Deno ${denoVersion} — v2.0.0 or later recommended`);
   }
 
-  // ── Config file ───────────────────────────────────────────────────
+  // Config file
   if (!fileExists(configPath)) {
     fail(`Config not found at "${configPath}"`);
     console.log();
@@ -83,7 +82,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     return;
   }
 
-  // ── Content directory ─────────────────────────────────────────────
+  // Content directory
   const contentDir = config.contentDir || "content";
   if (dirExists(contentDir)) {
     ok(`Content directory exists (${contentDir}/)`);
@@ -92,7 +91,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     hasErrors = true;
   }
 
-  // ── Markdown pages ────────────────────────────────────────────────
+  // Markdown pages
   const pageCount = countMarkdownFiles(contentDir);
   if (pageCount > 0) {
     ok(`${pageCount} page${pageCount === 1 ? "" : "s"} found`);
@@ -100,7 +99,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     warn(`No .md files found in "${contentDir}"`);
   }
 
-  // ── Output directory ──────────────────────────────────────────────
+  // Output directory
   const outputDir = config.output || "dist";
   if (dirExists(outputDir)) {
     info(`Output directory exists (${outputDir}/)`);
@@ -108,7 +107,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     info(`Output directory will be created at "${outputDir}/" on build`);
   }
 
-  // ── Data directory ────────────────────────────────────────────────
+  // Data directory
   const dataDir = join(contentDir, "_data");
   if (dirExists(dataDir)) {
     ok(`Data directory found (${contentDir}/_data/)`);
@@ -116,7 +115,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     info(`No _data/ directory (optional)`);
   }
 
-  // ── Theme ─────────────────────────────────────────────────────────
+  // Theme
   const themeName = config.custom?.theme;
   if (themeName) {
     ok(`Theme declared (${themeName})`);
@@ -136,7 +135,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     warn(`No theme declared — pages will render as plain HTML`);
   }
 
-  // ── Plugins ───────────────────────────────────────────────────────
+  // Plugins
   const plugins = config.plugins ?? [];
   if (plugins.length > 0) {
     ok(`${plugins.length} plugin${plugins.length === 1 ? "" : "s"} declared`);
@@ -195,7 +194,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     info(`No plugins declared`);
   }
 
-  // ── Collections ───────────────────────────────────────────────────
+  // Collections
   const collections = config.collections ?? {};
   const collectionCount = Object.keys(collections).length;
   if (collectionCount > 0) {
@@ -208,14 +207,14 @@ export async function runDoctor(configPath: string): Promise<void> {
     info(`No collections configured (auto-detected from subdirectories)`);
   }
 
-  // ── Redirects ─────────────────────────────────────────────────────
+  // Redirects
   const redirects = config.redirects ?? {};
   const redirectCount = Object.keys(redirects).length;
   if (redirectCount > 0) {
     ok(`${redirectCount} redirect${redirectCount === 1 ? "" : "s"} declared`);
   }
 
-  // ── Summary ───────────────────────────────────────────────────────
+  // Summary
   console.log();
   if (hasErrors) {
     fail("Doctor found errors. Fix them and try again.");
