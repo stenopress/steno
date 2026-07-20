@@ -30,12 +30,12 @@ const AVAILABLE_THEMES: Record<ThemeChoice, {
   "minimal": {
     label: "Minimal",
     description: "A clean, simple theme for personal sites and blogs",
-    package: "jsr:@steno/theme-minimal",
+    package: "jsr:@steno/theme-minimal@^0.8.0",
   },
   "docs-minimal": {
     label: "Docs Minimal",
     description: "A minimal theme optimised for documentation sites",
-    package: "jsr:@steno/theme-docs-minimal",
+    package: "jsr:@steno/theme-docs-minimal@^0.8.0",
   },
 };
 
@@ -236,7 +236,10 @@ function toPluginList(plugins: PluginChoice[]): string {
 
   return [
     "plugins:",
-    ...plugins.map((plugin) => `  - ${OFFICIAL_PLUGINS[plugin].package}`),
+    ...plugins.flatMap((plugin) => [
+      `  - package: ${toYamlString(OFFICIAL_PLUGINS[plugin].package)}`,
+      "    mode: trusted",
+    ]),
     "",
   ].join("\n");
 }
@@ -384,11 +387,11 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
       denoJsonPath,
       `{
   "tasks": {
-    "build": "deno run --allow-read=content,content/.steno --allow-write=dist,content/.steno jsr:@steno/steno build",
-    "dev": "deno run --allow-read=content,content/.steno,dist --allow-write=dist,content/.steno --allow-net=127.0.0.1,0.0.0.0 jsr:@steno/steno dev"
+    "build": "deno run --allow-read=. --allow-write=. jsr:@steno/steno@^0.8.0 build",
+    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0 jsr:@steno/steno@^0.8.0 dev"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno"
+    "@steno/steno": "jsr:@steno/steno@^0.8.0"
   }
 }
 `,

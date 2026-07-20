@@ -82,7 +82,7 @@ Deno.test("onboarding: config.yml uses JSR theme package for minimal", async () 
   const dir = await scaffold({ theme: "minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-minimal"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.8\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -91,7 +91,7 @@ Deno.test("onboarding: config.yml uses JSR theme package for docs-minimal", asyn
   const dir = await scaffold({ theme: "docs-minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-docs-minimal"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-docs-minimal@\^0\.8\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -112,7 +112,15 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   const denoJson = JSON.parse(readFile(dir, "deno.json"));
   assertEquals(typeof denoJson.tasks.build, "string");
   assertEquals(typeof denoJson.tasks.dev, "string");
-  assertEquals(denoJson.imports["@steno/steno"], "jsr:@steno/steno");
+  assertEquals(
+    denoJson.imports["@steno/steno"],
+    "jsr:@steno/steno@^0.8.0",
+  );
+  assertMatch(denoJson.tasks.build, /--allow-read=\./);
+  assertMatch(denoJson.tasks.build, /--allow-write=\./);
+  assertEquals(denoJson.tasks.build.includes("--allow-env"), false);
+  assertMatch(denoJson.tasks.build, /jsr:@steno\/steno@\^0\.8\.0 build/);
+  assertMatch(denoJson.tasks.dev, /--allow-net=127\.0\.0\.1,0\.0\.0\.0/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -122,8 +130,9 @@ Deno.test("onboarding: config.yml includes selected plugins", async () => {
 
   const config = readFile(dir, "content", ".steno", "config.yml");
   assertMatch(config, /plugins:/);
-  assertMatch(config, /- jsr:@steno\/plugin-tailwind/);
-  assertMatch(config, /- jsr:@steno\/plugin-shiki/);
+  assertMatch(config, /package: "jsr:@steno\/plugin-tailwind/);
+  assertMatch(config, /package: "jsr:@steno\/plugin-shiki/);
+  assertEquals(config.match(/mode: trusted/g)?.length, 2);
 
   await Deno.remove(dir, { recursive: true });
 });

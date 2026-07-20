@@ -6,7 +6,7 @@ projects.
 ## Usage
 
 ```sh
-deno x jsr:@steno/init
+deno run -Ar jsr:@steno/init@^0.8.0
 ```
 
 The wizard asks for:
@@ -30,21 +30,26 @@ my-site/
     └── index.md
 ```
 
-Themes are loaded directly from JSR — no local theme files are created.
+Themes are loaded directly from JSR — no local theme files are created. The
+generated project pins Steno, themes, and selected plugins to the compatible
+v0.8 release line.
 
 ## Themes
 
-| Key            | Package                         | Description                                      |
-| -------------- | ------------------------------- | ------------------------------------------------ |
-| `minimal`      | `jsr:@steno/theme-minimal`      | Clean, simple theme for personal sites and blogs |
-| `docs-minimal` | `jsr:@steno/theme-docs-minimal` | Minimal theme optimised for documentation sites  |
+| Key            | Package                                | Description                                      |
+| -------------- | -------------------------------------- | ------------------------------------------------ |
+| `minimal`      | `jsr:@steno/theme-minimal@^0.8.0`      | Clean, simple theme for personal sites and blogs |
+| `docs-minimal` | `jsr:@steno/theme-docs-minimal@^0.8.0` | Minimal theme optimised for documentation sites  |
 
 ## Plugins
 
-| Key        | Package                      |
-| ---------- | ---------------------------- |
-| `tailwind` | `jsr:@steno/plugin-tailwind` |
-| `shiki`    | `jsr:@steno/plugin-shiki`    |
+| Key        | Package                             |
+| ---------- | ----------------------------------- |
+| `tailwind` | `jsr:@steno/plugin-tailwind@^0.8.0` |
+| `shiki`    | `jsr:@steno/plugin-shiki@^0.8.0`    |
+
+Official plugins selected by the wizard are declared explicitly as
+`mode: trusted`. They run in-process with the permissions granted to Steno.
 
 ## Next steps after scaffolding
 
