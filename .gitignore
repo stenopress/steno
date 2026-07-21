@@ -4,3 +4,5 @@ theme-example
 .DS_Store
 ROADMAP.md
 benchmarks/.bench-history
+steno-website-concept/*
+steno-website-concept
