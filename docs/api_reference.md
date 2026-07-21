@@ -23,15 +23,21 @@ writes its assets.
 
 ## Tau
 
-`render({ template, context, components, filePath?, includeResolver? })` renders
-a template. `components` is required (use `{}` when none). `filters` is the
-mutable map of built-in filter functions, enabling applications to add filters
-before rendering.
+`render({ template, context, components, filePath?, includeResolver?, limits? })`
+renders a template. `components` is required (use `{}` when none). `filters` is
+the mutable null-prototype map of built-in filter functions, enabling
+applications to add filters before rendering.
+
+Tau failures use `TauError`; its `code` property is a stable `TauErrorCode`.
+`clearTauCache()` releases compiled templates and resets counters.
+`getTauCacheStats()` reports the bounded cache's size, capacity, hits, misses,
+and evictions. See the [Tau language specification](tau_syntax.md) for grammar,
+value, escaping, URL, limit, and compatibility semantics.
 
 ## Types
 
 Exports include `SiteConfig`, `StenoTheme`, `StenoPlugin`, `StenoHooks`,
 `PluginEntry`, `PluginSourcePolicy`, the deprecated `PluginSecurityConfig`
-alias, `CollectionConfig`, `NavigationNode`, `ThemeConfigField`, `Collection`,
-`CollectionItem`, and `CollectionMap`. The authoritative contracts are in
-`src/types.ts` and are exported from `mod.ts`.
+alias, `CollectionConfig`, `NavigationNode`, `ThemeConfigField`, `TauOptions`,
+`TauLimits`, `TauCacheStats`, `TauErrorCode`, `Collection`, `CollectionItem`,
+and `CollectionMap`. The authoritative contracts are exported from `mod.ts`.

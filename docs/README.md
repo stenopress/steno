@@ -4,6 +4,7 @@
 - [Configuration reference](config_reference.md)
 - [Content, data, and collections](content.md)
 - [Themes and Tau](theme_development.md)
+- [Tau language specification](tau_syntax.md)
 - [Theme specification](theme-specification.md)
 - [Plugins](plugins.md)
 - [Plugin sandbox](plugin_sandbox.md)

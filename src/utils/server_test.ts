@@ -4,6 +4,7 @@ import {
   createDevServerHandler,
   findAvailablePort,
   injectReloadScript,
+  isTransactionalOutputPath,
 } from "./server.ts";
 
 export function registerServerTests(): void {
@@ -81,6 +82,48 @@ export function registerServerTests(): void {
         }),
       Error,
       "No available port found in range 5735-5736.",
+    );
+  });
+
+  Deno.test("server: ignores transactional output paths beside dist", () => {
+    const root = join(Deno.cwd(), "sandbox");
+    const outputDir = join(root, "dist");
+
+    assertEquals(
+      isTransactionalOutputPath(join(outputDir, "index.html"), outputDir),
+      true,
+    );
+    assertEquals(
+      isTransactionalOutputPath(
+        join(root, ".dist.steno-stage-abc123", "assets", "style.css"),
+        outputDir,
+      ),
+      true,
+    );
+    assertEquals(
+      isTransactionalOutputPath(
+        join(root, ".dist.steno-backup", "index.html"),
+        outputDir,
+      ),
+      true,
+    );
+    assertEquals(
+      isTransactionalOutputPath(
+        join(root, ".dist.steno-backup.retired-abc123", "index.html"),
+        outputDir,
+      ),
+      true,
+    );
+    assertEquals(
+      isTransactionalOutputPath(join(root, "index.md"), outputDir),
+      false,
+    );
+    assertEquals(
+      isTransactionalOutputPath(
+        join(root, "dist-notes", "index.md"),
+        outputDir,
+      ),
+      false,
     );
   });
 }
