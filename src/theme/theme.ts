@@ -1,6 +1,6 @@
 import { render } from "../utils/tau.ts";
 import type { StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
-import { dirname, join, resolve } from "@std/path";
+import { dirname, join, resolve, toFileUrl } from "@std/path";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 import { parse as parseYaml } from "@std/yaml";
 
@@ -179,7 +179,7 @@ export class Theme {
               : entry.name;
             if (entry.isDirectory) walk(fullPath, relPath);
             else if (entry.isFile) {
-              assets[relPath] = new URL(`file://${fullPath}`);
+              assets[relPath] = toFileUrl(fullPath);
             }
           }
         };

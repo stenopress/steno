@@ -1,24 +1,25 @@
 import { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoTheme } from "../types.ts";
-import { isAbsolute, join } from "@std/path";
+import { fromFileUrl, isAbsolute, join, toFileUrl } from "@std/path";
 
-const bundledThemeSources: Record<string, string> = {
+const bundledThemeSources: Record<string, URL> = {
   "jsr:@steno/theme-minimal": new URL(
     "../../packages/theme-minimal",
     import.meta.url,
-  ).pathname,
+  ),
   "jsr:@steno/theme-docs-minimal": new URL(
     "../../packages/theme-docs-minimal",
     import.meta.url,
-  ).pathname,
+  ),
 };
 
 async function loadBundledTheme(
   themeName: string,
   themeConfig: Record<string, unknown> | undefined,
 ): Promise<Theme | undefined> {
-  const localPath = bundledThemeSources[themeName];
-  if (!localPath) return;
+  const localUrl = bundledThemeSources[themeName];
+  if (!localUrl) return;
+  const localPath = fromFileUrl(localUrl);
 
   try {
     const stat = await Deno.stat(localPath);
@@ -35,11 +36,7 @@ async function loadBundledTheme(
       return;
     }
 
-    const normalizedPath = localPath.replace(/\\/g, "/");
-    const fileUrl = normalizedPath.startsWith("/")
-      ? `file://${encodeURI(normalizedPath)}`
-      : `file:///${encodeURI(normalizedPath)}`;
-    const themeModule = await import(fileUrl);
+    const themeModule = await import(localUrl.href);
     const themeData = (themeModule.default || themeModule) as StenoTheme;
     return new Theme(themeData, themeConfig);
   } catch {
@@ -68,7 +65,7 @@ export async function loadTheme(
 
     if (isLocalPath) {
       const themeDir = themeName.startsWith("file://")
-        ? new URL(themeName).pathname
+        ? fromFileUrl(new URL(themeName))
         : (isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName));
 
       let hasThemeYaml = false;
@@ -90,9 +87,9 @@ export async function loadTheme(
 
       let resolvedPath = themeName.startsWith("file://")
         ? themeName
-        : `file://${
-          isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName)
-        }`;
+        : toFileUrl(
+          isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName),
+        ).href;
 
       let stat: Deno.FileInfo | undefined;
       try {
@@ -104,10 +101,13 @@ export async function loadTheme(
       if (stat?.isDirectory) {
         let found = false;
         for (const entry of ["mod.ts", "theme.ts", "index.ts"]) {
-          const testPath = `${resolvedPath.replace(/\/$/, "")}/${entry}`;
+          const directoryUrl = new URL(
+            resolvedPath.endsWith("/") ? resolvedPath : `${resolvedPath}/`,
+          );
+          const testUrl = new URL(entry, directoryUrl);
           try {
-            Deno.statSync(new URL(testPath));
-            resolvedPath = testPath;
+            Deno.statSync(testUrl);
+            resolvedPath = testUrl.href;
             found = true;
             break;
           } catch {
