@@ -71,3 +71,18 @@ expressions (`title={title}`), or shorthand (`{title}`).
 
 `{@include "name"}` in a theme resolves a registered component name through the
 theme renderer. For Markdown source-file includes, see [Content](content.md).
+
+## Safety limits
+
+Tau templates cannot access ambient runtime globals such as `Deno`,
+`globalThis`, `process`, or generated renderer internals. Mutating,
+code-generating, prototype, and constructor expressions are rejected.
+
+Rendering also enforces shared limits across layouts, includes, and components:
+64 nested renders, 100,000 loop iterations, 16 MiB of output, and 1 MiB per
+template by default. API consumers can lower these limits through
+`TauOptions.limits`.
+
+These controls harden rendering against malformed templates and accidental
+resource exhaustion. Tau templates remain trusted theme code and are not a
+security sandbox for arbitrary user-authored expressions.
