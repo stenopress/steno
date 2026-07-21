@@ -1,0 +1,15 @@
+{
+  "files": {
+    "index.html": ["Steno Manual", "Installation"],
+    "guide/installation/index.html": [
+      "Installation",
+      "Configuration reference"
+    ],
+    "reference/configuration/index.html": ["Configuration reference"],
+    "assets/style.css": []
+  },
+  "mutableSource": "content/guide/installation.md",
+  "mutableOutput": "guide/installation/index.html",
+  "originalText": "Install Deno before building the documentation.",
+  "changedText": "Install current Deno before rebuilding the documentation."
+}

@@ -1,0 +1,14 @@
+title: "Field Notes"
+description: "A representative Steno blog"
+author: "Integration Suite"
+contentDir: "content"
+output: "dist"
+
+collections:
+  posts:
+    sortBy: date
+    order: desc
+
+custom:
+  shortUrls: true
+  theme: "jsr:@steno/theme-minimal"
