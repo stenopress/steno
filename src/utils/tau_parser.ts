@@ -83,6 +83,9 @@ function assertIdentifier(
   if (!IDENTIFIER_PATTERN.test(value)) {
     fail(`Invalid ${label} "${value}". Expected a JavaScript identifier.`);
   }
+  if (value.startsWith("__tau")) {
+    fail(`Invalid ${label} "${value}". The "__tau" prefix is reserved.`);
+  }
 }
 
 export function parseProps(attrString: string): Record<string, string> {
