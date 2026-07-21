@@ -26,7 +26,8 @@ type CompiledTemplateFn = (
 interface TauHelpers {
   filters: Record<string, FilterFunction>;
   append: (target: string[], value: unknown, escape: boolean) => void;
-  iterate: (value: unknown) => Iterable<unknown>;
+  isIterable: (value: unknown) => boolean;
+  countIteration: () => void;
   renderComponent: (
     name: string,
     props: Record<string, unknown>,
@@ -44,7 +45,6 @@ const templateCache = new Map<string, CompiledTemplateFn>();
 let templateCacheHits = 0;
 let templateCacheMisses = 0;
 let templateCacheEvictions = 0;
-const textEncoder = new TextEncoder();
 const DEFAULT_LIMITS: TauLimits = {
   maxDepth: 64,
   maxIterations: 100_000,
@@ -67,6 +67,7 @@ const BLOCKED_EXPRESSION_NAMES = new Set([
   "Function",
   "WebAssembly",
   "__proto__",
+  "__tauIterable",
   "constructor",
   "eval",
   "helpers",
@@ -88,6 +89,28 @@ function hasControlCharacters(value: string): boolean {
     if (code <= 0x1F || code === 0x7F) return true;
   }
   return false;
+}
+
+function utf8ByteLength(value: string): number {
+  let bytes = value.length;
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x7F) continue;
+    if (code <= 0x7FF) {
+      bytes++;
+    } else if (
+      code >= 0xD800 && code <= 0xDBFF &&
+      index + 1 < value.length &&
+      value.charCodeAt(index + 1) >= 0xDC00 &&
+      value.charCodeAt(index + 1) <= 0xDFFF
+    ) {
+      bytes += 2;
+      index++;
+    } else {
+      bytes += 2;
+    }
+  }
+  return bytes;
 }
 
 function assertSafeExpression(expression: string): void {
@@ -223,14 +246,15 @@ function compileNodes(nodes: Node[]): string {
       } else code += "\n";
     } else if (node.type === "each") {
       assertSafeExpression(node.array!);
-      code += `if (${node.array} != null) {\n`;
+      code += `{\nconst __tauIterable = ${node.array};\n`;
+      code += `if (helpers.isIterable(__tauIterable)) {\n`;
       if (node.indexVar) code += `  let ${node.indexVar} = 0;\n`;
       code +=
-        `  for (const ${node.item} of helpers.iterate(${node.array})) {\n${
+        `  for (const ${node.item} of __tauIterable) {\n    helpers.countIteration();\n${
           compileNodes(node.consequent || [])
         }`;
       if (node.indexVar) code += `    ${node.indexVar}++;\n`;
-      code += `  }\n}\n`;
+      code += `  }\n}\n}\n`;
     } else if (node.type === "component") {
       const propsObj = `{ ${
         Object.entries(node.props || {}).map(([k, v]) => {
@@ -333,7 +357,7 @@ function renderWithCompiledTemplate(
     filters,
     append: (target: string[], value: unknown, escape: boolean) => {
       const output = escape ? escapeHtml(value) : String(value ?? "");
-      state.outputBytes += textEncoder.encode(output).byteLength;
+      state.outputBytes += utf8ByteLength(output);
       if (state.outputBytes > state.limits.maxOutputBytes) {
         throw new TauError(
           "TAU_LIMIT_OUTPUT",
@@ -342,23 +366,17 @@ function renderWithCompiledTemplate(
       }
       target.push(output);
     },
-    iterate: function* (value: unknown): Iterable<unknown> {
-      if (
-        value == null ||
-        typeof (value as { [Symbol.iterator]?: unknown })[Symbol.iterator] !==
-          "function"
-      ) {
-        return;
-      }
-      for (const item of value as Iterable<unknown>) {
-        state.iterations++;
-        if (state.iterations > state.limits.maxIterations) {
-          throw new TauError(
-            "TAU_LIMIT_ITERATIONS",
-            `Tau iterations exceed the limit of ${state.limits.maxIterations}.`,
-          );
-        }
-        yield item;
+    isIterable: (value: unknown) =>
+      value != null &&
+      typeof (value as { [Symbol.iterator]?: unknown })[Symbol.iterator] ===
+        "function",
+    countIteration: () => {
+      state.iterations++;
+      if (state.iterations > state.limits.maxIterations) {
+        throw new TauError(
+          "TAU_LIMIT_ITERATIONS",
+          `Tau iterations exceed the limit of ${state.limits.maxIterations}.`,
+        );
       }
     },
     resolveInclude: (
@@ -501,7 +519,7 @@ function renderWithCompiledTemplate(
 }
 
 function assertTemplateSize(template: string, limits: TauLimits): void {
-  const bytes = textEncoder.encode(template).byteLength;
+  const bytes = utf8ByteLength(template);
   if (bytes > limits.maxTemplateBytes) {
     throw new TauError(
       "TAU_LIMIT_TEMPLATE",
