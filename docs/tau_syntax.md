@@ -106,5 +106,5 @@ patch releases. Source-backed parse errors also expose `filePath`, `line`, and
 ## Compatibility
 
 Tau follows Steno's compatibility policy. The executable fixtures under
-`test/fixtures/tau/` record output and error-code behavior for each released Tau
-language line.
+`src/utils/fixtures/tau/` record output and error-code behavior for each
+released Tau language line.

@@ -1,0 +1,75 @@
+[
+  {
+    "name": "text interpolation escapes HTML",
+    "template": "<p>{value}</p>",
+    "context": { "value": "<em>hello</em>" },
+    "output": "<p>&lt;em&gt;hello&lt;/em&gt;</p>"
+  },
+  {
+    "name": "missing values render empty",
+    "template": "before:{missing}:after",
+    "context": {},
+    "output": "before::after"
+  },
+  {
+    "name": "null values render empty",
+    "template": "{value}",
+    "context": { "value": null },
+    "output": ""
+  },
+  {
+    "name": "conditions and else branches",
+    "template": "{#if enabled}yes{:else}no{/if}",
+    "context": { "enabled": false },
+    "output": "no"
+  },
+  {
+    "name": "logical-or remains an expression operator",
+    "template": "{primary || fallback}",
+    "context": { "primary": "", "fallback": "fallback" },
+    "output": "fallback"
+  },
+  {
+    "name": "loops expose item and index",
+    "template": "{#each values as value, index}{index}:{value};{/each}",
+    "context": { "values": ["a", "b"] },
+    "output": "0:a;1:b;"
+  },
+  {
+    "name": "non iterable loops are empty",
+    "template": "a{#each value as item}{item}{/each}b",
+    "context": { "value": 42 },
+    "output": "ab"
+  },
+  {
+    "name": "raw HTML passes through",
+    "template": "{@html value}",
+    "context": { "value": "<strong>trusted</strong>" },
+    "output": "<strong>trusted</strong>"
+  },
+  {
+    "name": "component props retain values",
+    "template": "<Card title={title} />",
+    "context": { "title": "Hello" },
+    "components": { "Card": "<h2>{title}</h2>" },
+    "output": "<h2>Hello</h2>"
+  },
+  {
+    "name": "unsafe global access has a stable error",
+    "template": "{globalThis}",
+    "context": {},
+    "errorCode": "TAU_UNSAFE_EXPRESSION"
+  },
+  {
+    "name": "unclosed condition has a stable error",
+    "template": "{#if true}open",
+    "context": {},
+    "errorCode": "TAU_PARSE_UNCLOSED_BLOCK"
+  },
+  {
+    "name": "include paths must be quoted",
+    "template": "{@include partial.tau}",
+    "context": {},
+    "errorCode": "TAU_PARSE_EXPECTED_TOKEN"
+  }
+]
