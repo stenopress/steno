@@ -13,7 +13,7 @@ interface ConformanceCase {
 
 function loadCases(version: string): ConformanceCase[] {
   const url = new URL(
-    `../../test/fixtures/tau/${version}.json`,
+    `./fixtures/tau/${version}.json`,
     import.meta.url,
   );
   return JSON.parse(Deno.readTextFileSync(url)) as ConformanceCase[];
