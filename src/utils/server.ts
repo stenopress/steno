@@ -1,4 +1,4 @@
-import { join } from "@std/path";
+import { basename, dirname, join, relative, resolve } from "@std/path";
 import { isPathInsideOrEqual } from "../core/path_utils.ts";
 import { changeDetected, devServerReady } from "./output.ts";
 
@@ -19,6 +19,37 @@ const reloadScript = `
 
 const textEncoder = new TextEncoder();
 const MAX_PORT = 65535;
+
+/**
+ * Returns whether a watch event was produced by Steno's transactional output.
+ *
+ * Transactions use sibling directories so an atomic rename can promote the
+ * completed build. In zero-config mode the project root itself is watched,
+ * which means those siblings must be ignored alongside the final output.
+ */
+export function isTransactionalOutputPath(
+  path: string,
+  outputDir: string,
+): boolean {
+  const absoluteOutput = resolve(outputDir);
+  const absolutePath = resolve(path);
+  if (isPathInsideOrEqual(absolutePath, absoluteOutput)) return true;
+
+  const outputParent = dirname(absoluteOutput);
+  const relativePath = relative(outputParent, absolutePath);
+  if (
+    relativePath === "" || relativePath.startsWith("..") ||
+    relativePath.startsWith("/")
+  ) {
+    return false;
+  }
+
+  const firstSegment = relativePath.replaceAll("\\", "/").split("/")[0];
+  const outputName = basename(absoluteOutput);
+  return firstSegment.startsWith(`.${outputName}.steno-stage-`) ||
+    firstSegment === `.${outputName}.steno-backup` ||
+    firstSegment.startsWith(`.${outputName}.steno-backup.retired-`);
+}
 
 type PortAvailabilityCheck = (
   port: number,
@@ -172,6 +203,7 @@ export async function startDevServer(
       if (
         event.paths.length > 0 &&
         event.paths.every((path) =>
+          isTransactionalOutputPath(path, outputDir) ||
           ignoredPaths.some((ignoredPath) =>
             isPathInsideOrEqual(path, ignoredPath)
           )

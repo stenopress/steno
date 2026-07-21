@@ -19,9 +19,17 @@ export type {
   CollectionMap,
 } from "./src/core/collections.ts";
 /** Built-in template filters and the template renderer. */
-export { filters, render } from "./src/utils/tau.ts";
+export {
+  clearTauCache,
+  filters,
+  getTauCacheStats,
+  render,
+} from "./src/utils/tau.ts";
 /** Options used by the Tau template renderer. */
-export type { TauOptions } from "./src/utils/tau.ts";
+export type { TauCacheStats, TauLimits, TauOptions } from "./src/utils/tau.ts";
+/** Structured Tau failures and their stable machine-readable codes. */
+export { TauError } from "./src/utils/tau_error.ts";
+export type { TauErrorCode } from "./src/utils/tau_error.ts";
 /** Core site and theme configuration types. */
 export type {
   CollectionConfig,
