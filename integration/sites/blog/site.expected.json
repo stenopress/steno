@@ -1,0 +1,13 @@
+{
+  "files": {
+    "index.html": ["Field Notes", "Recent posts"],
+    "about/index.html": ["About this site"],
+    "posts/first/index.html": ["First Field Note"],
+    "posts/second/index.html": ["Second Field Note"],
+    "assets/style.css": []
+  },
+  "mutableSource": "content/posts/first.md",
+  "mutableOutput": "posts/first/index.html",
+  "originalText": "A reproducible field note.",
+  "changedText": "An incrementally rebuilt field note."
+}

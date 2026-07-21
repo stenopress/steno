@@ -1,0 +1,11 @@
+{
+  "zeroConfig": true,
+  "files": {
+    "index.html": ["One-file Steno Site", "No configuration file is required."],
+    "assets/style.css": []
+  },
+  "mutableSource": "index.md",
+  "mutableOutput": "index.html",
+  "originalText": "No configuration file is required.",
+  "changedText": "No configuration file is required after an incremental edit."
+}

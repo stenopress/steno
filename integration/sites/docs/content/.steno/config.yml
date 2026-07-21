@@ -1,0 +1,9 @@
+title: "Steno Manual"
+description: "Representative documentation site"
+author: "Integration Suite"
+contentDir: "content"
+output: "dist"
+
+custom:
+  shortUrls: true
+  theme: "jsr:@steno/theme-docs-minimal"

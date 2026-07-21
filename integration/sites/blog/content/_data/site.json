@@ -1,0 +1,4 @@
+{
+  "environment": "integration",
+  "features": ["collections", "data", "short-urls"]
+}

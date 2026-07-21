@@ -38,8 +38,11 @@ jobs:
       - name: Type check
         run: deno check mod.ts
 
-      - name: Run tests
-        run: deno task test
+      - name: Run unit and conformance tests
+        run: deno task test:unit
+
+      - name: Test representative sites
+        run: deno task test:sites
 
       - name: Check performance budgets
         run: deno task bench:check
