@@ -1,5 +1,6 @@
 import type { PageConfigOverrides } from "../types.ts";
 import type { NavigationNode } from "../types.ts";
+import { validateHeadTags } from "./head.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -64,16 +65,15 @@ export function resolvePageConfigOverrides(
   }
 
   if (candidate.head !== undefined) {
-    if (
-      !Array.isArray(candidate.head) ||
-      candidate.head.some((entry) =>
-        !isRecord(entry) || typeof entry.name !== "string" ||
-        typeof entry.content !== "string"
-      )
-    ) {
-      invalidPageOverride(pagePath, "head", "an array of { name, content }");
+    try {
+      overrides.head = validateHeadTags(candidate.head, "steno.head");
+    } catch (error) {
+      throw new Error(
+        `Invalid per-page configuration in "${pagePath}": ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
-    overrides.head = candidate.head as Array<{ name: string; content: string }>;
   }
 
   if (candidate.navigation !== undefined) {

@@ -28,6 +28,7 @@ import {
   rollbackOutputTransaction,
 } from "./output_transaction.ts";
 import { resolvePageConfigOverrides } from "../page_config.ts";
+import { injectHeadTags, mergeHeadTags, validateHeadTags } from "../head.ts";
 
 export type { BuildContext, BuildState, BuildStateEntry } from "./context.ts";
 const STAGING_COPY_CONCURRENCY = 128;
@@ -82,6 +83,7 @@ export async function buildSite({
     const data = loadDataFiles(contentDir);
     const globalVars = resolveConfigGlobals(config);
     const publicEnv = getPublicEnvVars(environment);
+    const siteHead = config.head ? validateHeadTags(config.head) : [];
     const shortUrls = config.custom?.shortUrls ?? false;
     const cachePath = resolveCachePath(contentDir);
 
@@ -226,6 +228,7 @@ export async function buildSite({
           page.relPath,
         );
         const pageGlobals = { ...globalVars, ...pageOverrides.globals };
+        const pageHead = mergeHeadTags(siteHead, pageOverrides.head);
         const pageSite = {
           ...config,
           ...(pageOverrides.title !== undefined
@@ -237,9 +240,7 @@ export async function buildSite({
           ...(pageOverrides.author !== undefined
             ? { author: pageOverrides.author }
             : {}),
-          ...(pageOverrides.head !== undefined
-            ? { head: pageOverrides.head }
-            : {}),
+          head: pageHead,
           ...(pageOverrides.navigation !== undefined
             ? { navigation: pageOverrides.navigation }
             : {}),
@@ -272,9 +273,10 @@ export async function buildSite({
           title: page.frontmatter.title || page.title || config.title,
         };
 
-        const renderedContent = theme
+        const layoutContent = theme
           ? theme.renderLayout(layoutName, htmlContent, pageContext)
           : htmlContent;
+        const renderedContent = injectHeadTags(layoutContent, pageHead);
 
         ensureDirSync(dirname(stagedOutputFilePath));
         Deno.writeTextFileSync(stagedOutputFilePath, renderedContent);

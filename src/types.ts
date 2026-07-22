@@ -86,12 +86,55 @@ export interface NavigationNode {
   children?: NavigationNode[];
 }
 
+interface HeadTagBase {
+  /** Stable merge identity. Page entries with the same key replace site entries. */
+  key?: string;
+}
+
+/** A managed `<meta>` tag. Omitting `tag` preserves the original meta syntax. */
+export interface MetaHeadTag extends HeadTagBase {
+  tag?: "meta";
+  name?: string;
+  property?: string;
+  httpEquiv?: string;
+  charset?: string;
+  content?: string;
+}
+
+/** A managed `<link>` tag. */
+export interface LinkHeadTag extends HeadTagBase {
+  tag: "link";
+  rel: string;
+  href: string;
+  type?: string;
+  media?: string;
+  sizes?: string;
+  crossOrigin?: string;
+  referrerPolicy?: string;
+}
+
+/** A managed external or inline `<script>` tag. */
+export interface ScriptHeadTag extends HeadTagBase {
+  tag: "script";
+  src?: string;
+  content?: string;
+  type?: string;
+  async?: boolean;
+  defer?: boolean;
+  noModule?: boolean;
+  integrity?: string;
+  crossOrigin?: string;
+  referrerPolicy?: string;
+}
+
+export type HeadTag = MetaHeadTag | LinkHeadTag | ScriptHeadTag;
+
 /** The top-level site configuration loaded from `content/.steno/config.*`. */
 export interface SiteConfig {
   title: string;
   description: string;
   author: string;
-  head?: Array<{ name: string; content: string }>;
+  head?: HeadTag[];
   contentDir?: string;
   output?: string;
   plugins?: Array<string | PluginEntry>;
@@ -116,7 +159,7 @@ export interface PageConfigOverrides {
   title?: string;
   description?: string;
   author?: string;
-  head?: Array<{ name: string; content: string }>;
+  head?: HeadTag[];
   navigation?: NavigationNode[];
   themeConfig?: Record<string, unknown>;
   globals?: Record<string, unknown>;
