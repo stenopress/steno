@@ -36,6 +36,25 @@ Deno.test({
 });
 
 Deno.test({
+  name: "env: combines dotenv values with process variables taking precedence",
+  permissions: { env: true },
+  fn: () => {
+    const key = "PUBLIC_STENO_ENV_PRECEDENCE_TEST";
+    Deno.env.set(key, "process");
+    try {
+      const values = getPublicEnvVars({
+        [key]: "file",
+        PUBLIC_STENO_FILE_ONLY_TEST: "yes",
+      });
+      assertEquals(values[key], "process");
+      assertEquals(values.PUBLIC_STENO_FILE_ONLY_TEST, "yes");
+    } finally {
+      Deno.env.delete(key);
+    }
+  },
+});
+
+Deno.test({
   name: "env: resolveConfigGlobals returns empty object when globals undefined",
   fn: () => {
     const result = resolveConfigGlobals(makeConfig());

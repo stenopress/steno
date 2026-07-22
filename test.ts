@@ -15,6 +15,7 @@ import { registerIsolatedPluginTests } from "./src/plugins/isolated_plugin_test.
 import { registerCollectionTests } from "./src/core/collections_test.ts";
 import { registerProjectTests } from "./src/core/project_test.ts";
 import { registerDataTests } from "./src/core/data_test.ts";
+import { registerEnvironmentTests } from "./src/core/environment_test.ts";
 
 registerCliTests();
 registerConfigTests();
@@ -33,3 +34,4 @@ registerIsolatedPluginTests();
 registerCollectionTests();
 registerProjectTests();
 registerDataTests();
+registerEnvironmentTests();
