@@ -172,4 +172,122 @@ export function registerThemeTests(): void {
 
     assertEquals(theme.config.primaryColor, "#ff0000");
   });
+
+  Deno.test("theme: rejects values with the wrong schema type", () => {
+    assertThrows(
+      () =>
+        new Theme(
+          {
+            name: "typed",
+            version: "1.0.0",
+            layouts: { layout: "" },
+            configSchema: { columns: { type: "integer" } },
+          },
+          { columns: 2.5 },
+        ),
+      Error,
+      'at "themeConfig.columns": expected integer, received number',
+    );
+  });
+
+  Deno.test("theme: enforces required fields and value constraints", () => {
+    const themeData = {
+      name: "constrained",
+      version: "1.0.0",
+      layouts: { layout: "" },
+      configSchema: {
+        density: {
+          type: "string" as const,
+          required: true,
+          enum: ["compact", "comfortable"],
+        },
+        width: { type: "number" as const, minimum: 320, maximum: 1920 },
+      },
+    };
+
+    assertThrows(
+      () => new Theme(themeData),
+      Error,
+      'at "themeConfig.density": is required',
+    );
+    assertThrows(
+      () => new Theme(themeData, { density: "wide", width: 1200 }),
+      Error,
+      "must be one of",
+    );
+    assertThrows(
+      () => new Theme(themeData, { density: "compact", width: 200 }),
+      Error,
+      "must be at least 320",
+    );
+  });
+
+  Deno.test("theme: applies nested defaults and validates object arrays", () => {
+    const theme = new Theme({
+      name: "nested",
+      version: "1.0.0",
+      layouts: { layout: "" },
+      configSchema: {
+        navigation: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            visible: { type: "boolean", default: true },
+            links: {
+              type: "array",
+              default: [{ label: "Home", href: "/" }],
+              minItems: 1,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  label: { type: "string", required: true, minLength: 1 },
+                  href: { type: "string", required: true, pattern: "^/" },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    assertEquals(theme.config.navigation, {
+      visible: true,
+      links: [{ label: "Home", href: "/" }],
+    });
+
+    assertThrows(
+      () =>
+        new Theme(
+          {
+            name: "nested",
+            version: "1.0.0",
+            layouts: { layout: "" },
+            configSchema: {
+              links: {
+                type: "array",
+                items: { type: "string", pattern: "^/" },
+              },
+            },
+          },
+          { links: ["/docs", "external"] },
+        ),
+      Error,
+      'at "themeConfig.links[1]": must match pattern',
+    );
+  });
+
+  Deno.test("theme: permits undeclared top-level keys for compatibility", () => {
+    const theme = new Theme(
+      {
+        name: "compatible",
+        version: "1.0.0",
+        layouts: { layout: "" },
+        configSchema: { accent: { type: "string" } },
+      },
+      { customExtension: { enabled: true } },
+    );
+
+    assertEquals(theme.config.customExtension, { enabled: true });
+  });
 }
