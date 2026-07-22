@@ -29,7 +29,9 @@ Plain content.
       assertEquals(project.mode, "single-file");
       assertEquals(project.config.title, "Welcome");
       assertEquals(project.config.custom?.theme, "jsr:@steno/theme-minimal");
-      assertEquals(project.pages?.[0].frontmatter.steno, undefined);
+      assertEquals(project.pages?.[0].frontmatter.steno, {
+        theme: "jsr:@steno/theme-minimal",
+      });
 
       const theme = await loadTheme(project.config);
       assertEquals(theme?.name, "minimal");
