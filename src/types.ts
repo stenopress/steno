@@ -111,11 +111,29 @@ export interface SiteConfig {
   navigation?: NavigationNode[];
 }
 
-/** A single field definition in a theme configuration schema. */
+/**
+ * A field in a theme-owned configuration schema.
+ *
+ * Themes may describe nested objects and arrays, provide defaults, and enforce
+ * common value constraints. Undeclared top-level configuration keys remain
+ * allowed for backwards compatibility.
+ */
 export interface ThemeConfigField {
-  type: "string" | "number" | "boolean";
+  type: "string" | "number" | "integer" | "boolean" | "array" | "object";
   default?: unknown;
   description?: string;
+  required?: boolean;
+  enum?: readonly unknown[];
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+  items?: ThemeConfigField;
+  minItems?: number;
+  maxItems?: number;
+  properties?: Record<string, ThemeConfigField>;
+  additionalProperties?: boolean;
 }
 
 /**
