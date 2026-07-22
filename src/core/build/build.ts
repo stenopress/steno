@@ -66,6 +66,7 @@ export async function buildSite({
   state,
   pages,
   dev = false,
+  environment = {},
 }: BuildContext): Promise<void> {
   const contentDir = config.contentDir || "content";
   const transaction = beginOutputTransaction(config.output || "dist");
@@ -80,7 +81,7 @@ export async function buildSite({
 
     const data = loadDataFiles(contentDir);
     const globalVars = resolveConfigGlobals(config);
-    const publicEnv = getPublicEnvVars();
+    const publicEnv = getPublicEnvVars(environment);
     const shortUrls = config.custom?.shortUrls ?? false;
     const cachePath = resolveCachePath(contentDir);
 

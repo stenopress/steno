@@ -1,7 +1,11 @@
 import type { SiteConfig } from "../../types.ts";
 
-export function getPublicEnvVars(): Record<string, string> {
-  const publicVars: Record<string, string> = {};
+export function getPublicEnvVars(
+  fileValues: Record<string, string> = {},
+): Record<string, string> {
+  const publicVars: Record<string, string> = Object.fromEntries(
+    Object.entries(fileValues).filter(([key]) => key.startsWith("PUBLIC_")),
+  );
   try {
     for (const [key, value] of Object.entries(Deno.env.toObject())) {
       if (key.startsWith("PUBLIC_")) {
