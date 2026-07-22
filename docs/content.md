@@ -20,6 +20,31 @@ Pages marked `draft: true` are omitted from production builds but rendered in
 development. A page's title is frontmatter `title`, an inferred Markdown title,
 or the site title.
 
+## Per-page configuration
+
+Use the reserved `steno` frontmatter namespace to override presentation-facing
+configuration for one page. Supported fields are `title`, `description`,
+`author`, `head`, `navigation`, `themeConfig`, and `globals`:
+
+```yaml
+---
+title: Product announcement
+steno:
+  description: Page-specific search description
+  themeConfig:
+    density: compact
+  globals:
+    campaign: launch
+---
+```
+
+`themeConfig` is shallowly merged with the configured theme values and checked
+against the theme's `configSchema`. `globals` is shallowly merged and remains
+available both directly and under `globals`. Operational settings such as
+`contentDir`, `output`, plugins, redirects, and the theme package cannot be
+changed by a page. The `steno` namespace itself is reserved and is not exposed
+to templates.
+
 ## Markdown includes
 
 Use `{@include "snippet.md"}` in Markdown to inline another file before Markdown
