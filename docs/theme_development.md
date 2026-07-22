@@ -24,6 +24,11 @@ defaultConfig:
   brand: Steno
 configSchema:
   showSearch: { type: boolean, default: true, description: Show search }
+  density: { type: string, enum: [compact, comfortable], default: comfortable }
+  social:
+    type: object
+    properties:
+      github: { type: string, pattern: "^https://github\\.com/" }
 ```
 
 Layout files use the `.tau` extension; their base filename is the layout name. A
