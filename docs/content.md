@@ -83,5 +83,11 @@ Use collections in a layout:
 ## Public environment variables
 
 Environment variables prefixed `PUBLIC_` are provided to templates directly and
-under `env`. Do not put secrets in variables with that prefix: they are
-available to rendered pages.
+under `env`. Steno loads `.env`, `.env.local`, `.env.development` or
+`.env.production`, and the matching `.env.<environment>.local` file in that
+order. `dev` selects `development`; `build` selects `production`. Later files
+override earlier files, while variables already present in the process have the
+highest precedence.
+
+Only `PUBLIC_*` values are rendered into templates. Do not put secrets in
+variables with that prefix. Add `.env.local` and `.env.*.local` to `.gitignore`.
