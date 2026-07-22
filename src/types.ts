@@ -111,6 +111,17 @@ export interface SiteConfig {
   navigation?: NavigationNode[];
 }
 
+/** Presentation-facing site settings that frontmatter may override per page. */
+export interface PageConfigOverrides {
+  title?: string;
+  description?: string;
+  author?: string;
+  head?: Array<{ name: string; content: string }>;
+  navigation?: NavigationNode[];
+  themeConfig?: Record<string, unknown>;
+  globals?: Record<string, unknown>;
+}
+
 /**
  * A field in a theme-owned configuration schema.
  *

@@ -27,6 +27,7 @@ import {
   commitOutputTransaction,
   rollbackOutputTransaction,
 } from "./output_transaction.ts";
+import { resolvePageConfigOverrides } from "../page_config.ts";
 
 export type { BuildContext, BuildState, BuildStateEntry } from "./context.ts";
 const STAGING_COPY_CONCURRENCY = 128;
@@ -219,19 +220,55 @@ export async function buildSite({
           ? page.frontmatter.layout
           : "layout";
 
+        const pageOverrides = resolvePageConfigOverrides(
+          page.frontmatter,
+          page.relPath,
+        );
+        const pageGlobals = { ...globalVars, ...pageOverrides.globals };
+        const pageSite = {
+          ...config,
+          ...(pageOverrides.title !== undefined
+            ? { title: pageOverrides.title }
+            : {}),
+          ...(pageOverrides.description !== undefined
+            ? { description: pageOverrides.description }
+            : {}),
+          ...(pageOverrides.author !== undefined
+            ? { author: pageOverrides.author }
+            : {}),
+          ...(pageOverrides.head !== undefined
+            ? { head: pageOverrides.head }
+            : {}),
+          ...(pageOverrides.navigation !== undefined
+            ? { navigation: pageOverrides.navigation }
+            : {}),
+        };
+        const { steno: _steno, ...pageFrontmatter } = page.frontmatter;
+        let pageThemeConfig: Record<string, unknown> | undefined;
+        try {
+          pageThemeConfig = theme?.resolveConfig(pageOverrides.themeConfig);
+        } catch (error) {
+          const message = error instanceof Error
+            ? error.message
+            : String(error);
+          throw new Error(
+            `Invalid per-page configuration in "${page.relPath}": ${message}`,
+          );
+        }
+
         const pageContext = {
-          ...globalVars,
+          ...pageFrontmatter,
+          ...pageGlobals,
           ...publicEnv,
           env: publicEnv,
-          globals: globalVars,
-          site: { ...config },
+          globals: pageGlobals,
+          site: pageSite,
           theme: theme
-            ? { name: theme.name, version: theme.version, ...theme.config }
+            ? { name: theme.name, version: theme.version, ...pageThemeConfig }
             : undefined,
           collections: await getCollections(),
           data,
           title: page.frontmatter.title || page.title || config.title,
-          ...page.frontmatter,
         };
 
         const renderedContent = theme

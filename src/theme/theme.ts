@@ -234,6 +234,15 @@ export class Theme {
     }
   }
 
+  /** Resolves and validates shallow theme overrides for a single page. */
+  public resolveConfig(overrides: ThemeConfig = {}): ThemeConfig {
+    const config = { ...this.config, ...overrides };
+    if (this.themeData.configSchema) {
+      validateThemeConfig(this.name, this.themeData.configSchema, config);
+    }
+    return config;
+  }
+
   /**
    * Helper to load a filesystem-based theme directory using a theme.yaml file.
    *

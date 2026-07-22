@@ -36,6 +36,7 @@ export type {
   GeneratedPage,
   IsolatedPluginPermissions,
   NavigationNode,
+  PageConfigOverrides,
   PluginEntry,
   PluginSecurityConfig,
   PluginSourcePolicy,
