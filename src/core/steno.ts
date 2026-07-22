@@ -8,6 +8,10 @@ import { buildSite, type BuildState } from "./build/build.ts";
 import { loadTheme } from "./steno_theme.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
 import { join } from "@std/path";
+import {
+  getEnvironmentFilePaths,
+  loadEnvironmentFiles,
+} from "./environment.ts";
 
 /** Coordinates config loading, theme setup, and site builds. */
 export class Steno {
@@ -83,6 +87,10 @@ export class Steno {
         state: this.buildState,
         pages: project.pages,
         dev,
+        environment: loadEnvironmentFiles(
+          Deno.cwd(),
+          dev ? "development" : "production",
+        ),
       });
     } finally {
       disposeIsolatedPlugins(this.plugins);
@@ -105,10 +113,19 @@ export class Steno {
     const contentDir = project.config.contentDir || "content";
     const outputDir = project.config.output || "dist";
     const devPort = project.config.custom?.devPort ?? DEFAULT_DEV_PORT;
+    const envFiles = getEnvironmentFilePaths(Deno.cwd(), "development").filter(
+      (path) => {
+        try {
+          return Deno.statSync(path).isFile;
+        } catch {
+          return false;
+        }
+      },
+    );
     await startDevServer(
       outputDir,
       () => this.executeBuild(true),
-      contentDir,
+      [contentDir, ...envFiles],
       [join(contentDir, ".steno"), outputDir],
       devPort,
     );

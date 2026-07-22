@@ -10,6 +10,7 @@ export type BuildContext = {
   state?: BuildState;
   pages?: MarkdownPage[];
   dev?: boolean;
+  environment?: Record<string, string>;
 };
 
 export interface BuildState {
