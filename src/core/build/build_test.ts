@@ -594,6 +594,88 @@ export default theme;`,
   });
 
   Deno.test({
+    name: "build: applies isolated per-page configuration overrides",
+    permissions: { read: true, write: true, net: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme({
+        layout:
+          `<p>{site.title}|{site.description}|{theme.brand}|{globals.campaign}|{campaign}</p>{@html content}`,
+      });
+      Deno.writeTextFileSync(
+        f.configPath,
+        `title: Test\ndescription: Site description\nauthor: ""\ncontentDir: "${f.contentDir}"\noutput: "${f.outputDir}"\ncustom:\n  theme: "${themeDir}"\n  themeConfig:\n    brand: Default brand\n  globals:\n    campaign: evergreen\n`,
+      );
+      f.writePage(
+        "launch.md",
+        `---\ntitle: Launch\nsteno:\n  title: Launch site\n  description: Launch description\n  themeConfig:\n    brand: Launch brand\n  globals:\n    campaign: launch\n---\nLaunch.`,
+      );
+      f.writePage("about.md", `---\ntitle: About\n---\nAbout.`);
+
+      await new Steno(f.configPath, false).build();
+
+      const launch = Deno.readTextFileSync(join(f.outputDir, "launch.html"));
+      assertStringIncludes(
+        launch,
+        "<p>Launch site|Launch description|Launch brand|launch|launch</p>",
+      );
+      const about = Deno.readTextFileSync(join(f.outputDir, "about.html"));
+      assertStringIncludes(
+        about,
+        "<p>Test|Site description|Default brand|evergreen|evergreen</p>",
+      );
+      assertEquals(launch.includes("[object Object]"), false);
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: validates per-page overrides and reports the page",
+    permissions: { read: true, write: true, net: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme();
+      Deno.writeTextFileSync(
+        join(themeDir, "theme.yaml"),
+        `name: test-theme\nversion: 1.0.0\nconfigSchema:\n  columns: { type: integer, default: 2 }\n`,
+      );
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writePage(
+        "invalid.md",
+        `---\nsteno:\n  themeConfig:\n    columns: wide\n---\nInvalid.`,
+      );
+
+      const error = await assertRejects(
+        () => new Steno(f.configPath, false).build(),
+        Error,
+        'in "invalid.md": Invalid configuration for theme "test-theme" at "themeConfig.columns": expected integer',
+      );
+      assertStringIncludes(error.message, "test-theme");
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: rejects malformed per-page configuration with page path",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("invalid.md", `---\nsteno: invalid\n---\nInvalid.`);
+
+      await assertRejects(
+        () => new Steno(f.configPath, false).build(),
+        Error,
+        'in "invalid.md" at "steno": expected an object',
+      );
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
     name:
       "build: exposes PUBLIC_ environment variables and namespaced env in layouts",
     permissions: { read: true, write: true, env: true },
