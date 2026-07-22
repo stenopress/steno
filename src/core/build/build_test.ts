@@ -658,6 +658,46 @@ export default theme;`,
   });
 
   Deno.test({
+    name: "build: injects and isolates merged site and page head tags",
+    permissions: { read: true, write: true, net: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme({
+        layout:
+          "<html><head><title>{title}</title></head><body>{@html content}</body></html>",
+      });
+      f.writeConfig(
+        `custom:\n  theme: "${themeDir}"\nhead:\n  - name: description\n    content: Site description\n  - property: og:type\n    content: website\n  - tag: script\n    src: /app.js\n`,
+      );
+      f.writePage(
+        "post.md",
+        `---\ntitle: Post\nsteno:\n  head:\n    - name: description\n      content: Post description\n    - property: og:type\n      content: article\n    - tag: script\n      src: /app.js\n      defer: true\n---\nPost.`,
+      );
+      f.writePage("about.md", `---\ntitle: About\n---\nAbout.`);
+
+      await new Steno(f.configPath, false).build();
+      const post = Deno.readTextFileSync(join(f.outputDir, "post.html"));
+      assertStringIncludes(
+        post,
+        '<meta name="description" content="Post description">',
+      );
+      assertStringIncludes(post, '<meta property="og:type" content="article">');
+      assertStringIncludes(post, '<script src="/app.js" defer></script>');
+      assertEquals(post.includes("Site description"), false);
+
+      const about = Deno.readTextFileSync(join(f.outputDir, "about.html"));
+      assertStringIncludes(about, "Site description");
+      assertStringIncludes(
+        about,
+        '<meta property="og:type" content="website">',
+      );
+      assertEquals(about.includes(" defer"), false);
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
     name: "build: rejects malformed per-page configuration with page path",
     permissions: { read: true, write: true },
     fn: async () => {
