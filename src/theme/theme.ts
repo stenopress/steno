@@ -6,6 +6,187 @@ import { parse as parseYaml } from "@std/yaml";
 
 type ThemeConfig = Record<string, unknown>;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function valuesEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (typeof left !== "object" || typeof right !== "object") return false;
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch {
+    return false;
+  }
+}
+
+function configError(themeName: string, path: string, message: string): never {
+  throw new Error(
+    `Invalid configuration for theme "${themeName}" at "${path}": ${message}`,
+  );
+}
+
+function validateThemeConfigField(
+  themeName: string,
+  field: ThemeConfigField,
+  value: unknown,
+  path: string,
+): void {
+  if (
+    field.enum && !field.enum.some((candidate) => valuesEqual(candidate, value))
+  ) {
+    configError(
+      themeName,
+      path,
+      `must be one of ${JSON.stringify(field.enum)}.`,
+    );
+  }
+
+  const actualType = Array.isArray(value)
+    ? "array"
+    : value === null
+    ? "null"
+    : typeof value;
+  const validType = field.type === "integer"
+    ? typeof value === "number" && Number.isInteger(value)
+    : field.type === "object"
+    ? isRecord(value)
+    : field.type === actualType;
+  if (!validType) {
+    configError(
+      themeName,
+      path,
+      `expected ${field.type}, received ${actualType}.`,
+    );
+  }
+
+  if (typeof value === "string") {
+    if (field.minLength !== undefined && value.length < field.minLength) {
+      configError(
+        themeName,
+        path,
+        `must contain at least ${field.minLength} characters.`,
+      );
+    }
+    if (field.maxLength !== undefined && value.length > field.maxLength) {
+      configError(
+        themeName,
+        path,
+        `must contain at most ${field.maxLength} characters.`,
+      );
+    }
+    if (field.pattern !== undefined) {
+      let expression: RegExp;
+      try {
+        expression = new RegExp(field.pattern);
+      } catch {
+        configError(
+          themeName,
+          path,
+          `schema contains invalid pattern ${JSON.stringify(field.pattern)}.`,
+        );
+      }
+      if (!expression.test(value)) {
+        configError(
+          themeName,
+          path,
+          `must match pattern ${JSON.stringify(field.pattern)}.`,
+        );
+      }
+    }
+  }
+
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      configError(themeName, path, "must be finite.");
+    }
+    if (field.minimum !== undefined && value < field.minimum) {
+      configError(themeName, path, `must be at least ${field.minimum}.`);
+    }
+    if (field.maximum !== undefined && value > field.maximum) {
+      configError(themeName, path, `must be at most ${field.maximum}.`);
+    }
+  }
+
+  if (Array.isArray(value)) {
+    if (field.minItems !== undefined && value.length < field.minItems) {
+      configError(
+        themeName,
+        path,
+        `must contain at least ${field.minItems} items.`,
+      );
+    }
+    if (field.maxItems !== undefined && value.length > field.maxItems) {
+      configError(
+        themeName,
+        path,
+        `must contain at most ${field.maxItems} items.`,
+      );
+    }
+    if (field.items) {
+      value.forEach((item, index) =>
+        validateThemeConfigField(
+          themeName,
+          field.items!,
+          item,
+          `${path}[${index}]`,
+        )
+      );
+    }
+  }
+
+  if (isRecord(value)) {
+    validateThemeConfig(themeName, field.properties ?? {}, value, path);
+    if (field.additionalProperties === false) {
+      const properties = field.properties ?? {};
+      const extra = Object.keys(value).find((key) => !(key in properties));
+      if (extra) {
+        configError(
+          themeName,
+          `${path}.${extra}`,
+          "property is not declared by the schema.",
+        );
+      }
+    }
+  }
+}
+
+function validateThemeConfig(
+  themeName: string,
+  schema: Record<string, ThemeConfigField>,
+  config: ThemeConfig,
+  prefix = "themeConfig",
+): void {
+  for (const [key, field] of Object.entries(schema)) {
+    const path = `${prefix}.${key}`;
+    const value = config[key];
+    if (value === undefined) {
+      if (field.required) configError(themeName, path, "is required.");
+      continue;
+    }
+    validateThemeConfigField(themeName, field, value, path);
+  }
+}
+
+function resolveFieldDefault(field: ThemeConfigField): unknown {
+  if (field.default !== undefined) return structuredClone(field.default);
+  if (field.type !== "object" || !field.properties) return undefined;
+  const nested = resolveSchemaDefaults(field.properties);
+  return Object.keys(nested).length ? nested : undefined;
+}
+
+function resolveSchemaDefaults(
+  schema?: Record<string, ThemeConfigField>,
+): ThemeConfig {
+  if (!schema) return {};
+  const defaults: ThemeConfig = {};
+  for (const [key, field] of Object.entries(schema)) {
+    const value = resolveFieldDefault(field);
+    if (value !== undefined) defaults[key] = value;
+  }
+  return defaults;
+}
+
 interface ThemeDirectoryMetadata {
   name?: string;
   version?: string;
@@ -44,20 +225,13 @@ export class Theme {
     this.plugins = themeData.plugins ?? [];
 
     this.config = {
-      ...this.resolveSchemaDefaults(themeData.configSchema),
+      ...resolveSchemaDefaults(themeData.configSchema),
       ...themeData.defaultConfig,
       ...userConfig,
     };
-  }
-
-  private resolveSchemaDefaults(
-    schema?: Record<string, ThemeConfigField>,
-  ): ThemeConfig {
-    if (!schema) return {};
-    return Object.entries(schema).reduce((acc, [key, field]) => {
-      if (field.default !== undefined) acc[key] = field.default;
-      return acc;
-    }, {} as ThemeConfig);
+    if (themeData.configSchema) {
+      validateThemeConfig(this.name, themeData.configSchema, this.config);
+    }
   }
 
   /**
