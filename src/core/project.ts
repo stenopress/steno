@@ -315,6 +315,8 @@ export async function resolveProject(
   return {
     config: buildZeroConfigSiteConfig(discovery, rootDir),
     mode: discovery.mode,
-    pages: discovery.pages.map(stripReservedStenoNamespace),
+    // Keep the namespace until rendering so docs-mode pages can apply their
+    // own overrides. The build context removes it before templates run.
+    pages: discovery.pages,
   };
 }
