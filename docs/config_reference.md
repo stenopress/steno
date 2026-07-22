@@ -12,6 +12,14 @@ output: dist # default: dist
 head:
   - name: robots
     content: index,follow
+  - property: og:type
+    content: website
+  - tag: link
+    rel: canonical
+    href: https://example.com/
+  - tag: script
+    src: /assets/app.js
+    defer: true
 
 custom:
   theme: ./theme
@@ -44,6 +52,20 @@ templates. `contentDir` and `output` are relative to the working directory
 unless absolute. `navigation` optionally supplies a tree of
 `{ title, url,
 children }` nodes for themes.
+
+## Managed head tags
+
+`head` entries are injected into the rendered document independently of the
+active theme. A meta entry may use `name`, `property` (including Open Graph),
+`httpEquiv`, or `charset`. Link entries require `tag: link`, `rel`, and `href`.
+Script entries use `tag: script` with `src` or inline `content`, and support
+`type`, `async`, `defer`, `noModule`, `integrity`, `crossOrigin`, and
+`referrerPolicy`.
+
+Pages can add or replace entries through `steno.head` frontmatter. Meta tags are
+matched by name/property, canonical links by `rel`, and external scripts by
+`src`. Set an explicit `key` to control replacement for any entry. Unmatched
+entries are appended in declaration order.
 
 ## `custom`
 

@@ -31,6 +31,12 @@ configuration for one page. Supported fields are `title`, `description`,
 title: Product announcement
 steno:
   description: Page-specific search description
+  head:
+    - property: og:title
+      content: Product announcement
+    - tag: script
+      src: /assets/product.js
+      defer: true
   themeConfig:
     density: compact
   globals:
