@@ -3,15 +3,20 @@ name: Publish
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   quality:
-    if: github.event.release.target_commitish == 'main'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.release.target_commitish == 'main'
     uses: ./.github/workflows/ci.yml
 
   publish-steno:
     needs: quality
-    if: github.event.release.target_commitish == 'main'
+    if: >-
+      github.event_name == 'release' &&
+      github.event.release.target_commitish == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,8 +32,17 @@ jobs:
       - run: deno publish
 
   publish-themes:
-    needs: publish-steno
-    if: github.event.release.target_commitish == 'main'
+    needs: [quality, publish-steno]
+    if: >-
+      always() &&
+      needs.quality.result == 'success' &&
+      (
+        needs.publish-steno.result == 'success' ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          needs.publish-steno.result == 'skipped'
+        )
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -55,7 +69,7 @@ jobs:
 
   publish-init:
     needs: publish-themes
-    if: github.event.release.target_commitish == 'main'
+    if: needs.publish-themes.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
