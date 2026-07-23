@@ -1,53 +1,54 @@
 <!doctype html>
 <html lang="en" style="
-  {#if theme.accent}--accent: { theme.accent };{/if}
-  {#if theme.accentHover}--accent-hover: { theme.accentHover };{/if}
-  {#if theme.accentFg}--accent-fg: { theme.accentFg };{/if}
-  {#if theme.accentDark}--accent-dark: { theme.accentDark };{/if}
-  {#if theme.accentDarkHover}--accent-dark-hover: { theme.accentDarkHover };{/if}
-  {#if theme.accentDarkFg}--accent-dark-fg: { theme.accentDarkFg };{/if}
+  {#if theme.accent}--accent: {theme.accent};{/if}
+  {#if theme.accentHover}--accent-hover: {theme.accentHover};{/if}
+  {#if theme.accentFg}--accent-fg: {theme.accentFg};{/if}
+  {#if theme.accentDark}--accent-dark: {theme.accentDark};{/if}
+  {#if theme.accentDarkHover}--accent-dark-hover: {theme.accentDarkHover};{/if}
+  {#if theme.accentDarkFg}--accent-dark-fg: {theme.accentDarkFg};{/if}
 ">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{#if title}{ title }{:else}{ site.title }{/if}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <title>{#if title}{title}{:else}{site.title}{/if}</title>
     <link rel="stylesheet" href="/assets/style.css" />
   </head>
   <body>
     <aside class="sidebar">
-      <div class="sidebar-brand">
-        <a href="/">{#if site.title}{ site.title }{:else}Documentation{/if}</a>
+      <div class="sidebar-header">
+        <a class="sidebar-brand" href="/" aria-label={site.title}>
+          <span>{#if site.title}{site.title}{:else}Documentation{/if}</span>
+        </a>
+        <span class="sidebar-kicker">Documentation</span>
       </div>
-      <nav class="sidebar-nav">
+
+      <nav class="sidebar-nav" aria-label="Documentation navigation">
         <ul>
           {#if site.navigation}
           {#each site.navigation as item}
             <li class="nav-item">
               {#if item.url}
-                <a href={item.url} class="nav-link">{ item.title }</a>
+                <a href={item.url} class="nav-link">{item.title}</a>
               {:else}
-                <span class="nav-group-title">{ item.title }</span>
+                <span class="nav-group-title">{item.title}</span>
               {/if}
               {#if item.children && item.children.length}
                 <ul class="nav-sub">
                   {#each item.children as child}
                     <li class="nav-item-child">
                       {#if child.url}
-                        <a href={child.url} class="nav-link">{ child.title }</a>
+                        <a href={child.url} class="nav-link">{child.title}</a>
                       {:else}
-                        <span class="nav-group-title-sub">{ child.title }</span>
+                        <span class="nav-group-title-sub">{child.title}</span>
                       {/if}
                       {#if child.children && child.children.length}
                         <ul class="nav-sub-sub">
                           {#each child.children as grandchild}
                             <li class="nav-item-grandchild">
                               {#if grandchild.url}
-                                <a href={grandchild.url} class="nav-link">{ grandchild.title }</a>
+                                <a href={grandchild.url} class="nav-link">{grandchild.title}</a>
                               {:else}
-                                <span class="nav-text-grandchild">{ grandchild.title }</span>
+                                <span class="nav-text-grandchild">{grandchild.title}</span>
                               {/if}
                             </li>
                           {/each}
@@ -62,12 +63,15 @@
           {/if}
         </ul>
       </nav>
+
+      <footer class="sidebar-footer">
+        <span>Built with Steno.</span>
+      </footer>
     </aside>
 
     <main class="main-content">
-      <article class="content-wrapper">
-        {@html content}
-      </article>
+      <div class="content-label">Reference</div>
+      <article class="content-wrapper">{@html content}</article>
     </main>
   </body>
 </html>
