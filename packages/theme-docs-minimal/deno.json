@@ -1,11 +1,11 @@
 {
   "name": "@steno/theme-docs-minimal",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "license": "MIT",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@^0.8.0"
+    "@steno/steno": "jsr:@steno/steno@^0.9.0"
   }
 }

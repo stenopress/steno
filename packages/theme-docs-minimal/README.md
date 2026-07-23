@@ -7,13 +7,11 @@ quiet and highly readable.
 
 ## Usage
 
-To use this theme, specify it in your `steno.yaml` configuration file:
+To use this theme, specify it in `content/.steno/config.yml`:
 
 ```yaml
-theme:
-  name: docs-minimal
-  # You can also specify a local path:
-  # path: ./packages/theme-docs-minimal
+custom:
+  theme: jsr:@steno/theme-docs-minimal@^0.9.0
 ```
 
 ## Development

@@ -13,7 +13,7 @@ const layout = await fetch(new URL("./layouts/layout.tau", import.meta.url))
 
 const theme: StenoTheme = {
   name: "minimal",
-  version: "1.0.0",
+  version: "0.9.0",
   layouts: { layout },
   assets: {
     "style.css": new URL("./assets/style.css", import.meta.url),

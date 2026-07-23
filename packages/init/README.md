@@ -31,16 +31,16 @@ my-site/
 ```
 
 Themes are loaded directly from JSR — no local theme files are created. The
-generated project pins Steno, themes, and selected plugins to the compatible
-v0.8 release line.
+generated project pins Steno and themes to the compatible v0.9 release line.
+Selected plugins use their latest compatible JSR release.
 
 ## Themes
 
 | Key                 | Package                                     | Description                                             |
 | ------------------- | ------------------------------------------- | ------------------------------------------------------- |
-| `minimal`           | `jsr:@steno/theme-minimal@^0.8.0`           | Clean, simple theme for personal sites and blogs        |
-| `docs-minimal`      | `jsr:@steno/theme-docs-minimal@^0.8.0`      | Minimal theme optimised for documentation sites         |
-| `marketing-minimal` | `jsr:@steno/theme-marketing-minimal@^0.8.0` | Editorial landing-page theme for products and campaigns |
+| `minimal`           | `jsr:@steno/theme-minimal@^0.9.0`           | Clean, simple theme for personal sites and blogs        |
+| `docs-minimal`      | `jsr:@steno/theme-docs-minimal@^0.9.0`      | Minimal theme optimised for documentation sites         |
+| `marketing-minimal` | `jsr:@steno/theme-marketing-minimal@^0.9.0` | Editorial landing-page theme for products and campaigns |
 
 ## Plugins
 

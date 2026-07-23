@@ -30,17 +30,17 @@ const AVAILABLE_THEMES: Record<ThemeChoice, {
   "minimal": {
     label: "Minimal",
     description: "A clean, simple theme for personal sites and blogs",
-    package: "jsr:@steno/theme-minimal@^0.8.0",
+    package: "jsr:@steno/theme-minimal@^0.9.0",
   },
   "docs-minimal": {
     label: "Docs Minimal",
     description: "A minimal theme optimised for documentation sites",
-    package: "jsr:@steno/theme-docs-minimal@^0.8.0",
+    package: "jsr:@steno/theme-docs-minimal@^0.9.0",
   },
   "marketing-minimal": {
     label: "Marketing Minimal",
     description: "A polished landing-page theme for products and campaigns",
-    package: "jsr:@steno/theme-marketing-minimal@^0.8.0",
+    package: "jsr:@steno/theme-marketing-minimal@^0.9.0",
   },
 };
 
@@ -392,11 +392,11 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
       denoJsonPath,
       `{
   "tasks": {
-    "build": "deno run --allow-read=. --allow-write=. jsr:@steno/steno@^0.8.0 build",
-    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0 jsr:@steno/steno@^0.8.0 dev"
+    "build": "deno run --allow-read=. --allow-write=. jsr:@steno/steno@^0.9.0 build",
+    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0 jsr:@steno/steno@^0.9.0 dev"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@^0.8.0"
+    "@steno/steno": "jsr:@steno/steno@^0.9.0"
   }
 }
 `,

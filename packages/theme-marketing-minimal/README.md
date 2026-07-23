@@ -6,7 +6,7 @@ calls to action, navigation, and a long-form content section.
 
 ```yaml
 custom:
-  theme: jsr:@steno/theme-marketing-minimal
+  theme: jsr:@steno/theme-marketing-minimal@^0.9.0
   themeConfig:
     eyebrow: Built for focused teams
     heroTitle: Ship the page that explains the product.

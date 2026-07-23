@@ -29,7 +29,7 @@ const configSchema = Object.fromEntries(
 
 const theme: StenoTheme = {
   name: "docs-minimal",
-  version: "1.0.0",
+  version: "0.9.0",
   layouts: { layout },
   assets: {
     "style.css": new URL("./assets/style.css", import.meta.url),
