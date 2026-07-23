@@ -7,5 +7,9 @@
   },
   "imports": {
     "@steno/steno": "jsr:@steno/steno@^0.9.0"
+  },
+  "minimumDependencyAge": {
+    "age": "P1D",
+    "exclude": ["jsr:@steno/steno"]
   }
 }

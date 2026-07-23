@@ -25,18 +25,26 @@ export {
   getTauCacheStats,
   render,
 } from "./src/utils/tau.ts";
-/** Options used by the Tau template renderer. */
-export type { TauCacheStats, TauLimits, TauOptions } from "./src/utils/tau.ts";
+/** Types used to configure and extend the Tau template renderer. */
+export type {
+  FilterFunction,
+  TauCacheStats,
+  TauLimits,
+  TauOptions,
+} from "./src/utils/tau.ts";
 /** Structured Tau failures and their stable machine-readable codes. */
 export { TauError } from "./src/utils/tau_error.ts";
-export type { TauErrorCode } from "./src/utils/tau_error.ts";
+export type { TauErrorCode, TauErrorLocation } from "./src/utils/tau_error.ts";
 /** Core site and theme configuration types. */
 export type {
   CollectionConfig,
+  CollectionFieldSchema,
   GeneratedPage,
   HeadTag,
+  HeadTagBase,
   IsolatedPluginPermissions,
   LinkHeadTag,
+  MarkdownTokens,
   MetaHeadTag,
   NavigationNode,
   PageConfigOverrides,
@@ -52,6 +60,7 @@ export type {
 } from "./src/types.ts";
 /** Loads and renders theme instances. */
 export { Theme } from "./src/theme/theme.ts";
+export type { ThemeConfig } from "./src/theme/theme.ts";
 
 if (import.meta.main) {
   try {

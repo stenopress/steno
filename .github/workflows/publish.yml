@@ -62,9 +62,7 @@ jobs:
         with:
           deno-version: v2.x
 
-      # Core was published by the preceding job, so allow this trusted
-      # same-workflow dependency before Deno's default 24-hour age window.
-      - run: deno publish --minimum-dependency-age=0
+      - run: deno publish
         working-directory: ${{ matrix.package }}
 
   publish-init:
