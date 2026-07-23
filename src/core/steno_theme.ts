@@ -11,6 +11,10 @@ const bundledThemeSources: Record<string, URL> = {
     "../../packages/theme-docs-minimal",
     import.meta.url,
   ),
+  "jsr:@steno/theme-marketing-minimal": new URL(
+    "../../packages/theme-marketing-minimal",
+    import.meta.url,
+  ),
 };
 
 async function loadBundledTheme(

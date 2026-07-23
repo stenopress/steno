@@ -20,7 +20,7 @@ export interface ProjectOptions {
   force?: boolean;
 }
 
-export type ThemeChoice = "minimal" | "docs-minimal";
+export type ThemeChoice = "minimal" | "docs-minimal" | "marketing-minimal";
 
 const AVAILABLE_THEMES: Record<ThemeChoice, {
   label: string;
@@ -36,6 +36,11 @@ const AVAILABLE_THEMES: Record<ThemeChoice, {
     label: "Docs Minimal",
     description: "A minimal theme optimised for documentation sites",
     package: "jsr:@steno/theme-docs-minimal@^0.8.0",
+  },
+  "marketing-minimal": {
+    label: "Marketing Minimal",
+    description: "A polished landing-page theme for products and campaigns",
+    package: "jsr:@steno/theme-marketing-minimal@^0.8.0",
   },
 };
 

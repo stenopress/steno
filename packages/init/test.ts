@@ -96,6 +96,18 @@ Deno.test("onboarding: config.yml uses JSR theme package for docs-minimal", asyn
   await Deno.remove(dir, { recursive: true });
 });
 
+Deno.test("onboarding: config.yml uses JSR theme package for marketing-minimal", async () => {
+  const dir = await scaffold({ theme: "marketing-minimal" });
+
+  const config = readFile(dir, "content", ".steno", "config.yml");
+  assertMatch(
+    config,
+    /theme: "jsr:@steno\/theme-marketing-minimal@\^0\.8\.0"/,
+  );
+
+  await Deno.remove(dir, { recursive: true });
+});
+
 Deno.test("onboarding: index.md contains site title", async () => {
   const dir = await scaffold({ title: "Hello World" });
 

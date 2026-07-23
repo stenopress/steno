@@ -6,7 +6,7 @@ projects.
 ## Usage
 
 ```sh
-deno run -Ar jsr:@steno/init@^0.8.0
+deno run -Ar jsr:@steno/init
 ```
 
 The wizard asks for:
@@ -14,7 +14,7 @@ The wizard asks for:
 - **Site title**
 - **Site description**
 - **Author name**
-- **Theme** — choose between _Minimal_ and _Docs Minimal_
+- **Theme** — choose between _Minimal_, _Docs Minimal_, and _Marketing Minimal_
 - **Plugins** — optionally add _Tailwind CSS_ and/or _Shiki_
 
 You can also skip the plugin prompts with `--plugins tailwind,shiki`.
@@ -36,10 +36,11 @@ v0.8 release line.
 
 ## Themes
 
-| Key            | Package                                | Description                                      |
-| -------------- | -------------------------------------- | ------------------------------------------------ |
-| `minimal`      | `jsr:@steno/theme-minimal@^0.8.0`      | Clean, simple theme for personal sites and blogs |
-| `docs-minimal` | `jsr:@steno/theme-docs-minimal@^0.8.0` | Minimal theme optimised for documentation sites  |
+| Key                 | Package                                     | Description                                             |
+| ------------------- | ------------------------------------------- | ------------------------------------------------------- |
+| `minimal`           | `jsr:@steno/theme-minimal@^0.8.0`           | Clean, simple theme for personal sites and blogs        |
+| `docs-minimal`      | `jsr:@steno/theme-docs-minimal@^0.8.0`      | Minimal theme optimised for documentation sites         |
+| `marketing-minimal` | `jsr:@steno/theme-marketing-minimal@^0.8.0` | Editorial landing-page theme for products and campaigns |
 
 ## Plugins
 

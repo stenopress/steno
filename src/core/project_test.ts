@@ -6,6 +6,30 @@ import { resolveProject } from "./project.ts";
 
 export function registerProjectTests(): void {
   Deno.test({
+    name: "themes: bundled marketing theme exposes landing-page defaults",
+    permissions: { read: true },
+    fn: async () => {
+      const theme = await loadTheme({
+        title: "Launch",
+        description: "",
+        author: "",
+        custom: { theme: "jsr:@steno/theme-marketing-minimal" },
+      });
+
+      assertEquals(theme?.name, "marketing-minimal");
+      if (!theme) throw new Error("Marketing theme failed to load.");
+      assertEquals(theme?.config.primaryLabel, "Get started");
+      const html = theme?.renderLayout("layout", "<h2>Details</h2>", {
+        title: "Launch",
+        site: { title: "Launch", navigation: [] },
+        theme: { name: theme.name, version: theme.version, ...theme.config },
+      });
+      assertStringIncludes(html ?? "", 'class="hero"');
+      assertStringIncludes(html ?? "", "Details");
+    },
+  });
+
+  Deno.test({
     name: "zero-config: single-file mode uses reserved steno namespace",
     permissions: { read: true, write: true },
     fn: async () => {
