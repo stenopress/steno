@@ -27,6 +27,13 @@ export class Steno {
     pages: new Map(),
   };
 
+  /**
+   * Creates a Steno site instance.
+   *
+   * @param configPath Path to the site configuration file.
+   * @param autoBuildOnInit Whether initialization should start a build.
+   * @param hooks Optional caller-provided build lifecycle hooks.
+   */
   constructor(
     configPath: string = "content/.steno/config.yml",
     autoBuildOnInit = true,

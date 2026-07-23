@@ -4,7 +4,8 @@ import { dirname, join, resolve, toFileUrl } from "@std/path";
 import { ensureDirSync } from "../utils/fileUtils.ts";
 import { parse as parseYaml } from "@std/yaml";
 
-type ThemeConfig = Record<string, unknown>;
+/** Resolved configuration values passed to a theme. */
+export type ThemeConfig = Record<string, unknown>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -303,7 +304,13 @@ export class Theme {
       : {};
   }
 
-  private static loadLayouts(dir: string) {
+  /** Loads layout templates and their source paths from a theme directory. */
+  private static loadLayouts(
+    dir: string,
+  ): {
+    layouts: Record<string, string>;
+    layoutPaths: Record<string, string>;
+  } {
     const layouts: Record<string, string> = {};
     const layoutPaths: Record<string, string> = {};
     const layoutsDir = join(dir, "layouts");
@@ -323,10 +330,14 @@ export class Theme {
     return { layouts, layoutPaths };
   }
 
+  /** Loads configured component templates and their source paths. */
   private static loadComponents(
     dir: string,
     rawComponents?: Record<string, string>,
-  ) {
+  ): {
+    components: Record<string, string>;
+    componentPaths: Record<string, string>;
+  } {
     const components: Record<string, string> = {};
     const componentPaths: Record<string, string> = {};
 
@@ -348,6 +359,7 @@ export class Theme {
     return { components, componentPaths };
   }
 
+  /** Recursively indexes static assets in a theme directory. */
   private static loadAssets(dir: string): Record<string, URL> {
     const assets: Record<string, URL> = {};
     const assetsDir = join(dir, "assets");

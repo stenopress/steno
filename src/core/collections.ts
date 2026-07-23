@@ -12,8 +12,11 @@ import {
 
 /** A page captured as part of a collection. */
 export interface CollectionItem {
+  /** Public URL generated for the content item. */
   url: string;
+  /** Parsed frontmatter fields. */
   frontmatter: Record<string, unknown>;
+  /** Markdown body without frontmatter. */
   content: string;
 }
 
@@ -29,7 +32,9 @@ export interface MarkdownPage {
 
 /** A named collection of content items. */
 export interface Collection {
+  /** Collection key from the site configuration. */
   name: string;
+  /** Content items selected for the collection. */
   items: CollectionItem[];
 }
 

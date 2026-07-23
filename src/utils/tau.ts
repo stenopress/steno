@@ -1,23 +1,39 @@
 import { type Node, TauParser } from "./tau_parser.ts";
 import { TauError } from "./tau_error.ts";
 
+/** Options accepted by the Tau template renderer. */
 export interface TauOptions {
+  /** Tau template source to render. */
   template: string;
+  /** Values exposed to template expressions. */
   context: Record<string, unknown>;
+  /** Named component templates available during rendering. */
   components: Record<string, string>;
+  /** Source path included in parse and render errors. */
   filePath?: string;
+  /** Resolves an include path to Tau template source. */
   includeResolver?: (path: string) => string;
+  /** Per-render resource-limit overrides. */
   limits?: Partial<TauLimits>;
 }
 
+/** Resource limits enforced while compiling and rendering Tau templates. */
 export interface TauLimits {
+  /** Maximum nested component and include depth. */
   maxDepth: number;
+  /** Maximum total loop iterations per render. */
   maxIterations: number;
+  /** Maximum UTF-8 output size in bytes. */
   maxOutputBytes: number;
+  /** Maximum input template size in bytes. */
   maxTemplateBytes: number;
 }
 
-type FilterFunction = (val: unknown, ...args: unknown[]) => unknown;
+/** Function signature for a Tau value filter. */
+export type FilterFunction = (
+  val: unknown,
+  ...args: unknown[]
+) => unknown;
 type CompiledTemplateFn = (
   context: Record<string, unknown>,
   helpers: TauHelpers,
@@ -151,6 +167,7 @@ function resolveLimits(overrides?: Partial<TauLimits>): TauLimits {
   return limits;
 }
 
+/** Built-in Tau filters and the registry for custom filters. */
 export const filters: Record<string, FilterFunction> = Object.assign(
   Object.create(null),
   {
@@ -313,14 +330,21 @@ function getCompiledTemplate(
   return compiled;
 }
 
+/** Runtime statistics for the compiled Tau template cache. */
 export interface TauCacheStats {
+  /** Number of currently cached templates. */
   size: number;
+  /** Maximum number of cached templates. */
   capacity: number;
+  /** Number of successful cache lookups since the last reset. */
   hits: number;
+  /** Number of templates compiled since the last reset. */
   misses: number;
+  /** Number of templates evicted since the last reset. */
   evictions: number;
 }
 
+/** Returns a snapshot of the compiled template cache statistics. */
 export function getTauCacheStats(): TauCacheStats {
   return {
     size: templateCache.size,
@@ -331,6 +355,7 @@ export function getTauCacheStats(): TauCacheStats {
   };
 }
 
+/** Clears compiled templates and resets all cache counters. */
 export function clearTauCache(): void {
   templateCache.clear();
   templateCacheHits = 0;
@@ -528,6 +553,12 @@ function assertTemplateSize(template: string, limits: TauLimits): void {
   }
 }
 
+/**
+ * Renders a Tau template with the supplied context and components.
+ *
+ * @param options Template source, context, components, and optional limits.
+ * @returns The rendered HTML string.
+ */
 export function render(options: TauOptions): string {
   const limits = resolveLimits(options.limits);
   assertTemplateSize(options.template, limits);

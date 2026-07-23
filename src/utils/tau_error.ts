@@ -1,3 +1,4 @@
+/** Stable error codes emitted while parsing or rendering Tau templates. */
 export type TauErrorCode =
   | "TAU_COMPONENT_CYCLE"
   | "TAU_COMPONENT_NOT_FOUND"
@@ -20,18 +21,28 @@ export type TauErrorCode =
   | "TAU_UNSAFE_PROP"
   | "TAU_UNSAFE_URL";
 
+/** Optional source location associated with a Tau error. */
 export interface TauErrorLocation {
+  /** Path of the template that caused the error. */
   filePath?: string;
+  /** One-based source line. */
   line?: number;
+  /** One-based source column. */
   column?: number;
 }
 
+/** Structured error thrown by the Tau parser and renderer. */
 export class TauError extends Error {
+  /** Machine-readable error category. */
   readonly code: TauErrorCode;
+  /** Template path associated with the error. */
   readonly filePath?: string;
+  /** One-based source line associated with the error. */
   readonly line?: number;
+  /** One-based source column associated with the error. */
   readonly column?: number;
 
+  /** Creates a Tau error with an optional source location and cause. */
   constructor(
     code: TauErrorCode,
     message: string,
