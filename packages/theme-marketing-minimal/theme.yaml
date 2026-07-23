@@ -1,0 +1,36 @@
+name: "marketing-minimal"
+version: "1.0.0"
+defaultConfig:
+  accent: "#7760a9"
+  accentHover: "#5f488f"
+  accentFg: "#ffffff"
+  accentDark: "#a994d8"
+  accentDarkHover: "#c0afe6"
+  accentDarkFg: "#171519"
+  eyebrow: "A clearer way forward"
+  heroTitle: "Make the important thing impossible to miss."
+  heroDescription: "A focused, fast landing page for products, studios, and ideas worth sharing."
+  primaryLabel: "Get started"
+  primaryUrl: "#content"
+  secondaryLabel: "Learn more"
+  secondaryUrl: "#content"
+configSchema:
+  accent: { type: string, default: "#7760a9" }
+  accentHover: { type: string, default: "#5f488f" }
+  accentFg: { type: string, default: "#ffffff" }
+  accentDark: { type: string, default: "#a994d8" }
+  accentDarkHover: { type: string, default: "#c0afe6" }
+  accentDarkFg: { type: string, default: "#171519" }
+  eyebrow: { type: string, default: "A clearer way forward" }
+  heroTitle: {
+    type: string,
+    default: "Make the important thing impossible to miss.",
+  }
+  heroDescription: {
+    type: string,
+    default: "A focused, fast landing page for products, studios, and ideas worth sharing.",
+  }
+  primaryLabel: { type: string, default: "Get started" }
+  primaryUrl: { type: string, default: "#content" }
+  secondaryLabel: { type: string, default: "Learn more" }
+  secondaryUrl: { type: string, default: "#content" }

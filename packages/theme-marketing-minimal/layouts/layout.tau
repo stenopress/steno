@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" style="
+  {#if theme.accent}--accent: {theme.accent};{/if}
+  {#if theme.accentHover}--accent-hover: {theme.accentHover};{/if}
+  {#if theme.accentFg}--accent-fg: {theme.accentFg};{/if}
+  {#if theme.accentDark}--accent-dark: {theme.accentDark};{/if}
+  {#if theme.accentDarkHover}--accent-dark-hover: {theme.accentDarkHover};{/if}
+  {#if theme.accentDarkFg}--accent-dark-fg: {theme.accentDarkFg};{/if}
+">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{#if title}{title}{:else}{site.title}{/if}</title>
+    {#if description}<meta name="description" content={description} />{/if}
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-logo" href="/" aria-label={site.title}>
+        <span>{#if site.title}{site.title}{:else}Steno{/if}</span>
+      </a>
+      {#if site.navigation}
+        <nav aria-label="Primary navigation">
+          <ul>
+            {#each site.navigation as item}
+              <li><a href={item.url}>{item.title}</a></li>
+            {/each}
+          </ul>
+        </nav>
+      {/if}
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          {#if theme.eyebrow}<p class="eyebrow">{theme.eyebrow}</p>{/if}
+          <h1 id="hero-title">{theme.heroTitle}</h1>
+          <p class="hero-description">{theme.heroDescription}</p>
+          <div class="hero-actions">
+            {#if theme.primaryLabel}<a class="button primary" href={theme.primaryUrl}>{theme.primaryLabel}</a>{/if}
+            {#if theme.secondaryLabel}<a class="button secondary" href={theme.secondaryUrl}>{theme.secondaryLabel}</a>{/if}
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <span class="orbit orbit-one"></span>
+          <span class="orbit orbit-two"></span>
+          <span class="signal"></span>
+        </div>
+      </section>
+
+      <section id="content" class="content-section">
+        <div class="section-label">The details</div>
+        <article class="content-wrapper">{@html content}</article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>&copy; {#if site.title}{site.title}{:else}Steno Site{/if}</span>
+      <span>Built with Steno.</span>
+    </footer>
+  </body>
+</html>
