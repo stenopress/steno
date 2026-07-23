@@ -1,6 +1,9 @@
 # @steno/theme-docs-minimal
 
-A minimal documentation theme for Steno static site generator.
+A minimal documentation theme for Steno with the same editorial paper, ink,
+serif-heading, and accent language as the Minimal and Marketing Minimal themes.
+It preserves a dense nested documentation tree while keeping long-form content
+quiet and highly readable.
 
 ## Usage
 

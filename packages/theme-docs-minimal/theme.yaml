@@ -1,28 +1,28 @@
 name: "docs-minimal"
 version: "1.0.0"
 defaultConfig:
-  accent: "hsl(142, 70%, 45%)"
-  accentHover: "hsl(142, 72%, 40%)"
+  accent: "#7760a9"
+  accentHover: "#5f488f"
   accentFg: "#ffffff"
-  accentDark: "hsl(142, 76%, 60%)"
-  accentDarkHover: "hsl(142, 76%, 66%)"
-  accentDarkFg: "#09090b"
+  accentDark: "#9d86d0"
+  accentDarkHover: "#b29ddd"
+  accentDarkFg: "#171519"
 configSchema:
   accent:
     type: "string"
-    default: "hsl(142, 70%, 45%)"
+    default: "#7760a9"
   accentHover:
     type: "string"
-    default: "hsl(142, 72%, 40%)"
+    default: "#5f488f"
   accentFg:
     type: "string"
     default: "#ffffff"
   accentDark:
     type: "string"
-    default: "hsl(142, 76%, 60%)"
+    default: "#9d86d0"
   accentDarkHover:
     type: "string"
-    default: "hsl(142, 76%, 66%)"
+    default: "#b29ddd"
   accentDarkFg:
     type: "string"
-    default: "#09090b"
+    default: "#171519"
