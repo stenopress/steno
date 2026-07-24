@@ -5,11 +5,30 @@ export interface OutputTransaction {
   outputDir: string;
   stagingDir: string;
   backupDir: string;
+  fs: OutputTransactionFileSystem;
 }
 
-function pathExists(path: string): boolean {
+/** Filesystem operations used by output transactions. */
+export interface OutputTransactionFileSystem {
+  lstatSync(path: string): Deno.FileInfo;
+  makeTempDirSync(options: Deno.MakeTempOptions): string;
+  removeSync(path: string, options?: Deno.RemoveOptions): void;
+  renameSync(oldpath: string, newpath: string): void;
+}
+
+const defaultFileSystem: OutputTransactionFileSystem = {
+  lstatSync: (path) => Deno.lstatSync(path),
+  makeTempDirSync: (options) => Deno.makeTempDirSync(options),
+  removeSync: (path, options) => Deno.removeSync(path, options),
+  renameSync: (oldpath, newpath) => Deno.renameSync(oldpath, newpath),
+};
+
+function pathExists(
+  path: string,
+  fs: OutputTransactionFileSystem,
+): boolean {
   try {
-    Deno.lstatSync(path);
+    fs.lstatSync(path);
     return true;
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) return false;
@@ -17,11 +36,14 @@ function pathExists(path: string): boolean {
   }
 }
 
-function removeTree(path: string): void {
-  if (pathExists(path)) Deno.removeSync(path, { recursive: true });
+function removeTree(path: string, fs: OutputTransactionFileSystem): void {
+  if (pathExists(path, fs)) fs.removeSync(path, { recursive: true });
 }
 
-export function beginOutputTransaction(outputDir: string): OutputTransaction {
+export function beginOutputTransaction(
+  outputDir: string,
+  fs: OutputTransactionFileSystem = defaultFileSystem,
+): OutputTransaction {
   const absoluteOutput = resolve(outputDir);
   const parent = dirname(absoluteOutput);
   if (absoluteOutput === parent) {
@@ -38,42 +60,75 @@ export function beginOutputTransaction(outputDir: string): OutputTransaction {
   const backupDir = join(parent, `.${name}.steno-backup`);
 
   // Recover a prior promotion interrupted after output was moved to backup.
-  if (!pathExists(absoluteOutput) && pathExists(backupDir)) {
-    Deno.renameSync(backupDir, absoluteOutput);
+  if (!pathExists(absoluteOutput, fs) && pathExists(backupDir, fs)) {
+    fs.renameSync(backupDir, absoluteOutput);
   }
 
-  const stagingDir = Deno.makeTempDirSync({
+  const stagingDir = fs.makeTempDirSync({
     dir: parent,
     prefix: `.${name}.steno-stage-`,
   });
-  return { outputDir: absoluteOutput, stagingDir, backupDir };
+  return { outputDir: absoluteOutput, stagingDir, backupDir, fs };
 }
 
 export function commitOutputTransaction(
   transaction: OutputTransaction,
 ): void {
-  const { outputDir, stagingDir, backupDir } = transaction;
-  const hadOutput = pathExists(outputDir);
-  const previousBackup = pathExists(backupDir)
+  const { outputDir, stagingDir, backupDir, fs } = transaction;
+  const hadOutput = pathExists(outputDir, fs);
+  const previousBackup = pathExists(backupDir, fs)
     ? `${backupDir}.retired-${crypto.randomUUID()}`
     : undefined;
-  if (previousBackup) Deno.renameSync(backupDir, previousBackup);
-  if (hadOutput) Deno.renameSync(outputDir, backupDir);
+  let previousBackupRetired = false;
+  let outputBackedUp = false;
 
   try {
-    Deno.renameSync(stagingDir, outputDir);
-  } catch (error) {
-    if (hadOutput && !pathExists(outputDir) && pathExists(backupDir)) {
-      Deno.renameSync(backupDir, outputDir);
+    if (previousBackup) {
+      fs.renameSync(backupDir, previousBackup);
+      previousBackupRetired = true;
     }
-    if (previousBackup && !pathExists(backupDir)) {
-      Deno.renameSync(previousBackup, backupDir);
+    if (hadOutput) {
+      fs.renameSync(outputDir, backupDir);
+      outputBackedUp = true;
+    }
+    fs.renameSync(stagingDir, outputDir);
+  } catch (error) {
+    const recoveryErrors: unknown[] = [];
+    if (
+      outputBackedUp && !pathExists(outputDir, fs) &&
+      pathExists(backupDir, fs)
+    ) {
+      try {
+        fs.renameSync(backupDir, outputDir);
+        outputBackedUp = false;
+      } catch (recoveryError) {
+        recoveryErrors.push(recoveryError);
+      }
+    }
+    if (
+      previousBackup && previousBackupRetired &&
+      !pathExists(backupDir, fs)
+    ) {
+      try {
+        fs.renameSync(previousBackup, backupDir);
+        previousBackupRetired = false;
+      } catch (recoveryError) {
+        recoveryErrors.push(recoveryError);
+      }
+    }
+    if (recoveryErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...recoveryErrors],
+        "Output promotion failed and transaction recovery was incomplete.",
+      );
     }
     throw error;
   }
 
   if (previousBackup) {
-    void Deno.remove(previousBackup, { recursive: true }).catch((error) => {
+    void Promise.resolve().then(() => {
+      fs.removeSync(previousBackup, { recursive: true });
+    }).catch((error) => {
       console.warn(
         `Build committed, but failed to remove retired backup "${previousBackup}": ${
           error instanceof Error ? error.message : String(error)
@@ -86,11 +141,12 @@ export function commitOutputTransaction(
 export function rollbackOutputTransaction(
   transaction: OutputTransaction,
 ): void {
-  removeTree(transaction.stagingDir);
+  const { fs } = transaction;
+  removeTree(transaction.stagingDir, fs);
   if (
-    !pathExists(transaction.outputDir) &&
-    pathExists(transaction.backupDir)
+    !pathExists(transaction.outputDir, fs) &&
+    pathExists(transaction.backupDir, fs)
   ) {
-    Deno.renameSync(transaction.backupDir, transaction.outputDir);
+    fs.renameSync(transaction.backupDir, transaction.outputDir);
   }
 }
