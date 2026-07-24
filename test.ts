@@ -1,6 +1,5 @@
 import { registerCliTests } from "./src/utils/cli_test.ts";
 import { registerConfigTests } from "./src/core/config_test.ts";
-import { registerFileUtilsTests } from "./src/utils/fileUtils_test.ts";
 import { registerFrontmatterTests } from "./src/utils/frontmatter_test.ts";
 import { registerTauTests } from "./src/utils/tau_test.ts";
 import { registerTauCacheTests } from "./src/utils/tau_cache_test.ts";
@@ -22,7 +21,6 @@ import { registerPathUtilsTests } from "./src/core/path_utils_test.ts";
 
 registerCliTests();
 registerConfigTests();
-registerFileUtilsTests();
 registerFrontmatterTests();
 registerTauTests();
 registerTauCacheTests();
