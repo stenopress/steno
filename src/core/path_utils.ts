@@ -44,29 +44,6 @@ export function inferPageTitle(page: MarkdownPage): string {
   return humanizeSegment(stem);
 }
 
-export function resolveNavigationUrl(
-  relPath: string,
-  shortUrls: boolean,
-): string {
-  const normalizedRelPath = relPath.replace(/\\/g, "/");
-  const withoutExt = normalizedRelPath.replace(/\.md$/, "");
-
-  if (!shortUrls) {
-    return `/${withoutExt}.html`;
-  }
-
-  if (withoutExt.endsWith("/index")) {
-    const dir = withoutExt.slice(0, -"/index".length);
-    return dir ? `/${dir}/` : "/";
-  }
-
-  if (withoutExt === "index") {
-    return "/";
-  }
-
-  return `/${withoutExt}`;
-}
-
 /** Resolved public URL and output-relative file path for a content page. */
 export interface PageRoute {
   /** Public URL exposed to navigation, collections, and templates. */
@@ -133,14 +110,15 @@ export function resolvePageRoute(
 
   const configuredPermalink = readPermalink(page);
   if (configuredPermalink === undefined) {
-    const url = resolveNavigationUrl(normalizedRelPath, shortUrls);
+    const stem = normalizedRelPath.replace(/\.md$/, "");
+    const isIndex = stem === "index" || stem.endsWith("/index");
+    const indexDir = stem === "index" ? "" : stem.slice(0, -"index".length);
+    const url = shortUrls
+      ? isIndex ? `/${indexDir}` : `/${stem}`
+      : `/${stem}.html`;
     const outputPath = shortUrls
-      ? normalizedRelPath === "index.md"
-        ? "index.html"
-        : normalizedRelPath.endsWith("/index.md")
-        ? `${normalizedRelPath.slice(0, -"/index.md".length)}/index.html`
-        : `${normalizedRelPath.replace(/\.md$/, "")}/index.html`
-      : normalizedRelPath.replace(/\.md$/, ".html");
+      ? isIndex ? `${indexDir}index.html` : `${stem}/index.html`
+      : `${stem}.html`;
     return { url, outputPath };
   }
 
@@ -175,33 +153,6 @@ export function resolvePageOutputPath(
   shortUrls: boolean,
 ): string {
   return join(outputDir, resolvePageRoute(page, shortUrls).outputPath);
-}
-
-export function resolveOutputPath(
-  outputDir: string,
-  relPath: string,
-  shortUrls: boolean,
-): string {
-  const normalizedRelPath = relPath.replace(/\\/g, "/");
-
-  if (!shortUrls) {
-    return join(outputDir, normalizedRelPath.replace(/\.md$/, ".html"));
-  }
-
-  if (normalizedRelPath === "index.md") {
-    return join(outputDir, "index.html");
-  }
-
-  if (normalizedRelPath.endsWith("/index.md")) {
-    const dir = normalizedRelPath.slice(0, -"/index.md".length);
-    return join(outputDir, dir, "index.html");
-  }
-
-  return join(
-    outputDir,
-    normalizedRelPath.replace(/\.md$/, ""),
-    "index.html",
-  );
 }
 
 export function isPathInsideOrEqual(
