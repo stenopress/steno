@@ -54,7 +54,7 @@ export async function runDoctor(configPath: string): Promise<void> {
   if (major > 2 || (major === 2 && minor >= 0)) {
     ok(`Deno ${denoVersion}`);
   } else {
-    warn(`Deno ${denoVersion} — v2.0.0 or later recommended`);
+    warn(`Deno ${denoVersion} - v2.0.0 or later recommended`);
   }
 
   // Config file
@@ -132,7 +132,7 @@ export async function runDoctor(configPath: string): Promise<void> {
       }
     }
   } else {
-    warn(`No theme declared — pages will render as plain HTML`);
+    warn(`No theme declared - pages will render as plain HTML`);
   }
 
   // Plugins
@@ -163,12 +163,12 @@ export async function runDoctor(configPath: string): Promise<void> {
       config.custom?.pluginSecurity;
     if (sourcePolicy?.allowLocal) {
       warn(
-        `pluginSourcePolicy.allowLocal is enabled — trusted local plugins may be loaded`,
+        `pluginSourcePolicy.allowLocal is enabled - trusted local plugins may be loaded`,
       );
     }
     if (sourcePolicy?.allowRemoteHttp) {
       warn(
-        `pluginSourcePolicy.allowRemoteHttp is enabled — mutable URL plugins may be loaded`,
+        `pluginSourcePolicy.allowRemoteHttp is enabled - mutable URL plugins may be loaded`,
       );
     }
     if (sourcePolicy?.allowNodeBuiltins) {

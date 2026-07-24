@@ -51,14 +51,14 @@ export function buildRedirects(
   for (const [from, to] of Object.entries(redirects)) {
     if (!from.startsWith("/")) {
       console.warn(
-        `[redirects] Skipping "${from}" — redirect paths must start with "/".`,
+        `[redirects] Skipping "${from}" - redirect paths must start with "/".`,
       );
       continue;
     }
 
     if (!to) {
       console.warn(
-        `[redirects] Skipping "${from}" — redirect target cannot be empty.`,
+        `[redirects] Skipping "${from}" - redirect target cannot be empty.`,
       );
       continue;
     }

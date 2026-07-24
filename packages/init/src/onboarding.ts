@@ -1,5 +1,5 @@
 /**
- * @steno/init/onboarding — Core logic for scaffolding new Steno static-site projects.
+ * @steno/init/onboarding - Core logic for scaffolding new Steno static-site projects.
  *
  * This module contains the interactive prompts and file generation logic
  * for setting up a new Steno project.
@@ -384,7 +384,7 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
 `,
   );
 
-  // deno.json — only when not already present
+  // deno.json - only when not already present
   try {
     Deno.statSync(denoJsonPath);
   } catch {
