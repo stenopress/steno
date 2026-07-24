@@ -6,7 +6,7 @@ import {
   commonAncestorDir,
   humanizeSegment,
   resolveMarkdownScanIgnorePaths,
-  resolveNavigationUrl,
+  resolvePageRoute,
 } from "./path_utils.ts";
 
 export interface ResolvedProject {
@@ -101,7 +101,7 @@ function buildNavigationTree(
 
     const navNode: NavigationNode = {
       title: page.title ?? humanizeSegment(fileName.replace(/\.md$/, "")),
-      url: resolveNavigationUrl(page.relPath, shortUrls),
+      url: resolvePageRoute(page, shortUrls).url,
     };
 
     if (fileName === "index.md") {

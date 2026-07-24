@@ -7,7 +7,7 @@ import {
   inferPageTitle,
   isPathInsideOrEqual,
   resolveMarkdownScanIgnorePaths,
-  resolveNavigationUrl,
+  resolvePageRoute,
 } from "./path_utils.ts";
 
 /** A page captured as part of a collection. */
@@ -128,10 +128,6 @@ export async function collectMarkdownPages(
   );
 }
 
-function resolveUrl(relPath: string, shortUrls: boolean): string {
-  return resolveNavigationUrl(relPath, shortUrls);
-}
-
 function sortItems(
   items: CollectionItem[],
   collectionConfig?: CollectionConfig,
@@ -229,7 +225,7 @@ export async function buildCollections(
     let htmlContent = marked.parser(tokens);
     htmlContent = await runHtmlTransforms(htmlContent, plugins);
 
-    const url = resolveUrl(page.relPath, shortUrls);
+    const url = resolvePageRoute(page, shortUrls).url;
 
     if (!collections[collectionName]) {
       collections[collectionName] = { name: collectionName, items: [] };

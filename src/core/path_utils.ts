@@ -67,6 +67,116 @@ export function resolveNavigationUrl(
   return `/${withoutExt}`;
 }
 
+/** Resolved public URL and output-relative file path for a content page. */
+export interface PageRoute {
+  /** Public URL exposed to navigation, collections, and templates. */
+  url: string;
+  /** File path relative to the configured output directory. */
+  outputPath: string;
+}
+
+function readPermalink(page: MarkdownPage): string | undefined {
+  const namespace = page.frontmatter.steno;
+  const namespacedPermalink = namespace &&
+      typeof namespace === "object" &&
+      !Array.isArray(namespace)
+    ? (namespace as Record<string, unknown>).permalink
+    : undefined;
+  const candidate = namespacedPermalink ?? page.frontmatter.permalink;
+  if (candidate === undefined) return;
+  if (typeof candidate !== "string" || !candidate.trim()) {
+    throw new Error(
+      `Invalid permalink in "${page.relPath}": expected a non-empty string.`,
+    );
+  }
+  return candidate.trim();
+}
+
+function normalizePermalink(
+  permalink: string,
+  pageRelPath: string,
+): string {
+  if (
+    permalink.includes("\\") || permalink.includes("?") ||
+    permalink.includes("#") || permalink.includes("\0") ||
+    /^[A-Za-z][A-Za-z\d+.-]*:/.test(permalink)
+  ) {
+    throw new Error(
+      `Invalid permalink "${permalink}" in "${pageRelPath}": use an absolute site path without a protocol, query, fragment, or backslash.`,
+    );
+  }
+
+  const normalized = permalink.startsWith("/") ? permalink : `/${permalink}`;
+  const segments = normalized.split("/");
+  if (segments.some((segment) => segment === "." || segment === "..")) {
+    throw new Error(
+      `Invalid permalink "${permalink}" in "${pageRelPath}": path traversal is not allowed.`,
+    );
+  }
+  return normalized.replace(/\/{2,}/g, "/");
+}
+
+/**
+ * Resolves the canonical route for a Markdown page.
+ *
+ * A `permalink` field, or `steno.permalink`, overrides the file-derived route.
+ * Root `404.md` is always emitted as `/404.html` for static-host compatibility.
+ */
+export function resolvePageRoute(
+  page: MarkdownPage,
+  shortUrls: boolean,
+): PageRoute {
+  const normalizedRelPath = page.relPath.replaceAll("\\", "/");
+  if (normalizedRelPath === "404.md" && readPermalink(page) === undefined) {
+    return { url: "/404.html", outputPath: "404.html" };
+  }
+
+  const configuredPermalink = readPermalink(page);
+  if (configuredPermalink === undefined) {
+    const url = resolveNavigationUrl(normalizedRelPath, shortUrls);
+    const outputPath = shortUrls
+      ? normalizedRelPath === "index.md"
+        ? "index.html"
+        : normalizedRelPath.endsWith("/index.md")
+        ? `${normalizedRelPath.slice(0, -"/index.md".length)}/index.html`
+        : `${normalizedRelPath.replace(/\.md$/, "")}/index.html`
+      : normalizedRelPath.replace(/\.md$/, ".html");
+    return { url, outputPath };
+  }
+
+  const permalink = normalizePermalink(
+    configuredPermalink,
+    normalizedRelPath,
+  );
+  if (permalink === "/") {
+    return { url: "/", outputPath: "index.html" };
+  }
+
+  const withoutLeadingSlash = permalink.slice(1);
+  if (permalink.endsWith("/")) {
+    return {
+      url: permalink,
+      outputPath: `${withoutLeadingSlash}index.html`,
+    };
+  }
+  if (permalink.endsWith(".html")) {
+    return { url: permalink, outputPath: withoutLeadingSlash };
+  }
+  return {
+    url: permalink,
+    outputPath: `${withoutLeadingSlash}/index.html`,
+  };
+}
+
+/** Resolves a page's output file beneath the configured output directory. */
+export function resolvePageOutputPath(
+  outputDir: string,
+  page: MarkdownPage,
+  shortUrls: boolean,
+): string {
+  return join(outputDir, resolvePageRoute(page, shortUrls).outputPath);
+}
+
 export function resolveOutputPath(
   outputDir: string,
   relPath: string,

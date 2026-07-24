@@ -10,7 +10,7 @@ import { loadDataFiles } from "../data.ts";
 import { buildComplete } from "../../utils/output.ts";
 import {
   resolveMarkdownScanIgnorePaths,
-  resolveOutputPath,
+  resolvePageOutputPath,
 } from "../path_utils.ts";
 import type { BuildContext, BuildStateEntry } from "./context.ts";
 import {
@@ -120,9 +120,9 @@ export async function buildSite({
       previousPages.size === activePages.length &&
       activePages.every((page) => {
         const cached = previousPages.get(page.fullPath);
-        const expectedOutput = resolveOutputPath(
+        const expectedOutput = resolvePageOutputPath(
           outputDir,
-          page.relPath,
+          page,
           shortUrls,
         );
         return cached?.sourceText === page.sourceText &&
@@ -175,14 +175,14 @@ export async function buildSite({
     for (const page of scannedPages) {
       if (page.frontmatter.draft === true && !dev) continue;
 
-      const outputFilePath = resolveOutputPath(
+      const outputFilePath = resolvePageOutputPath(
         outputDir,
-        page.relPath,
+        page,
         shortUrls,
       );
-      const stagedOutputFilePath = resolveOutputPath(
+      const stagedOutputFilePath = resolvePageOutputPath(
         stagingDir,
-        page.relPath,
+        page,
         shortUrls,
       );
       const normalizedStagedPath = resolve(stagedOutputFilePath);
