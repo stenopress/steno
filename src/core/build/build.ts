@@ -1,16 +1,15 @@
-import { dirname, resolve } from "@std/path";
+import { dirname, join, resolve } from "@std/path";
 import { marked } from "marked";
 import type { CollectionMap } from "../collections.ts";
 import { buildCollections, collectMarkdownPages } from "../collections.ts";
 import { runAstTransforms, runHtmlTransforms } from "../../plugins/plugins.ts";
-import { ensureDirSync } from "../../utils/fileUtils.ts";
 import { processIncludes } from "../includes.ts";
 import { buildRedirects } from "../redirects.ts";
 import { loadDataFiles } from "../data.ts";
 import { buildComplete } from "../../utils/output.ts";
 import {
   resolveMarkdownScanIgnorePaths,
-  resolvePageOutputPath,
+  resolvePageRoute,
 } from "../path_utils.ts";
 import type { BuildContext, BuildStateEntry } from "./context.ts";
 import {
@@ -120,10 +119,9 @@ export async function buildSite({
       previousPages.size === activePages.length &&
       activePages.every((page) => {
         const cached = previousPages.get(page.fullPath);
-        const expectedOutput = resolvePageOutputPath(
+        const expectedOutput = join(
           outputDir,
-          page,
-          shortUrls,
+          resolvePageRoute(page, shortUrls).outputPath,
         );
         return cached?.sourceText === page.sourceText &&
           cached.outputPath === expectedOutput &&
@@ -175,16 +173,9 @@ export async function buildSite({
     for (const page of scannedPages) {
       if (page.frontmatter.draft === true && !dev) continue;
 
-      const outputFilePath = resolvePageOutputPath(
-        outputDir,
-        page,
-        shortUrls,
-      );
-      const stagedOutputFilePath = resolvePageOutputPath(
-        stagingDir,
-        page,
-        shortUrls,
-      );
+      const outputPath = resolvePageRoute(page, shortUrls).outputPath;
+      const outputFilePath = join(outputDir, outputPath);
+      const stagedOutputFilePath = join(stagingDir, outputPath);
       const normalizedStagedPath = resolve(stagedOutputFilePath);
       if (occupiedPaths.has(normalizedStagedPath)) {
         throw new Error(
@@ -278,7 +269,7 @@ export async function buildSite({
           : htmlContent;
         const renderedContent = injectHeadTags(layoutContent, pageHead);
 
-        ensureDirSync(dirname(stagedOutputFilePath));
+        Deno.mkdirSync(dirname(stagedOutputFilePath), { recursive: true });
         Deno.writeTextFileSync(stagedOutputFilePath, renderedContent);
         await fireAfterPage(
           outputFilePath,
@@ -286,7 +277,7 @@ export async function buildSite({
           renderedContent,
         );
       } else {
-        ensureDirSync(dirname(stagedOutputFilePath));
+        Deno.mkdirSync(dirname(stagedOutputFilePath), { recursive: true });
         unchangedFiles.push({
           source: outputFilePath,
           destination: stagedOutputFilePath,
