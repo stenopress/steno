@@ -1,5 +1,4 @@
 import { dirname, join, resolve } from "@std/path";
-import { ensureDirSync } from "../utils/fileUtils.ts";
 
 function buildRedirectHtml(to: string): string {
   return `<!doctype html>
@@ -26,12 +25,12 @@ function resolveRedirectOutputPath(
 
   if (shortUrls) {
     const dir = join(outputDir, clean);
-    ensureDirSync(dir);
+    Deno.mkdirSync(dir, { recursive: true });
     return join(dir, "index.html");
   }
 
   const filePath = join(outputDir, `${clean}.html`);
-  ensureDirSync(dirname(filePath));
+  Deno.mkdirSync(dirname(filePath), { recursive: true });
   return filePath;
 }
 
