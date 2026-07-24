@@ -1,5 +1,4 @@
 import { dirname, join } from "@std/path";
-import { ensureDirSync } from "../../utils/fileUtils.ts";
 import type { BuildStateEntry } from "./context.ts";
 
 export interface PersistentBuildCache {
@@ -86,11 +85,8 @@ export function toBuildStatePageMap(
 ): Map<string, BuildStateEntry> {
   const pageMap = new Map<string, BuildStateEntry>();
   for (const page of pages) {
-    const relPath = typeof page.relPath === "string"
-      ? page.relPath
-      : page.fullPath;
     pageMap.set(page.fullPath, {
-      relPath,
+      relPath: page.relPath,
       outputPath: page.outputPath,
       sourceText: page.sourceText,
     });
@@ -103,7 +99,7 @@ export function savePersistentBuildCache(
   signature: string,
   pages: Map<string, BuildStateEntry>,
 ): void {
-  ensureDirSync(dirname(cachePath));
+  Deno.mkdirSync(dirname(cachePath), { recursive: true });
   const payload: PersistentBuildCache = {
     version: 1,
     signature,
