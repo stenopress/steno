@@ -1,7 +1,6 @@
 import { render } from "../utils/tau.ts";
 import type { StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
 import { dirname, join, resolve, toFileUrl } from "@std/path";
-import { ensureDirSync } from "../utils/fileUtils.ts";
 import { parse as parseYaml } from "@std/yaml";
 
 /** Resolved configuration values passed to a theme. */
@@ -494,7 +493,7 @@ export class Theme {
         );
       }
       occupiedPaths.add(normalizedDestPath);
-      ensureDirSync(dirname(destPath));
+      Deno.mkdirSync(dirname(destPath), { recursive: true });
 
       if (typeof source === "string") {
         Deno.writeTextFileSync(destPath, source);
