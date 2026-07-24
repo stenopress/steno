@@ -99,6 +99,29 @@ export function registerCollectionTests(): void {
   });
 
   Deno.test({
+    name: "collections: item URLs honor page permalinks",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      Deno.mkdirSync(join(contentDir, "blog"), { recursive: true });
+      Deno.writeTextFileSync(
+        join(contentDir, "blog", "my-post.md"),
+        `---\ntitle: "My Post"\nsteno:\n  permalink: /notes/hello/\n---\nContent.`,
+      );
+
+      const collections = await buildCollections(
+        contentDir,
+        makeConfig({ custom: { shortUrls: true } }),
+        [],
+      );
+
+      assertEquals(collections.blog.items[0].url, "/notes/hello/");
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
     name: "collections: multiple collections are detected independently",
     permissions: { read: true, write: true },
     fn: async () => {

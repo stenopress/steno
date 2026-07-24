@@ -201,6 +201,40 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
+    name: "build: emits explicit permalinks and a root custom 404",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig(`custom:\n  shortUrls: true\n`);
+      f.writePage(
+        "company.md",
+        `---\ntitle: Company\nsteno:\n  permalink: /about/\n---\nCompany page.`,
+      );
+      f.writePage(
+        "404.md",
+        `---\ntitle: Not found\n---\nThis page could not be found.`,
+      );
+
+      await new Steno(f.configPath, false).build();
+
+      assertStringIncludes(
+        Deno.readTextFileSync(join(f.outputDir, "about", "index.html")),
+        "Company page.",
+      );
+      assertStringIncludes(
+        Deno.readTextFileSync(join(f.outputDir, "404.html")),
+        "This page could not be found.",
+      );
+      assertEquals(
+        fileExists(join(f.outputDir, "company", "index.html")),
+        false,
+      );
+      assertEquals(fileExists(join(f.outputDir, "404", "index.html")), false);
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
     name: "build: reports frontmatter errors with file path",
     permissions: { read: true, write: true },
     fn: async () => {
