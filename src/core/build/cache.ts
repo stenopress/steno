@@ -85,8 +85,11 @@ export function toBuildStatePageMap(
 ): Map<string, BuildStateEntry> {
   const pageMap = new Map<string, BuildStateEntry>();
   for (const page of pages) {
+    const relPath = typeof page.relPath === "string"
+      ? page.relPath
+      : page.fullPath;
     pageMap.set(page.fullPath, {
-      relPath: page.relPath,
+      relPath,
       outputPath: page.outputPath,
       sourceText: page.sourceText,
     });
