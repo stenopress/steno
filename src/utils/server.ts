@@ -175,6 +175,42 @@ export function createDevServerHandler(outputDir: string): {
   return { handler, broadcastReload };
 }
 
+/** Processes filesystem events as serialized development rebuilds. */
+export async function processWatchEvents(
+  events: AsyncIterable<Deno.FsEvent>,
+  options: {
+    outputDir: string;
+    ignoredPaths?: string[];
+    buildFn: () => void | Promise<void>;
+    broadcastReload?: () => void;
+  },
+): Promise<void> {
+  const ignoredPaths = options.ignoredPaths ?? [];
+  for await (const event of events) {
+    if (
+      event.kind !== "modify" && event.kind !== "create" &&
+      event.kind !== "remove"
+    ) {
+      continue;
+    }
+    if (
+      event.paths.length > 0 &&
+      event.paths.every((path) =>
+        isTransactionalOutputPath(path, options.outputDir) ||
+        ignoredPaths.some((ignoredPath) =>
+          isPathInsideOrEqual(path, ignoredPath)
+        )
+      )
+    ) {
+      continue;
+    }
+
+    changeDetected();
+    await options.buildFn();
+    options.broadcastReload?.();
+  }
+}
+
 /** Serves the built site and rebuilds on filesystem changes. */
 export async function startDevServer(
   outputDir: string,
@@ -195,26 +231,10 @@ export async function startDevServer(
 
   devServerReady(port, preferredPort);
 
-  for await (const event of watcher) {
-    if (
-      event.kind === "modify" || event.kind === "create" ||
-      event.kind === "remove"
-    ) {
-      if (
-        event.paths.length > 0 &&
-        event.paths.every((path) =>
-          isTransactionalOutputPath(path, outputDir) ||
-          ignoredPaths.some((ignoredPath) =>
-            isPathInsideOrEqual(path, ignoredPath)
-          )
-        )
-      ) {
-        continue;
-      }
-
-      changeDetected();
-      await buildFn();
-      broadcastReload();
-    }
-  }
+  await processWatchEvents(watcher, {
+    outputDir,
+    ignoredPaths,
+    buildFn,
+    broadcastReload,
+  });
 }
