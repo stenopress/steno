@@ -20,11 +20,33 @@ Pages marked `draft: true` are omitted from production builds but rendered in
 development. A page's title is frontmatter `title`, an inferred Markdown title,
 or the site title.
 
+## Routes and permalinks
+
+Markdown paths define routes automatically. With `shortUrls: true`,
+`content/guides/setup.md` is written to `dist/guides/setup/index.html` and uses
+the public URL `/guides/setup`.
+
+Use `steno.permalink` when a page needs a stable route independent of its source
+file:
+
+```yaml
+---
+title: About us
+steno:
+  permalink: /about/
+---
+```
+
+Trailing-slash permalinks emit an `index.html`; explicit `.html` permalinks emit
+that exact file. Protocols, query strings, fragments, backslashes, and path
+traversal are rejected. A root `content/404.md` automatically emits
+`dist/404.html`, as expected by common static hosts.
+
 ## Per-page configuration
 
 Use the reserved `steno` frontmatter namespace to override presentation-facing
 configuration for one page. Supported fields are `title`, `description`,
-`author`, `head`, `navigation`, `themeConfig`, and `globals`:
+`author`, `head`, `navigation`, `themeConfig`, `globals`, and `permalink`:
 
 ```yaml
 ---
