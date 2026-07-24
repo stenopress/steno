@@ -2,17 +2,9 @@ import { loadConfig } from "./config.ts";
 import { join } from "@std/path";
 import { c, fail, info, ok, success, warn } from "../utils/output.ts";
 
-function dirExists(path: string): boolean {
+function pathIs(path: string, type: "isDirectory" | "isFile"): boolean {
   try {
-    return Deno.statSync(path).isDirectory;
-  } catch {
-    return false;
-  }
-}
-
-function fileExists(path: string): boolean {
-  try {
-    return Deno.statSync(path).isFile;
+    return Deno.statSync(path)[type];
   } catch {
     return false;
   }
@@ -58,7 +50,7 @@ export async function runDoctor(configPath: string): Promise<void> {
   }
 
   // Config file
-  if (!fileExists(configPath)) {
+  if (!pathIs(configPath, "isFile")) {
     fail(`Config not found at "${configPath}"`);
     console.log();
     console.log(
@@ -84,7 +76,7 @@ export async function runDoctor(configPath: string): Promise<void> {
 
   // Content directory
   const contentDir = config.contentDir || "content";
-  if (dirExists(contentDir)) {
+  if (pathIs(contentDir, "isDirectory")) {
     ok(`Content directory exists (${contentDir}/)`);
   } else {
     fail(`Content directory not found: "${contentDir}"`);
@@ -101,7 +93,7 @@ export async function runDoctor(configPath: string): Promise<void> {
 
   // Output directory
   const outputDir = config.output || "dist";
-  if (dirExists(outputDir)) {
+  if (pathIs(outputDir, "isDirectory")) {
     info(`Output directory exists (${outputDir}/)`);
   } else {
     info(`Output directory will be created at "${outputDir}/" on build`);
@@ -109,7 +101,7 @@ export async function runDoctor(configPath: string): Promise<void> {
 
   // Data directory
   const dataDir = join(contentDir, "_data");
-  if (dirExists(dataDir)) {
+  if (pathIs(dataDir, "isDirectory")) {
     ok(`Data directory found (${contentDir}/_data/)`);
   } else {
     info(`No _data/ directory (optional)`);
@@ -124,7 +116,7 @@ export async function runDoctor(configPath: string): Promise<void> {
       const themeDir = themeName.startsWith(".")
         ? join(Deno.cwd(), themeName)
         : themeName;
-      if (dirExists(themeDir)) {
+      if (pathIs(themeDir, "isDirectory")) {
         ok(`Local theme directory found`);
       } else {
         fail(`Local theme directory not found: "${themeDir}"`);

@@ -268,20 +268,6 @@ export function parsePluginChoices(value?: string): PluginChoice[] {
   return [...choices];
 }
 
-function ensureDirSync(dirPath: string): void {
-  try {
-    if (!Deno.statSync(dirPath).isDirectory) {
-      Deno.mkdirSync(dirPath, { recursive: true });
-    }
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) {
-      Deno.mkdirSync(dirPath, { recursive: true });
-    } else {
-      throw error;
-    }
-  }
-}
-
 function checkOverwrite(paths: string[]): void {
   const existing = paths.filter((p) => {
     try {
@@ -347,7 +333,7 @@ export async function runOnboarding(
       stenoConfigDir,
     ]
   ) {
-    ensureDirSync(dir);
+    Deno.mkdirSync(dir, { recursive: true });
   }
 
   // config.yml
