@@ -14,8 +14,8 @@ The wizard asks for:
 - **Site title**
 - **Site description**
 - **Author name**
-- **Theme** — choose between _Minimal_, _Docs Minimal_, and _Marketing Minimal_
-- **Plugins** — optionally add _Tailwind CSS_ and/or _Shiki_
+- **Theme** - choose between _Minimal_, _Docs Minimal_, and _Marketing Minimal_
+- **Plugins** - optionally add _Tailwind CSS_ and/or _Shiki_
 
 You can also skip the plugin prompts with `--plugins tailwind,shiki`.
 
@@ -30,7 +30,7 @@ my-site/
     └── index.md
 ```
 
-Themes are loaded directly from JSR — no local theme files are created. The
+Themes are loaded directly from JSR - no local theme files are created. The
 generated project pins Steno and themes to the compatible v0.9 release line.
 Selected plugins use their latest compatible JSR release.
 

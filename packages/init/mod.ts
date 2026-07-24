@@ -1,5 +1,5 @@
 /**
- * @steno/init — Interactive scaffolder for new Steno static-site projects.
+ * @steno/init - Interactive scaffolder for new Steno static-site projects.
  *
  * Recommended usage:
  *

@@ -477,7 +477,7 @@ custom:
         `---\ntitle: "My Post"\n---\nContent.`,
       );
 
-      // tags is optional — should not throw even though it's missing
+      // tags is optional - should not throw even though it's missing
       const collections = await buildCollections(
         contentDir,
         makeConfig({

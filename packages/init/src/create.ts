@@ -1,5 +1,5 @@
 /**
- * @steno/init/create — CLI entrypoint for scaffolding new Steno static-site projects.
+ * @steno/init/create - CLI entrypoint for scaffolding new Steno static-site projects.
  *
  * This module handles command-line argument parsing and initiates the onboarding process.
  *
@@ -27,7 +27,7 @@ const flags = parseArgs(Deno.args, {
 
 if (flags.help) {
   console.log(`
-@steno/init — scaffold a new Steno static site
+@steno/init - scaffold a new Steno static site
 
 Usage:
   deno run -Ar jsr:@steno/init [options]
