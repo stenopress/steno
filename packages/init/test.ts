@@ -1,6 +1,16 @@
-import { assertEquals, assertMatch, assertRejects } from "@std/assert";
+import {
+  assertEquals,
+  assertMatch,
+  assertRejects,
+  assertThrows,
+} from "@std/assert";
 import { join } from "@std/path";
-import { OnboardingError, runOnboarding } from "./src/onboarding.ts";
+import {
+  OnboardingError,
+  parsePluginChoices,
+  parseThemeChoice,
+  runOnboarding,
+} from "./src/onboarding.ts";
 
 // helpers
 
@@ -211,4 +221,28 @@ Deno.test("onboarding: does not overwrite existing deno.json", async () => {
   assertEquals(readFile(dir, "deno.json"), '{"custom":true}\n');
 
   await Deno.remove(dir, { recursive: true });
+});
+
+Deno.test("onboarding: parses theme choices", () => {
+  assertEquals(parseThemeChoice(undefined), undefined);
+  assertEquals(parseThemeChoice("minimal"), "minimal");
+  assertEquals(parseThemeChoice(" DOCS-MINIMAL "), "docs-minimal");
+  assertEquals(
+    parseThemeChoice("marketing-minimal"),
+    "marketing-minimal",
+  );
+});
+
+Deno.test("onboarding: rejects unknown themes", () => {
+  assertThrows(
+    () => parseThemeChoice("unknown"),
+    OnboardingError,
+    "Available themes: minimal, docs-minimal, marketing-minimal",
+  );
+});
+
+Deno.test("onboarding: parses plugin choices", () => {
+  assertEquals(parsePluginChoices(undefined), []);
+  assertEquals(parsePluginChoices("tailwind"), ["tailwind"]);
+  assertEquals(parsePluginChoices("tailwind, shiki"), ["tailwind", "shiki"]);
 });
