@@ -203,7 +203,10 @@ function selectTheme(): ThemeChoice {
     }
 
     console.log(
-      paint(c.yellow, `\n  ⚠  Invalid choice. Enter 1 or 2.`),
+      paint(
+        c.yellow,
+        `\n  ⚠  Invalid choice. Enter a number between 1 and ${entries.length}.\n`,
+      ),
     );
   }
 }
@@ -268,6 +271,20 @@ export function parsePluginChoices(value?: string): PluginChoice[] {
   return [...choices];
 }
 
+export function parseThemeChoice(value?: string): ThemeChoice | undefined {
+  if (!value) return undefined;
+
+  const choice = value.trim().toLowerCase();
+  if (Object.hasOwn(AVAILABLE_THEMES, choice)) {
+    return choice as ThemeChoice;
+  }
+  throw new OnboardingError(
+    `Unknown theme "${value.trim()}". Available themes: ${
+      Object.keys(AVAILABLE_THEMES).join(", ")
+    }.`,
+  );
+}
+
 function checkOverwrite(paths: string[]): void {
   const existing = paths.filter((p) => {
     try {
@@ -298,19 +315,18 @@ function checkOverwrite(paths: string[]): void {
  */
 export async function runOnboarding(
   projectRoot: string = Deno.cwd(),
-  options: ProjectOptions = {},
+  options?: ProjectOptions,
 ): Promise<void> {
   printBanner();
-
   heading("Project Details");
   console.log(paint(c.gray, "  Press Enter to accept the defaults.\n"));
 
-  const title = options.title ??
+  const title = options?.title ??
     promptWithDefault("Site title", "My Steno Site");
-  const description = options.description ??
+  const description = options?.description ??
     promptWithDefault("Site description", "A site built with Steno");
-  const author = options.author ?? promptWithDefault("Author", "Your Name");
-  const plugins = options.plugins ?? selectPlugins();
+  const author = options?.author ?? promptWithDefault("Author", "Your Name");
+  const plugins = options?.plugins ?? selectPlugins();
 
   const contentDir = join(projectRoot, "content");
   const stenoConfigDir = join(contentDir, ".steno");
@@ -318,7 +334,7 @@ export async function runOnboarding(
   const homePagePath = join(contentDir, "index.md");
   const denoJsonPath = join(projectRoot, "deno.json");
 
-  if (!options.force) {
+  if (!options?.force) {
     checkOverwrite([
       configPath,
       homePagePath,
@@ -337,7 +353,7 @@ export async function runOnboarding(
   }
 
   // config.yml
-  const selectedTheme = options.theme ?? selectTheme();
+  const selectedTheme = options?.theme ?? selectTheme();
   const themePackage = AVAILABLE_THEMES[selectedTheme].package;
 
   Deno.writeTextFileSync(

@@ -10,12 +10,13 @@ import { parseArgs } from "@std/cli/parse-args";
 import {
   OnboardingError,
   parsePluginChoices,
+  parseThemeChoice,
   runOnboarding,
 } from "./onboarding.ts";
 
 const flags = parseArgs(Deno.args, {
   boolean: ["force", "help"],
-  string: ["title", "description", "author", "plugins"],
+  string: ["title", "description", "author", "plugins", "theme"],
   default: {
     force: false,
   },
@@ -30,13 +31,14 @@ if (flags.help) {
 @steno/init - scaffold a new Steno static site
 
 Usage:
-  deno run -Ar jsr:@steno/init [options]
+  deno create jsr:@steno/init [options]
 
 Options:
   --title <text>        Site title (skips prompt)
   --description <text>  Site description (skips prompt)
   --author <text>       Author name (skips prompt)
   --plugins <list>      Comma-separated official plugins: tailwind, shiki
+  --theme <name>       One of the official themes: minimal, docs-minimal, marketing-minimal
   --force, -f           Overwrite existing files
   --help, -h            Show this help message
 `);
@@ -49,6 +51,7 @@ try {
     description: flags.description,
     author: flags.author,
     plugins: parsePluginChoices(flags.plugins),
+    theme: parseThemeChoice(flags.theme),
     force: flags.force,
   });
 } catch (err) {

@@ -6,7 +6,7 @@ projects.
 ## Usage
 
 ```sh
-deno run -Ar jsr:@steno/init
+deno create jsr:@steno/init
 ```
 
 The wizard asks for:
