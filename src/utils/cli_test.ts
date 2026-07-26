@@ -80,4 +80,39 @@ export function registerCliTests(): void {
     assertEquals(options.command, "doctor");
     assertEquals(options.configPath, "my/config.yml");
   });
+
+  Deno.test("cli: parses help command", () => {
+    const options = parseCliArgs(["help"]);
+    assertEquals(options.command, "help");
+  });
+
+  Deno.test("cli: parses help command with config flag", () => {
+    const options = parseCliArgs(["help", "--config", "my/config.yml"]);
+    assertEquals(options.command, "help");
+    assertEquals(options.configPath, "my/config.yml");
+  });
+
+  Deno.test("cli: Helpful unknown-command and unknown-option errors.", () => {
+    assertThrows(
+      () => parseCliArgs(["serve"]),
+      Error,
+      "Unknown command: serve",
+    );
+  });
+
+  Deno.test("cli: parses preview command", () => {
+    assertEquals(parseCliArgs(["preview"]).command, "preview");
+  });
+
+  Deno.test("cli: parses preview command with port flag", () => {
+    assertEquals(parseCliArgs(["preview", "--port", "4174"]).port, 4174);
+  });
+
+  Deno.test("cli: parses preview command with a number-based port flag", () => {
+    assertThrows(() => parseCliArgs(["preview", "--port", "abc"]));
+  });
+
+  Deno.test("cli: parses preview command with a 5 digit port flag", () => {
+    assertThrows(() => parseCliArgs(["preview", "--port", "70000"]));
+  });
 }

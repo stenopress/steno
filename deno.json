@@ -19,7 +19,7 @@
   "tasks": {
     "dev": "deno task --cwd test dev",
     "test": "deno task test:unit",
-    "test:unit": "deno test -A ./test.ts",
+    "test:unit": "deno test -A ./test.ts ./src",
     "test:sites": "deno test -A ./integration/real_sites_test.ts",
     "test:all": "deno task test:unit && deno task test:sites",
     "bench": "deno bench -A ./benchmarks",
