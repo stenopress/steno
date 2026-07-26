@@ -2,7 +2,11 @@ import type { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
 import { disposeIsolatedPlugins } from "../plugins/isolated_plugin.ts";
-import { DEFAULT_DEV_PORT, startDevServer } from "../utils/server.ts";
+import {
+  DEFAULT_DEV_PORT,
+  startDevServer,
+  startPreviewServer,
+} from "../utils/server.ts";
 import { loadPlugins } from "./config.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
 import { loadTheme } from "./steno_theme.ts";
@@ -138,6 +142,12 @@ export class Steno {
     );
   }
 
+  public async preview(port?: number): Promise<void> {
+    const project = await this.projectPromise;
+    const outputDir = project.config.output ?? "dist";
+
+    await startPreviewServer(outputDir, port);
+  }
   /** Triggers the initial build unless dev mode is active. */
   private async init() {
     if (this.autoBuildOnInit && !Deno.args.includes("dev")) {

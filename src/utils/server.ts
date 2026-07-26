@@ -114,12 +114,116 @@ export function injectReloadScript(html: string): string {
   return html.replace(/<\/body>/, `${reloadScript}</body>`);
 }
 
+/** Creates the dev static handler for serving built files with optional live reload. */
+export function createStaticHandler(
+  outputDir: string,
+  liveReload = false,
+): (request: Request) => Promise<Response> {
+  const absoluteOutput = resolve(outputDir);
+
+  return async (request) => {
+    const url = new URL(request.url);
+    let pathname: string;
+
+    try {
+      pathname = decodeURIComponent(url.pathname);
+    } catch {
+      return new Response("400 - Bad Request", { status: 400 });
+    }
+
+    let filePath = resolve(absoluteOutput, `.${pathname}`);
+
+    if (!isPathInsideOrEqual(filePath, absoluteOutput)) {
+      return new Response("404 - Not Found", { status: 404 });
+    }
+
+    if (pathname.endsWith("/")) {
+      filePath = join(filePath, "index.html");
+    }
+
+    try {
+      const stat = await Deno.stat(filePath);
+      if (stat.isDirectory) {
+        filePath = join(filePath, "index.html");
+      }
+
+      const contents = await Deno.readFile(filePath);
+      const contentType = getContentType(filePath);
+
+      if (contentType.startsWith("text/html")) {
+        const html = new TextDecoder().decode(contents);
+        return new Response(
+          liveReload ? injectReloadScript(html) : html,
+          {
+            headers: { "Content-Type": contentType },
+          },
+        );
+      }
+
+      return new Response(contents, {
+        headers: { "Content-Type": contentType },
+      });
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+
+      const notFoundPath = join(absoluteOutput, "404.html");
+
+      try {
+        return new Response(await Deno.readFile(notFoundPath), {
+          status: 404,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      } catch (notFoundError) {
+        if (!(notFoundError instanceof Deno.errors.NotFound)) {
+          throw notFoundError;
+        }
+
+        return new Response("404 - Not Found", { status: 404 });
+      }
+    }
+  };
+}
+
+function getContentType(filePath: string): string {
+  const extension = filePath.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "html":
+      return "text/html; charset=utf-8";
+    case "css":
+      return "text/css; charset=utf-8";
+    case "js":
+    case "mjs":
+      return "text/javascript; charset=utf-8";
+    case "json":
+      return "application/json; charset=utf-8";
+    case "svg":
+      return "image/svg+xml";
+    case "png":
+      return "image/png";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "webp":
+      return "image/webp";
+    case "ico":
+      return "image/x-icon";
+    case "woff":
+      return "font/woff";
+    case "woff2":
+      return "font/woff2";
+    default:
+      return "application/octet-stream";
+  }
+}
+
 /** Creates the dev-server handler and reload broadcaster. */
 export function createDevServerHandler(outputDir: string): {
   handler: (req: Request) => Promise<Response>;
   broadcastReload: () => void;
 } {
   const state: DevServerState = { clients: new Set() };
+  const staticHandler = createStaticHandler(outputDir, true);
 
   const broadcastReload = () => {
     for (const client of state.clients) {
@@ -127,52 +231,44 @@ export function createDevServerHandler(outputDir: string): {
     }
   };
 
-  const handler = async (req: Request): Promise<Response> => {
+  const handler = (req: Request): Promise<Response> => {
     const url = new URL(req.url);
 
-    if (url.pathname === "/reload") {
-      let client: ReadableStreamDefaultController<Uint8Array> | undefined;
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          client = controller;
-          state.clients.add(controller);
-          controller.enqueue(textEncoder.encode("retry: 1000\n\n"));
-        },
-        cancel() {
-          if (client) state.clients.delete(client);
-        },
-      });
+    if (url.pathname !== "/reload") {
+      return staticHandler(req);
+    }
 
-      return new Response(stream, {
+    let client: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        client = controller;
+        state.clients.add(controller);
+        controller.enqueue(textEncoder.encode("retry: 1000\n\n"));
+      },
+      cancel() {
+        if (client) state.clients.delete(client);
+      },
+    });
+
+    return Promise.resolve(
+      new Response(stream, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           Connection: "keep-alive",
         },
-      });
-    }
-
-    let filePath = join(outputDir, url.pathname);
-    if (url.pathname === "/") {
-      filePath = join(outputDir, "index.html");
-    }
-
-    try {
-      let fileContents = await Deno.readTextFile(filePath);
-      const contentType = filePath.endsWith(".css") ? "text/css" : "text/html";
-      if (contentType === "text/html") {
-        fileContents = injectReloadScript(fileContents);
-      }
-      return new Response(fileContents, {
-        status: 200,
-        headers: { "Content-Type": contentType },
-      });
-    } catch {
-      return new Response("404 - Not Found", { status: 404 });
-    }
+      }),
+    );
   };
 
   return { handler, broadcastReload };
+}
+
+/** Creates a preview-server handler for static files. */
+export function createPreviewHandler(
+  outputDir: string,
+): (request: Request) => Promise<Response> {
+  return createStaticHandler(outputDir, false);
 }
 
 /** Processes filesystem events as serialized development rebuilds. */
@@ -237,4 +333,43 @@ export async function startDevServer(
     buildFn,
     broadcastReload,
   });
+}
+
+export const DEFAULT_PREVIEW_PORT = 4173;
+
+export async function startPreviewServer(
+  outputDir: string,
+  preferredPort = DEFAULT_PREVIEW_PORT,
+): Promise<void> {
+  let stat: Deno.FileInfo;
+
+  try {
+    stat = await Deno.stat(outputDir);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      throw new Error(
+        `Preview output not found at "${outputDir}". Run "steno build" first.`,
+      );
+    }
+    throw error;
+  }
+
+  if (!stat.isDirectory) {
+    throw new Error(`Preview output "${outputDir}" is not a directory.`);
+  }
+
+  const hostname = "127.0.0.1";
+  const port = await findAvailablePort(preferredPort, { hostname });
+  const handler = createPreviewHandler(outputDir);
+
+  const server = Deno.serve({
+    hostname,
+    port,
+    handler,
+    onListen: () => {
+      console.log(`Preview: http://${hostname}:${port}/`);
+    },
+  });
+
+  await server.finished;
 }
