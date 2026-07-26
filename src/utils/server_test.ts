@@ -7,10 +7,12 @@ import {
 import { join } from "@std/path";
 import {
   createDevServerHandler,
+  createPreviewHandler,
   findAvailablePort,
   injectReloadScript,
   isTransactionalOutputPath,
   processWatchEvents,
+  startPreviewServer,
 } from "./server.ts";
 import { buildSite } from "../core/build/build.ts";
 
@@ -87,7 +89,7 @@ export function registerServerTests(): void {
       assertEquals(htmlResponse.status, 200);
       assertEquals(
         htmlResponse.headers.get("Content-Type"),
-        "text/html",
+        "text/html; charset=utf-8",
       );
       assertStringIncludes(
         await htmlResponse.text(),
@@ -98,7 +100,10 @@ export function registerServerTests(): void {
         new Request("http://localhost:5735/style.css"),
       );
       assertEquals(cssResponse.status, 200);
-      assertEquals(cssResponse.headers.get("Content-Type"), "text/css");
+      assertEquals(
+        cssResponse.headers.get("Content-Type"),
+        "text/css; charset=utf-8",
+      );
       assertEquals(await cssResponse.text(), "body { color: red; }");
 
       const reloadResponse = await handler(
@@ -256,5 +261,95 @@ export function registerServerTests(): void {
         await Deno.remove(root, { recursive: true });
       }
     },
+  });
+
+  Deno.test({
+    name: "server: preview serves routes and assets without dev behavior",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const root = Deno.makeTempDirSync();
+      const outputDir = join(root, "dist");
+      Deno.mkdirSync(join(outputDir, "docs"), { recursive: true });
+      Deno.writeTextFileSync(
+        join(outputDir, "index.html"),
+        "<html><body>Preview</body></html>",
+      );
+      Deno.writeTextFileSync(
+        join(outputDir, "docs", "index.html"),
+        "<html><body>Docs</body></html>",
+      );
+      Deno.writeTextFileSync(
+        join(outputDir, "app.js"),
+        "console.log('preview');",
+      );
+      Deno.writeTextFileSync(
+        join(outputDir, "404.html"),
+        "<html><body>Custom missing page</body></html>",
+      );
+      Deno.writeTextFileSync(join(root, "secret.txt"), "outside output");
+
+      try {
+        const handler = createPreviewHandler(outputDir);
+        const home = await handler(new Request("http://localhost/"));
+        const homeHtml = await home.text();
+        assertEquals(home.status, 200);
+        assertStringIncludes(homeHtml, "Preview");
+        assertEquals(homeHtml.includes("EventSource"), false);
+
+        const docs = await handler(new Request("http://localhost/docs/"));
+        assertEquals(docs.status, 200);
+        assertStringIncludes(await docs.text(), "Docs");
+
+        const script = await handler(
+          new Request("http://localhost/app.js"),
+        );
+        assertEquals(
+          script.headers.get("Content-Type"),
+          "text/javascript; charset=utf-8",
+        );
+
+        const missing = await handler(
+          new Request("http://localhost/missing"),
+        );
+        assertEquals(missing.status, 404);
+        assertStringIncludes(await missing.text(), "Custom missing page");
+
+        const reload = await handler(new Request("http://localhost/reload"));
+        assertEquals(reload.status, 404);
+        assertEquals(
+          reload.headers.get("Content-Type"),
+          "text/html; charset=utf-8",
+        );
+
+        const traversal = await handler(
+          new Request("http://localhost/%2e%2e%2fsecret.txt"),
+        );
+        assertEquals(traversal.status, 404);
+        assertEquals(
+          (await traversal.text()).includes("outside output"),
+          false,
+        );
+
+        const malformed = await handler(
+          new Request("http://localhost/%E0%A4%A"),
+        );
+        assertEquals(malformed.status, 400);
+      } finally {
+        Deno.removeSync(root, { recursive: true });
+      }
+    },
+  });
+
+  Deno.test("server: preview explains missing output", async () => {
+    const root = Deno.makeTempDirSync();
+    try {
+      await assertRejects(
+        () => startPreviewServer(join(root, "dist")),
+        Error,
+        "Preview output not found at",
+      );
+    } finally {
+      Deno.removeSync(root, { recursive: true });
+    }
   });
 }
