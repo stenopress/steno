@@ -18,6 +18,7 @@ import { registerEnvironmentTests } from "./src/core/environment_test.ts";
 import { registerHeadTests } from "./src/core/head_test.ts";
 import { registerOutputTransactionTests } from "./src/core/build/output_transaction_test.ts";
 import { registerPathUtilsTests } from "./src/core/path_utils_test.ts";
+import { registerOutputTests } from "./src/utils/output_test.ts";
 
 registerCliTests();
 registerConfigTests();
@@ -39,3 +40,4 @@ registerEnvironmentTests();
 registerHeadTests();
 registerOutputTransactionTests();
 registerPathUtilsTests();
+registerOutputTests();
