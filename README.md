@@ -114,7 +114,7 @@ When you are ready to scale up to custom metadata, structured content
 directories, and themes, initialize a standard project workspace:
 
 ```sh
-deno run -Ar jsr:@steno/init
+deno create jsr:@steno/init
 ```
 
 #### Manual Setup

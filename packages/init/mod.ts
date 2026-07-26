@@ -4,7 +4,7 @@
  * Recommended usage:
  *
  * ```sh
- * deno run -Ar jsr:@steno/init
+ * deno create jsr:@steno/init
  * ```
  *
  * @module
