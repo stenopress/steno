@@ -3,23 +3,35 @@
  * @module
  */
 
-const ESC = "\x1b[";
+function noColorRequested(): boolean {
+  try {
+    return Deno.env.get("NO_COLOR") !== undefined;
+  } catch {
+    return false;
+  }
+}
 
-export const c = {
-  reset: `${ESC}0m`,
-  bold: `${ESC}1m`,
-  dim: `${ESC}2m`,
-  green: `${ESC}38;5;120m`,
-  yellow: `${ESC}38;5;222m`,
-  red: `${ESC}38;5;203m`,
-  gray: `${ESC}38;5;245m`,
-  cyan: `${ESC}38;5;159m`,
-  cyanBold: `${ESC}1;38;5;159m`,
-  purple: `${ESC}38;5;135m`,
-  purpleBold: `${ESC}1;38;5;135m`,
-  white: `${ESC}97m`,
-  whiteBold: `${ESC}1;97m`,
-};
+export function createColors(noColor = noColorRequested()) {
+  const color = (code: string): string => noColor ? "" : `\x1b[${code}m`;
+
+  return {
+    reset: color("0"),
+    bold: color("1"),
+    dim: color("2"),
+    green: color("38;5;120"),
+    yellow: color("38;5;222"),
+    red: color("38;5;203"),
+    gray: color("38;5;245"),
+    cyan: color("38;5;159"),
+    cyanBold: color("1;38;5;159"),
+    purple: color("38;5;135"),
+    purpleBold: color("1;38;5;135"),
+    white: color("97"),
+    whiteBold: color("1;97"),
+  };
+}
+
+export const c = createColors();
 
 export function ok(msg: string): void {
   console.log(`  ${c.green}✔${c.reset}  ${msg}`);
