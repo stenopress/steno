@@ -2,10 +2,11 @@ import { c } from "./output.ts";
 
 /** Parsed CLI state for a Steno invocation. */
 export interface CliOptions {
-  /** The command to execute, either "build", "dev", "help", or "doctor". */
-  command: "build" | "dev" | "help" | "doctor";
+  /** The command to execute, either "build", "dev", "preview", "help", or "doctor". */
+  command: "build" | "dev" | "preview" | "help" | "doctor";
   /** The path to the configuration file. */
   configPath: string;
+  port?: number;
 }
 
 const defaultConfigPath = "content/.steno/config.yml";
@@ -20,6 +21,7 @@ const defaultConfigPath = "content/.steno/config.yml";
 export function parseCliArgs(args: string[]): CliOptions {
   let command: CliOptions["command"] = "build";
   let configPath = defaultConfigPath;
+  let port: number | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -40,7 +42,30 @@ export function parseCliArgs(args: string[]): CliOptions {
       continue;
     }
 
-    if (arg === "build" || arg === "dev" || arg === "doctor") {
+    if (arg === "-p" || arg === "--port") {
+      const value = args[i + 1];
+      const parsedPort = Number(value);
+
+      if (
+        !value ||
+        !Number.isInteger(parsedPort) ||
+        parsedPort < 1 ||
+        parsedPort > 65535
+      ) {
+        throw new Error(
+          "Invalid --port value. Expected an integer between 1 and 65535.",
+        );
+      }
+
+      port = parsedPort;
+      i++;
+      continue;
+    }
+
+    if (
+      arg === "build" || arg === "dev" || arg === "doctor" || arg === "help" ||
+      arg === "preview"
+    ) {
       command = arg;
       continue;
     }
@@ -52,7 +77,9 @@ export function parseCliArgs(args: string[]): CliOptions {
     throw new Error(`Unknown command: ${arg}`);
   }
 
-  return { command, configPath };
+  return port === undefined
+    ? { command, configPath }
+    : { command, configPath, port };
 }
 
 /** Writes the CLI usage summary to stdout. */
@@ -67,16 +94,20 @@ ${c.bold}Commands:${c.reset}
   ${c.green}build${c.reset}                Build the site into dist/ ${c.gray}(default)${c.reset}
   ${c.green}dev${c.reset}                  Start dev server with live reload
   ${c.green}doctor${c.reset}               Check your project for common issues
+  ${c.green}preview${c.reset}              Preview the site locally
+  ${c.green}help${c.reset}                 Show this help message
 
 ${c.bold}Options:${c.reset}
   ${c.cyan}-c, --config${c.reset} ${c.gray}<path>${c.reset}  Path to config file ${c.gray}(default: content/.steno/config.yml)${c.reset}
   ${c.cyan}-h, --help${c.reset}           Show help
+  ${c.cyan}-p, --port${c.reset} ${c.gray}<number>${c.reset} Port to run preview server on ${c.gray}(default: 4173)${c.reset}
 
 ${c.bold}Examples:${c.reset}
   ${c.gray}deno x jsr:@steno/steno${c.reset}
   ${c.gray}deno x jsr:@steno/steno build${c.reset}
   ${c.gray}deno x jsr:@steno/steno dev${c.reset}
   ${c.gray}deno x jsr:@steno/steno doctor${c.reset}
+  ${c.gray}deno x jsr:@steno/steno preview${c.reset}
   ${c.gray}deno x jsr:@steno/steno build --config content/.steno/config.yml${c.reset}
 `);
 }
