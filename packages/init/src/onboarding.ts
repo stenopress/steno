@@ -69,23 +69,32 @@ export class OnboardingError extends Error {
   }
 }
 
-// ansi colorrs
-
 const ESC = "\x1b[";
 
+function noColorRequested(): boolean {
+  try {
+    return Deno.env.get("NO_COLOR") !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+const useColor = !noColorRequested();
+const color = (code: string): string => useColor ? `${ESC}${code}m` : "";
+
 const c = {
-  reset: `${ESC}0m`,
-  bold: `${ESC}1m`,
-  dim: `${ESC}2m`,
-  purple: `${ESC}38;5;135m`,
-  purpleBold: `${ESC}1;38;5;135m`,
-  white: `${ESC}97m`,
-  whiteBold: `${ESC}1;97m`,
-  gray: `${ESC}38;5;245m`,
-  green: `${ESC}38;5;120m`,
-  yellow: `${ESC}38;5;222m`,
-  cyan: `${ESC}38;5;159m`,
-  cyanBold: `${ESC}1;38;5;159m`,
+  reset: color("0"),
+  bold: color("1"),
+  dim: color("2"),
+  purple: color("38;5;135"),
+  purpleBold: color("1;38;5;135"),
+  white: color("97"),
+  whiteBold: color("1;97"),
+  gray: color("38;5;245"),
+  green: color("38;5;120"),
+  yellow: color("38;5;222"),
+  cyan: color("38;5;159"),
+  cyanBold: color("1;38;5;159"),
 };
 
 function paint(color: string, text: string): string {
@@ -132,7 +141,7 @@ function printBanner(): void {
   const leftPad = Math.floor((termWidth - logoWidth) / 2);
   const p = " ".repeat(leftPad);
 
-  for (const line of logo) console.log(p + line);
+  for (const line of logo) console.log(p + (useColor ? line : stripAnsi(line)));
   console.log();
   for (const line of lines) {
     const pad = Math.floor((logoWidth - line.length) / 2);

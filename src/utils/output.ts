@@ -33,20 +33,28 @@ export function createColors(noColor = noColorRequested()) {
 
 export const c = createColors();
 
+export function createSymbols(noColor = noColorRequested()) {
+  return noColor
+    ? { ok: "OK", warn: "WARN", fail: "ERROR", info: "INFO", change: "CHANGE" }
+    : { ok: "✔", warn: "⚠", fail: "✖", info: "•", change: "↺" };
+}
+
+const symbols = createSymbols();
+
 export function ok(msg: string): void {
-  console.log(`  ${c.green}✔${c.reset}  ${msg}`);
+  console.log(`  ${c.green}${symbols.ok}${c.reset}  ${msg}`);
 }
 
 export function warn(msg: string): void {
-  console.warn(`  ${c.yellow}⚠${c.reset}  ${msg}`);
+  console.warn(`  ${c.yellow}${symbols.warn}${c.reset}  ${msg}`);
 }
 
 export function fail(msg: string): void {
-  console.error(`  ${c.red}✖${c.reset}  ${msg}`);
+  console.error(`  ${c.red}${symbols.fail}${c.reset}  ${msg}`);
 }
 
 export function info(msg: string): void {
-  console.log(`  ${c.gray}•${c.reset}  ${msg}`);
+  console.log(`  ${c.gray}${symbols.info}${c.reset}  ${msg}`);
 }
 
 export function success(msg: string): void {
@@ -58,18 +66,20 @@ export function buildComplete(pageCount?: number): void {
     ? `  ${c.gray}(${pageCount} page${pageCount === 1 ? "" : "s"})${c.reset}`
     : "";
   console.log(
-    `  ${c.green}✔${c.reset}  ${c.bold}Build complete${c.reset}${detail}`,
+    `  ${c.green}${symbols.ok}${c.reset}  ${c.bold}Build complete${c.reset}${detail}`,
   );
 }
 
 export function buildError(msg: string): void {
   console.error(
-    `  ${c.red}✖${c.reset}  ${c.bold}Build failed${c.reset}  ${c.gray}${msg}${c.reset}`,
+    `  ${c.red}${symbols.fail}${c.reset}  ${c.bold}Build failed${c.reset}  ${c.gray}${msg}${c.reset}`,
   );
 }
 
 export function changeDetected(): void {
-  console.log(`  ${c.gray}↺  change detected, rebuilding...${c.reset}`);
+  console.log(
+    `  ${c.gray}${symbols.change}  change detected, rebuilding...${c.reset}`,
+  );
 }
 
 export function devServerReady(port: number, preferredPort: number): void {
