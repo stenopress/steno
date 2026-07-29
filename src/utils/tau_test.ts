@@ -1,8 +1,21 @@
 import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import { render } from "./tau.ts";
-import { TauError } from "./tau_error.ts";
+import { formatTauError, TauError } from "./tau_error.ts";
 
 export function registerTauTests(): void {
+  Deno.test("tau: CLI diagnostics include source, code, and suggestion", () => {
+    const error = new TauError(
+      "TAU_UNKNOWN_FILTER",
+      'Unknown filter "typo".',
+      { filePath: "content/index.md", line: 4, column: 8 },
+    );
+    const output = formatTauError(error);
+
+    assertStringIncludes(output, "content/index.md:4:8");
+    assertStringIncludes(output, "Code: TAU_UNKNOWN_FILTER");
+    assertStringIncludes(output, "Hint: Use a registered Tau filter");
+  });
+
   Deno.test("tau: renders expressions and escapes HTML", () => {
     const output = render({
       template: `<p>{ title }</p>`,
