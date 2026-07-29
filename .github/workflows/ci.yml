@@ -41,6 +41,11 @@ jobs:
       - name: Run unit and conformance tests
         run: deno task test:unit
 
+      - name: Test generated projects
+        run: |
+          deno task --cwd packages/init test
+          deno task --cwd packages/init test:smoke
+
       - name: Test representative sites
         run: deno task test:sites
 

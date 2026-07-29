@@ -59,6 +59,9 @@ deno task build   # build the site into dist/
 deno task dev     # start the live-reload dev server
 ```
 
+Steno's CI scaffolds and builds a project with every official theme to ensure
+generated projects work without manual changes.
+
 ## License
 
 MIT

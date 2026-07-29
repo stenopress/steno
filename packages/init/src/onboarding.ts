@@ -403,8 +403,8 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
       denoJsonPath,
       `{
   "tasks": {
-    "build": "deno run --allow-read=. --allow-write=. jsr:@steno/steno@^0.9.0 build",
-    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0 jsr:@steno/steno@^0.9.0 dev"
+    "build": "deno run --allow-read=. --allow-write=. --allow-net=jsr.io --allow-env jsr:@steno/steno@^0.9.0 build",
+    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0,jsr.io --allow-env jsr:@steno/steno@^0.9.0 dev"
   },
   "imports": {
     "@steno/steno": "jsr:@steno/steno@^0.9.0"
