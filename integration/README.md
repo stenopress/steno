@@ -42,3 +42,14 @@ Create `integration/sites/<name>/` with a normal `content/` tree and a
 
 Fixtures must be hermetic: use bundled or repository-local themes and plugins,
 pin dependencies, and do not require credentials or external services.
+
+## Official ecosystem compatibility
+
+`deno task test:ecosystem` tests pinned releases of the official image, SEO,
+Shiki, and Tailwind plugins against the current checkout. It verifies optimized
+images, sitemap and feed XML, highlighted HTML, and generated utility CSS. The
+same suite builds every bundled theme and checks its published assets.
+
+These network-dependent checks run in the release CI gate. There is currently no
+published `@steno/theme-citrine` package to pin; add it here once a release or
+repository commit exists.

@@ -21,6 +21,7 @@
     "test": "deno task test:unit",
     "test:unit": "deno test -A ./test.ts ./src",
     "test:sites": "deno test -A ./integration/real_sites_test.ts",
+    "test:ecosystem": "deno test -A ./integration/ecosystem_compat_test.ts",
     "test:all": "deno task test:unit && deno task test:sites",
     "bench": "deno bench -A ./benchmarks",
     "bench:check": "deno run -A ./benchmarks/perf_budget.ts",

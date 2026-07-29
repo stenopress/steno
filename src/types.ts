@@ -215,6 +215,17 @@ export interface SiteConfig {
   };
   /** Site-wide navigation tree. */
   navigation?: NavigationNode[];
+  /** Generated page metadata exposed to after-build plugins. */
+  pages?: Array<{
+    /** Output-relative page path. */
+    slug: string;
+    /** Page title from frontmatter or content discovery. */
+    title?: string;
+    /** Optional page description. */
+    description?: string;
+    /** Optional publication date. */
+    date?: string | Date;
+  }>;
 }
 
 /** Presentation-facing site settings that frontmatter may override per page. */

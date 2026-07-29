@@ -6,7 +6,7 @@ import {
 } from "@std/assert";
 import { join } from "@std/path";
 import { Steno } from "../../../mod.ts";
-import type { StenoPlugin } from "../../types.ts";
+import type { SiteConfig, StenoPlugin } from "../../types.ts";
 import { buildSite } from "./build.ts";
 import {
   beginOutputTransaction,
@@ -871,6 +871,39 @@ export default theme;`,
         Deno.readTextFileSync(join(f.outputDir, "hook-output.txt")),
         "committed",
       );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: afterBuild receives generated page metadata",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage(
+        "post.md",
+        `---
+title: "Post"
+description: "Feed description"
+date: "2026-07-29"
+---
+Body.`,
+      );
+      let pages: SiteConfig["pages"];
+
+      await new Steno(f.configPath, false, {
+        afterBuild: (config) => {
+          pages = config.pages;
+        },
+      }).build();
+
+      assertEquals(pages, [{
+        slug: "post.html",
+        title: "Post",
+        description: "Feed description",
+        date: "2026-07-29",
+      }]);
       f.cleanup();
     },
   });
