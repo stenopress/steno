@@ -107,6 +107,19 @@ export async function buildSite({
     const activePages = scannedPages.filter((page) =>
       page.frontmatter.draft !== true || dev
     );
+    stagedConfig.pages = activePages.map((page) => ({
+      slug: resolvePageRoute(page, shortUrls).outputPath,
+      title: typeof page.frontmatter.title === "string"
+        ? page.frontmatter.title
+        : page.title,
+      description: typeof page.frontmatter.description === "string"
+        ? page.frontmatter.description
+        : undefined,
+      date: typeof page.frontmatter.date === "string" ||
+          page.frontmatter.date instanceof Date
+        ? page.frontmatter.date
+        : undefined,
+    }));
     const canSkipUnchangedBuild = theme === undefined &&
       plugins.length === 0 &&
       hooks.beforeBuild === undefined &&
