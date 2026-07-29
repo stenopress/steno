@@ -14,6 +14,8 @@ defaultConfig:
   primaryUrl: "#content"
   secondaryLabel: "Learn more"
   secondaryUrl: "#content"
+  githubUrl: "https://github.com/stenopress/steno"
+  jsrUrl: "https://jsr.io/@steno/steno"
 configSchema:
   accent: { type: string, default: "#7760a9" }
   accentHover: { type: string, default: "#5f488f" }
@@ -34,3 +36,8 @@ configSchema:
   primaryUrl: { type: string, default: "#content" }
   secondaryLabel: { type: string, default: "Learn more" }
   secondaryUrl: { type: string, default: "#content" }
+  githubUrl: {
+    type: string,
+    default: "https://github.com/stenopress/steno",
+  }
+  jsrUrl: { type: string, default: "https://jsr.io/@steno/steno" }
