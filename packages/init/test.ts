@@ -140,9 +140,13 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   );
   assertMatch(denoJson.tasks.build, /--allow-read=\./);
   assertMatch(denoJson.tasks.build, /--allow-write=\./);
-  assertEquals(denoJson.tasks.build.includes("--allow-env"), false);
+  assertMatch(denoJson.tasks.build, /--allow-net=jsr\.io/);
+  assertEquals(denoJson.tasks.build.includes("--allow-env"), true);
   assertMatch(denoJson.tasks.build, /jsr:@steno\/steno@\^0\.9\.0 build/);
-  assertMatch(denoJson.tasks.dev, /--allow-net=127\.0\.0\.1,0\.0\.0\.0/);
+  assertMatch(
+    denoJson.tasks.dev,
+    /--allow-net=127\.0\.0\.1,0\.0\.0\.0,jsr\.io/,
+  );
 
   await Deno.remove(dir, { recursive: true });
 });
