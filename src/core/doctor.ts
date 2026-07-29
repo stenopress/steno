@@ -172,6 +172,10 @@ export async function runDoctor(configPath: string): Promise<void> {
     // validate each plugin specifier
     for (const entry of plugins) {
       const pkg = typeof entry === "string" ? entry : entry.package;
+      const isolated = typeof entry === "object" && entry.mode === "isolated";
+      const execution = isolated
+        ? "isolated, subprocess"
+        : "trusted, in-process";
       if (
         !pkg.startsWith("jsr:") && !pkg.startsWith("npm:") &&
         !pkg.startsWith("file://") && !pkg.startsWith("https://")
@@ -179,7 +183,7 @@ export async function runDoctor(configPath: string): Promise<void> {
         fail(`Plugin "${pkg}" has an unsupported specifier format`);
         hasErrors = true;
       } else {
-        ok(`Plugin specifier valid: ${pkg}`);
+        ok(`Plugin ${pkg} (${execution})`);
       }
     }
   } else {
