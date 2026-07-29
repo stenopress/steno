@@ -19,6 +19,8 @@ const defaultConfig = {
   primaryUrl: "#content",
   secondaryLabel: "Learn more",
   secondaryUrl: "#content",
+  githubUrl: "https://github.com/stenopress/steno",
+  jsrUrl: "https://jsr.io/@steno/steno",
 };
 
 const configSchema = Object.fromEntries(
@@ -32,7 +34,16 @@ const theme: StenoTheme = {
   name: "marketing-minimal",
   version: "0.9.0",
   layouts: { layout },
-  assets: { "style.css": new URL("./assets/style.css", import.meta.url) },
+  assets: {
+    "style.css": new URL("./assets/style.css", import.meta.url),
+    "site.js": new URL("./assets/site.js", import.meta.url),
+    "steno-logo.svg": new URL("./assets/steno-logo.svg", import.meta.url),
+    "tau.svg": new URL("./assets/tau.svg", import.meta.url),
+    "phosphor-icons.svg": new URL(
+      "./assets/phosphor-icons.svg",
+      import.meta.url,
+    ),
+  },
   defaultConfig,
   configSchema,
 };

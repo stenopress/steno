@@ -1,18 +1,16 @@
 # @steno/theme-marketing-minimal
 
-A focused editorial landing-page theme for Steno. It shares the restrained
-palette and typography of the minimal theme while adding a responsive hero,
-calls to action, navigation, and a long-form content section.
+A polished, content-driven landing-page theme for Steno with responsive product
+sections, code examples, calls to action, and lightweight interactions.
 
 ```yaml
 custom:
   theme: jsr:@steno/theme-marketing-minimal@^0.9.0
   themeConfig:
-    eyebrow: Built for focused teams
-    heroTitle: Ship the page that explains the product.
-    heroDescription: Fast, accessible, and easy to make your own.
-    primaryLabel: Start now
-    primaryUrl: /signup
+    githubUrl: https://github.com/your-org/your-project
+    jsrUrl: https://jsr.io/@your-org/your-project
 ```
 
-Colors and all hero copy/links are declared in the theme config schema.
+Write landing-page sections directly in Markdown or trusted HTML. The theme
+supplies the responsive shell, visual system, footer, icons, and copy-command
+interaction.
