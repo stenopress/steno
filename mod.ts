@@ -7,6 +7,7 @@
 import { printHelp } from "./src/utils/cli.ts";
 import { runStenoCli } from "./src/core/steno_cli.ts";
 import { buildError } from "./src/utils/output.ts";
+import { formatTauError, TauError } from "./src/utils/tau_error.ts";
 
 /** The main site generator class. */
 export { Steno } from "./src/core/steno.ts";
@@ -66,7 +67,13 @@ if (import.meta.main) {
   try {
     await runStenoCli(Deno.args);
   } catch (error) {
-    buildError((error as Error).message);
+    buildError(
+      error instanceof TauError
+        ? formatTauError(error)
+        : error instanceof Error
+        ? error.message
+        : String(error),
+    );
     printHelp();
     Deno.exit(1);
   }

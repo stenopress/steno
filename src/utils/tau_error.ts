@@ -62,3 +62,44 @@ export class TauError extends Error {
     this.column = location.column;
   }
 }
+
+/** Returns a concise recovery suggestion for a Tau failure. */
+export function getTauErrorHint(code: TauErrorCode): string {
+  if (code.startsWith("TAU_PARSE_")) {
+    return "Check Tau block syntax and matching closing tags.";
+  }
+  if (code.startsWith("TAU_LIMIT_")) {
+    return "Reduce template work or intentionally raise the corresponding Tau limit.";
+  }
+
+  switch (code) {
+    case "TAU_COMPONENT_NOT_FOUND":
+      return "Define the component in the active theme or correct its name.";
+    case "TAU_UNKNOWN_FILTER":
+      return "Use a registered Tau filter or correct its name.";
+    case "TAU_UNSAFE_URL":
+      return "Use an HTTP(S), mailto, tel, relative, or fragment URL.";
+    case "TAU_UNSAFE_INCLUDE_PATH":
+      return "Use a relative include path that stays inside the content root.";
+    case "TAU_COMPONENT_CYCLE":
+    case "TAU_INCLUDE_CYCLE":
+      return "Remove the recursive component or include reference.";
+    case "TAU_INCLUDE_RESOLVER_MISSING":
+      return "Provide an include resolver before using include directives.";
+    case "TAU_INVALID_IDENTIFIER":
+    case "TAU_UNSAFE_EXPRESSION":
+    case "TAU_UNSAFE_PROP":
+      return "Use a simple, safe template expression without privileged property access.";
+    case "TAU_RENDER_FAILED":
+      return "Check the template expression and its input values.";
+    default:
+      return "Check the template syntax and input values.";
+  }
+}
+
+/** Formats a Tau error for human-readable CLI output. */
+export function formatTauError(error: TauError): string {
+  return `${error.message}\n  Code: ${error.code}\n  Hint: ${
+    getTauErrorHint(error.code)
+  }`;
+}

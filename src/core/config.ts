@@ -311,13 +311,29 @@ export async function loadPlugins(
 /** Reads and parses a Steno site configuration file. */
 export function loadConfig(configPath: string): SiteConfig {
   const fileContents = Deno.readTextFileSync(configPath);
-  if (configPath.endsWith(".yaml") || configPath.endsWith(".yml")) {
-    return parseYaml(fileContents) as SiteConfig;
-  } else if (configPath.endsWith(".toml")) {
-    return parseToml(fileContents) as unknown as SiteConfig;
-  } else {
+  const parser = configPath.endsWith(".yaml") || configPath.endsWith(".yml")
+    ? parseYaml
+    : configPath.endsWith(".toml")
+    ? parseToml
+    : undefined;
+
+  if (!parser) {
     throw new Error(
       `Unsupported config file format at "${configPath}". Please use .yaml, .yml, or .toml.`,
+    );
+  }
+
+  try {
+    const config = parser(fileContents);
+    if (!config || typeof config !== "object" || Array.isArray(config)) {
+      throw new Error("expected a top-level object");
+    }
+    return config as SiteConfig;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to parse config "${configPath}": ${detail}. Check the file syntax near the reported location.`,
+      { cause: error },
     );
   }
 }
