@@ -55,6 +55,26 @@ export function registerConfigTests(): void {
     },
   });
 
+  for (
+    const [fileName, contents] of [
+      ["config.yml", "title: [unterminated"],
+      ["config.toml", 'title = "unterminated'],
+    ] as const
+  ) {
+    Deno.test({
+      name: `config: reports the path and suggestion for malformed ${fileName}`,
+      permissions: { read: true, write: true },
+      fn: () => {
+        const configPath = join(Deno.makeTempDirSync(), fileName);
+        Deno.writeTextFileSync(configPath, contents);
+
+        const error = assertThrows(() => loadConfig(configPath), Error);
+        assertEquals(error.message.includes(configPath), true);
+        assertEquals(error.message.includes("Check the file syntax"), true);
+      },
+    });
+  }
+
   Deno.test({
     name: "config: loadPlugins returns [] when plugins field is absent",
     fn: async () => {
