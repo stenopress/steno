@@ -412,8 +412,8 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
       denoJsonPath,
       `{
   "tasks": {
-    "build": "deno run --allow-read=. --allow-write=. --allow-net=jsr.io --allow-env jsr:@steno/steno@^0.10.0 build",
-    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0,jsr.io --allow-env jsr:@steno/steno@^0.10.0 dev"
+    "build": "deno run --allow-read=. --allow-write=. --allow-net=jsr.io --allow-env @steno/steno build",
+    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0,jsr.io --allow-env @steno/steno dev"
   },
   "imports": {
     "@steno/steno": "jsr:@steno/steno@^0.10.0"

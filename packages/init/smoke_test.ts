@@ -26,8 +26,32 @@ Deno.test({
           theme,
         });
 
+        const importMapPath = join(projectDir, "smoke-import-map.json");
+        await Deno.writeTextFile(
+          importMapPath,
+          JSON.stringify({
+            imports: {
+              "@steno/steno": "jsr:@steno/steno@^0.10.0",
+              [`jsr:@steno/theme-${theme}@^0.10.0`]: new URL(
+                `../theme-${theme}/mod.ts`,
+                import.meta.url,
+              ).href,
+            },
+          }),
+        );
+
         const result = await new Deno.Command(Deno.execPath(), {
-          args: ["task", "build"],
+          args: [
+            "run",
+            "--minimum-dependency-age=0",
+            `--import-map=${importMapPath}`,
+            "--allow-read",
+            "--allow-write=.",
+            "--allow-net=jsr.io",
+            "--allow-env",
+            "@steno/steno",
+            "build",
+          ],
           cwd: projectDir,
           env: { ...Deno.env.toObject(), NO_COLOR: "1" },
           stdout: "piped",

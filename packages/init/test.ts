@@ -142,7 +142,7 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   assertMatch(denoJson.tasks.build, /--allow-write=\./);
   assertMatch(denoJson.tasks.build, /--allow-net=jsr\.io/);
   assertEquals(denoJson.tasks.build.includes("--allow-env"), true);
-  assertMatch(denoJson.tasks.build, /jsr:@steno\/steno@\^0\.10\.0 build/);
+  assertMatch(denoJson.tasks.build, /@steno\/steno build/);
   assertMatch(
     denoJson.tasks.dev,
     /--allow-net=127\.0\.0\.1,0\.0\.0\.0,jsr\.io/,
