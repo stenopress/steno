@@ -25,6 +25,7 @@
     "test:all": "deno task test:unit && deno task test:sites",
     "bench": "deno bench -A ./benchmarks",
     "bench:check": "deno run -A ./benchmarks/perf_budget.ts",
+    "bench:report": "deno run -A ./benchmarks/benchmark_report.ts",
     "bench:trends": "deno run -A ./benchmarks/bench_trends.ts",
     "check": "deno fmt --check && deno lint && deno check mod.ts && deno task test:all"
   },
