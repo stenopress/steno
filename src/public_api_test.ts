@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { filters, render, runStenoCli, Steno, Theme } from "../mod.ts";
 import type {
+  MarkdownTokens,
   PluginEntry,
   PluginSourcePolicy,
   SiteConfig,
@@ -26,6 +27,10 @@ export function registerPublicApiTests(): void {
     const pluginEntry: PluginEntry = { package: "demo-plugin" };
     const pluginSourcePolicy: PluginSourcePolicy = { allowLocal: false };
     const hooks: StenoHooks = {};
+    const tokens: MarkdownTokens = Object.assign(
+      [{ type: "paragraph", raw: "Demo", text: "Demo" }],
+      { links: {} },
+    );
     const config: SiteConfig = {
       title: "Demo",
       description: "Demo",
@@ -37,6 +42,7 @@ export function registerPublicApiTests(): void {
     assertEquals(legacyTheme.name, theme.name);
     assertEquals(hooks.beforeBuild, undefined);
     assertEquals(plugin.name, "plugin");
+    assertEquals(tokens[0].text, "Demo");
     assertEquals(config.plugins?.[0], pluginEntry);
     assertEquals(config.custom?.pluginSourcePolicy, pluginSourcePolicy);
   });

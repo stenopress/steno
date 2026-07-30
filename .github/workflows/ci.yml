@@ -38,6 +38,9 @@ jobs:
       - name: Type check
         run: deno check mod.ts
 
+      - name: Check public API documentation
+        run: deno task doc:check
+
       - name: Run unit and conformance tests
         run: deno task test:unit
 

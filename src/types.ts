@@ -286,8 +286,32 @@ export interface ThemeConfigField {
   additionalProperties?: boolean;
 }
 
+/**
+ * A Markdown AST token exposed to transformation plugins.
+ *
+ * Token-specific fields remain available by narrowing or casting the value.
+ */
+export interface MarkdownToken {
+  /** Token kind, such as `heading`, `paragraph`, or `text`. */
+  type: string;
+  /** Original Markdown source represented by the token. */
+  raw: string;
+  /** Plain-text token content when the token kind provides it. */
+  text?: string;
+  /** Nested inline or block tokens when the token kind provides them. */
+  tokens?: MarkdownToken[];
+}
+
 /** Markdown token list accepted and returned by AST transformation hooks. */
-export type MarkdownTokens = import("marked").TokensList;
+export interface MarkdownTokens extends Array<MarkdownToken> {
+  /** Reference-link definitions collected while lexing Markdown. */
+  links: Record<string, {
+    /** Link destination. */
+    href: string;
+    /** Optional link title. */
+    title?: string | null;
+  }>;
+}
 
 /**
  * A trusted plugin hook contract used by Steno and themes.

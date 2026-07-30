@@ -142,6 +142,7 @@ export class Steno {
     );
   }
 
+  /** Builds the site and serves the production output without file watching. */
   public async preview(port?: number): Promise<void> {
     const project = await this.projectPromise;
     const outputDir = project.config.output ?? "dist";

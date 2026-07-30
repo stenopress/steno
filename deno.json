@@ -27,7 +27,8 @@
     "bench:check": "deno run -A ./benchmarks/perf_budget.ts",
     "bench:report": "deno run -A ./benchmarks/benchmark_report.ts",
     "bench:trends": "deno run -A ./benchmarks/bench_trends.ts",
-    "check": "deno fmt --check && deno lint && deno check mod.ts && deno task test:all"
+    "doc:check": "deno doc --lint mod.ts",
+    "check": "deno fmt --check && deno lint && deno check mod.ts && deno task doc:check && deno task test:all"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1.0.19",

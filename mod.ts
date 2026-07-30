@@ -45,6 +45,7 @@ export type {
   HeadTagBase,
   IsolatedPluginPermissions,
   LinkHeadTag,
+  MarkdownToken,
   MarkdownTokens,
   MetaHeadTag,
   NavigationNode,
