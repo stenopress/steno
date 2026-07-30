@@ -11,7 +11,7 @@ To use this theme, specify it in `content/.steno/config.yml`:
 
 ```yaml
 custom:
-  theme: jsr:@steno/theme-docs-minimal@^0.9.0
+  theme: jsr:@steno/theme-docs-minimal@^0.10.0
 ```
 
 ## Development

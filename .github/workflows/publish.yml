@@ -4,6 +4,14 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      target:
+        description: Package group to publish
+        required: true
+        type: choice
+        options:
+          - themes
+          - init
 
 jobs:
   quality:
@@ -35,6 +43,7 @@ jobs:
     needs: [quality, publish-steno]
     if: >-
       github.event_name == 'workflow_dispatch' &&
+      inputs.target == 'themes' &&
       needs.quality.result == 'success' &&
       needs.publish-steno.result == 'skipped'
     runs-on: ubuntu-latest
@@ -60,8 +69,13 @@ jobs:
         working-directory: ${{ matrix.package }}
 
   publish-init:
-    needs: publish-themes
-    if: needs.publish-themes.result == 'success'
+    needs: [quality, publish-themes]
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.target == 'init' &&
+      needs.quality.result == 'success' &&
+      needs.publish-themes.result == 'skipped'
     runs-on: ubuntu-latest
     permissions:
       contents: read

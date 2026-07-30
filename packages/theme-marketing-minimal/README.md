@@ -5,7 +5,7 @@ sections, code examples, calls to action, and lightweight interactions.
 
 ```yaml
 custom:
-  theme: jsr:@steno/theme-marketing-minimal@^0.9.0
+  theme: jsr:@steno/theme-marketing-minimal@^0.10.0
   themeConfig:
     githubUrl: https://github.com/your-org/your-project
     jsrUrl: https://jsr.io/@your-org/your-project

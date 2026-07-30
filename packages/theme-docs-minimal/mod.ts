@@ -27,9 +27,10 @@ const configSchema = Object.fromEntries(
   ]),
 ) as Record<string, ThemeConfigField>;
 
+/** Documentation-focused official Steno theme. */
 const theme: StenoTheme = {
   name: "docs-minimal",
-  version: "0.9.0",
+  version: "0.10.0",
   layouts: { layout },
   assets: {
     "style.css": new URL("./assets/style.css", import.meta.url),
