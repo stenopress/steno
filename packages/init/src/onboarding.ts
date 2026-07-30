@@ -12,14 +12,21 @@ import { join } from "@std/path";
 /** Options that can be passed directly to {@link runOnboarding}. When a field
  * is omitted the user is prompted interactively. */
 export interface ProjectOptions {
+  /** Site title written to configuration and starter content. */
   title?: string;
+  /** Site description written to configuration. */
   description?: string;
+  /** Default author written to configuration. */
   author?: string;
+  /** Official plugins added to the generated configuration. */
   plugins?: PluginChoice[];
+  /** Official theme used by the generated project. */
   theme?: ThemeChoice;
+  /** Whether existing generated files may be overwritten. */
   force?: boolean;
 }
 
+/** Official theme choices supported by the onboarding CLI. */
 export type ThemeChoice = "minimal" | "docs-minimal" | "marketing-minimal";
 
 const AVAILABLE_THEMES: Record<ThemeChoice, {
@@ -30,20 +37,21 @@ const AVAILABLE_THEMES: Record<ThemeChoice, {
   "minimal": {
     label: "Minimal",
     description: "A clean, simple theme for personal sites and blogs",
-    package: "jsr:@steno/theme-minimal@^0.9.0",
+    package: "jsr:@steno/theme-minimal@^0.10.0",
   },
   "docs-minimal": {
     label: "Docs Minimal",
     description: "A minimal theme optimised for documentation sites",
-    package: "jsr:@steno/theme-docs-minimal@^0.9.0",
+    package: "jsr:@steno/theme-docs-minimal@^0.10.0",
   },
   "marketing-minimal": {
     label: "Marketing Minimal",
     description: "A polished landing-page theme for products and campaigns",
-    package: "jsr:@steno/theme-marketing-minimal@^0.9.0",
+    package: "jsr:@steno/theme-marketing-minimal@^0.10.0",
   },
 };
 
+/** Official plugin choices supported by the onboarding CLI. */
 export type PluginChoice = "tailwind" | "shiki";
 
 const OFFICIAL_PLUGINS: Record<PluginChoice, {
@@ -63,6 +71,7 @@ const OFFICIAL_PLUGINS: Record<PluginChoice, {
 /** Thrown when scaffolding fails for an expected reason (e.g. files already
  * exist). Catching this lets callers do `Deno.exit(1)` cleanly. */
 export class OnboardingError extends Error {
+  /** Creates an expected onboarding failure with a user-facing message. */
   constructor(message: string) {
     super(message);
     this.name = "OnboardingError";
@@ -403,11 +412,11 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
       denoJsonPath,
       `{
   "tasks": {
-    "build": "deno run --allow-read=. --allow-write=. --allow-net=jsr.io --allow-env jsr:@steno/steno@^0.9.0 build",
-    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0,jsr.io --allow-env jsr:@steno/steno@^0.9.0 dev"
+    "build": "deno run --allow-read=. --allow-write=. --allow-net=jsr.io --allow-env jsr:@steno/steno@^0.10.0 build",
+    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0,jsr.io --allow-env jsr:@steno/steno@^0.10.0 dev"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@^0.9.0"
+    "@steno/steno": "jsr:@steno/steno@^0.10.0"
   }
 }
 `,

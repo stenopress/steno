@@ -36,11 +36,11 @@ Selected plugins use their latest compatible JSR release.
 
 ## Themes
 
-| Key                 | Package                                     | Description                                             |
-| ------------------- | ------------------------------------------- | ------------------------------------------------------- |
-| `minimal`           | `jsr:@steno/theme-minimal@^0.9.0`           | Clean, simple theme for personal sites and blogs        |
-| `docs-minimal`      | `jsr:@steno/theme-docs-minimal@^0.9.0`      | Minimal theme optimised for documentation sites         |
-| `marketing-minimal` | `jsr:@steno/theme-marketing-minimal@^0.9.0` | Editorial landing-page theme for products and campaigns |
+| Key                 | Package                                      | Description                                             |
+| ------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| `minimal`           | `jsr:@steno/theme-minimal@^0.10.0`           | Clean, simple theme for personal sites and blogs        |
+| `docs-minimal`      | `jsr:@steno/theme-docs-minimal@^0.10.0`      | Minimal theme optimised for documentation sites         |
+| `marketing-minimal` | `jsr:@steno/theme-marketing-minimal@^0.10.0` | Editorial landing-page theme for products and campaigns |
 
 ## Plugins
 
