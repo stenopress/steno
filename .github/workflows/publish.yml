@@ -34,15 +34,9 @@ jobs:
   publish-themes:
     needs: [quality, publish-steno]
     if: >-
-      always() &&
+      github.event_name == 'workflow_dispatch' &&
       needs.quality.result == 'success' &&
-      (
-        needs.publish-steno.result == 'success' ||
-        (
-          github.event_name == 'workflow_dispatch' &&
-          needs.publish-steno.result == 'skipped'
-        )
-      )
+      needs.publish-steno.result == 'skipped'
     runs-on: ubuntu-latest
     permissions:
       contents: read
