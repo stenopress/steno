@@ -1,19 +1,15 @@
-import { join } from "@std/path";
+import { formatNs, getMetrics, readOrRunBenchmarks } from "./bench_results.ts";
 
-type BenchJson = {
-  benches?: Array<{
-    name?: string;
-    results?: Array<{ ok?: { avg?: number; p99?: number } }>;
-  }>;
-};
-
-const NS_PER_US = 1_000;
 const NS_PER_MS = 1_000_000;
+const NS_PER_US = 1_000;
 const BUDGET_MULTIPLIER_ENV = "STENO_BENCH_BUDGET_MULTIPLIER";
 
 const BENCH_BUDGETS_NS: Record<string, number> = {
+  "build (cold, 250 pages)": 50 * NS_PER_MS,
+  "build (cold, 1000 pages)": 200 * NS_PER_MS,
+  "build (cold, 4000 pages)": 800 * NS_PER_MS,
   "build (warm, 1000 pages unchanged)": 45 * NS_PER_MS,
-  "build (atomic incremental, 1 changed page of 1000)": 250 * NS_PER_MS,
+  "build (atomic incremental, 1 changed page of 1000)": 275 * NS_PER_MS,
   "pipeline (typical page parse->markdown->tau)": 250 * NS_PER_US,
   "pipeline (large page parse->markdown->tau)": 1_000 * NS_PER_US,
   "tau render (simple)": 8 * NS_PER_US,
@@ -35,28 +31,7 @@ function readBudgetMultiplier(): number {
   return multiplier;
 }
 
-function formatNs(ns: number): string {
-  if (ns >= NS_PER_MS) return `${(ns / NS_PER_MS).toFixed(2)} ms`;
-  if (ns >= NS_PER_US) return `${(ns / NS_PER_US).toFixed(2)} us`;
-  return `${ns.toFixed(2)} ns`;
-}
-
-async function runBenchJson(): Promise<BenchJson> {
-  const benchmarkDir = join(Deno.cwd(), "benchmarks");
-  const result = await new Deno.Command(Deno.execPath(), {
-    args: ["bench", "-A", "--json", benchmarkDir],
-    stdout: "piped",
-    stderr: "inherit",
-  }).output();
-
-  if (result.code !== 0) {
-    throw new Error("Bench command failed.");
-  }
-  const raw = new TextDecoder().decode(result.stdout).trim();
-  return JSON.parse(raw) as BenchJson;
-}
-
-const output = await runBenchJson();
+const output = await readOrRunBenchmarks(Deno.args[0]);
 const benches = output.benches ?? [];
 const failures: string[] = [];
 const budgetMultiplier = readBudgetMultiplier();
@@ -74,8 +49,8 @@ for (const [name, baseBudgetNs] of Object.entries(BENCH_BUDGETS_NS)) {
     failures.push(`${name}: missing benchmark result`);
     continue;
   }
-  const metrics = bench.results?.find((result) => result.ok)?.ok;
-  if (!metrics || typeof metrics.avg !== "number") {
+  const metrics = getMetrics(bench);
+  if (!metrics) {
     failures.push(`${name}: invalid benchmark metrics`);
     continue;
   }

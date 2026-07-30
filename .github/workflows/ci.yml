@@ -52,10 +52,29 @@ jobs:
       - name: Test official ecosystem compatibility
         run: deno task test:ecosystem
 
+      - name: Run performance benchmarks
+        run: deno bench -A --json benchmarks > benchmark-results.json
+
+      - name: Generate benchmark report
+        run: >-
+          deno run -A benchmarks/benchmark_report.ts
+          --input benchmark-results.json
+          --output benchmark-report.md
+
       - name: Check performance budgets
-        run: deno task bench:check
+        run: deno run -A benchmarks/perf_budget.ts benchmark-results.json
         env:
           # Hosted runners are shared and materially slower/noisier than the
           # development baseline. Keep local budgets strict while still
           # rejecting substantial CI regressions.
           STENO_BENCH_BUDGET_MULTIPLIER: "1.5"
+
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report-${{ runner.os }}
+          path: |
+            benchmark-report.md
+            benchmark-results.json
+          retention-days: 30
