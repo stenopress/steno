@@ -25,21 +25,17 @@ instant live-reloading, and near-zero external dependencies.
 
 ## Performance Benchmarks
 
-Steno is engineered for speed. Built-in performance budgets are strictly
-enforced via our local benchmark suite to prevent regression:
-
-- **Compile speed:** Builds 1,000 Markdown pages in approximately 130 ms on
-  modern hardware, with unchanged warm builds completing in approximately 30 ms.
-- **Incremental Rebuilds:** Powered by a layered in-memory + on-disk cache to
-  compile changes instantly.
-- **Cold Starts:** Under 20ms startup time thanks to Deno's native TypeScript
-  runtime and a zero-dependency architecture.
+Steno tracks cold, unchanged warm, and atomic incremental builds—including a
+4,000-page fixture. Performance claims are tied to a recorded machine and Deno
+version rather than presented as universal numbers. See the
+[latest benchmark report](docs/benchmarks.md) for averages and tail latency.
 
 To run performance diagnostics locally:
 
 ```sh
 deno task bench            # Run the benchmark suite
 deno task bench:check      # Assert performance budget thresholds
+deno task bench:report     # Regenerate the published benchmark report
 ```
 
 ---

@@ -9,5 +9,6 @@
 - [Plugins](plugins.md)
 - [Plugin sandbox](plugin_sandbox.md)
 - [Transactional builds](atomic_builds.md)
+- [Benchmark report and methodology](benchmarks.md)
 - [API reference](api_reference.md)
 - [Contribution guidelines](contribution_guidelines.md)
