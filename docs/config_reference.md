@@ -122,8 +122,9 @@ capabilities.
 ## CLI
 
 ```text
-deno x jsr:@steno/steno [build|dev|doctor] [--config path]
+deno x jsr:@steno/steno [build|dev|preview|doctor|help] [--config path] [--port number]
 ```
 
-`build` is the default. `dev` watches and serves the site; `doctor` reports
-common project/configuration problems.
+`build` is the default. `dev` watches and serves the site, `preview` builds and
+serves the production output without watching, and `doctor` reports common
+project/configuration problems. `--port` selects the preview port.

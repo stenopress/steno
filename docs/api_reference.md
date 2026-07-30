@@ -10,9 +10,11 @@ import type { SiteConfig, StenoPlugin, StenoTheme } from "jsr:@steno/steno";
 ## `Steno`
 
 `new Steno(configPath?, autoBuildOnInit?, hooks?)` creates the site generator.
-`build()` compiles it, and `dev()` starts the watched development server. The
-default configuration path is `content/.steno/config.yml`. `hooks` may provide
-`beforeBuild`, `afterPage`, and `afterBuild` callbacks.
+`build()` compiles it, `dev()` starts the watched development server, and
+`preview(port?)` builds and serves the production output without watching.
+`cancel()` terminates active isolated-plugin workers. The default configuration
+path is `content/.steno/config.yml`. `hooks` may provide `beforeBuild`,
+`afterPage`, and `afterBuild` callbacks.
 
 ## `Theme`
 
@@ -38,6 +40,8 @@ value, escaping, URL, limit, and compatibility semantics.
 
 Exports include `SiteConfig`, `StenoTheme`, `StenoPlugin`, `StenoHooks`,
 `PluginEntry`, `PluginSourcePolicy`, the deprecated `PluginSecurityConfig`
-alias, `CollectionConfig`, `NavigationNode`, `ThemeConfigField`, `TauOptions`,
-`TauLimits`, `TauCacheStats`, `TauErrorCode`, `Collection`, `CollectionItem`,
-and `CollectionMap`. The authoritative contracts are exported from `mod.ts`.
+alias, `IsolatedPluginPermissions`, `CollectionConfig`, `NavigationNode`,
+`HeadTag`, `PageConfigOverrides`, `ThemeConfigField`, `MarkdownTokens`,
+`TauOptions`, `TauLimits`, `TauCacheStats`, `TauErrorCode`, `Collection`,
+`CollectionItem`, and `CollectionMap`. The authoritative contracts are exported
+from `mod.ts`.
