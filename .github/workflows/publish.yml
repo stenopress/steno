@@ -40,12 +40,10 @@ jobs:
       - run: deno publish
 
   publish-themes:
-    needs: [quality, publish-steno]
+    needs: quality
     if: >-
       github.event_name == 'workflow_dispatch' &&
-      inputs.target == 'themes' &&
-      needs.quality.result == 'success' &&
-      needs.publish-steno.result == 'skipped'
+      inputs.target == 'themes'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -69,13 +67,10 @@ jobs:
         working-directory: ${{ matrix.package }}
 
   publish-init:
-    needs: [quality, publish-themes]
+    needs: quality
     if: >-
-      always() &&
       github.event_name == 'workflow_dispatch' &&
-      inputs.target == 'init' &&
-      needs.quality.result == 'success' &&
-      needs.publish-themes.result == 'skipped'
+      inputs.target == 'init'
     runs-on: ubuntu-latest
     permissions:
       contents: read
