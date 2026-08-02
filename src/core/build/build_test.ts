@@ -128,6 +128,31 @@ async function replacePlugins(
 
 export function registerBuildTests(): void {
   Deno.test({
+    name: "build: ready waits for the automatic initialization build",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      try {
+        f.writeConfig();
+        f.writePage(
+          "index.md",
+          `---\ntitle: "Home"\n---\n# Ready\n`,
+        );
+
+        const steno = new Steno(f.configPath, true);
+        await steno.ready();
+
+        assertStringIncludes(
+          Deno.readTextFileSync(join(f.outputDir, "index.html")),
+          "<h1>Ready</h1>",
+        );
+      } finally {
+        f.cleanup();
+      }
+    },
+  });
+
+  Deno.test({
     name: "build: end-to-end pipeline build",
     permissions: { read: true, write: true, net: true },
     fn: async () => {
