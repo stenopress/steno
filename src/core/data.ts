@@ -30,14 +30,14 @@ function parseDataFile(filePath: string, content: string): unknown {
   return null;
 }
 
-function scanDataDir(
+async function scanDataDir(
   currentDir: string,
   dataDir: string,
   result: DataMap,
-): void {
-  let entries: Deno.DirEntry[];
+): Promise<void> {
+  const entries: Deno.DirEntry[] = [];
   try {
-    entries = [...Deno.readDirSync(currentDir)];
+    for await (const entry of Deno.readDir(currentDir)) entries.push(entry);
   } catch {
     return;
   }
@@ -47,7 +47,7 @@ function scanDataDir(
     const fullPath = join(currentDir, entry.name);
 
     if (entry.isDirectory) {
-      scanDataDir(fullPath, dataDir, result);
+      await scanDataDir(fullPath, dataDir, result);
       continue;
     }
 
@@ -58,7 +58,7 @@ function scanDataDir(
 
     let content: string;
     try {
-      content = Deno.readTextFileSync(fullPath);
+      content = await Deno.readTextFile(fullPath);
     } catch (err) {
       console.warn(`[data] Failed to read "${fullPath}":`, err);
       continue;
@@ -94,10 +94,10 @@ function scanDataDir(
  * // content/_data/team.json → data.team
  * // content/_data/blog/authors.yaml → data.blog.authors
  */
-export function loadDataFiles(contentDir: string): DataMap {
+export async function loadDataFiles(contentDir: string): Promise<DataMap> {
   const dataDir = join(contentDir, "_data");
   const result: DataMap = {};
-  scanDataDir(dataDir, dataDir, result);
+  await scanDataDir(dataDir, dataDir, result);
   return result;
 }
 
