@@ -6,6 +6,26 @@ import { parse as parseYaml } from "@std/yaml";
 /** Resolved configuration values passed to a theme. */
 export type ThemeConfig = Record<string, unknown>;
 
+const ASSET_COPY_CONCURRENCY = 32;
+
+async function mapWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let nextIndex = 0;
+  const workerCount = Math.min(concurrency, items.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const index = nextIndex++;
+        if (index >= items.length) return;
+        await fn(items[index]);
+      }
+    }),
+  );
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -287,16 +307,16 @@ export class Theme {
    * @returns The parsed theme metadata.
    */
   private static loadMetadata(dir: string): ThemeDirectoryMetadata {
-    let yamlContent = "";
-    try {
-      yamlContent = Deno.readTextFileSync(join(dir, "theme.yaml"));
-    } catch {
+    let yamlContent: string | undefined;
+    for (const fileName of ["theme.yaml", "theme.yml"]) {
       try {
-        yamlContent = Deno.readTextFileSync(join(dir, "theme.yml"));
+        yamlContent = Deno.readTextFileSync(join(dir, fileName));
+        break;
       } catch {
-        return {};
+        // Try the next candidate filename.
       }
     }
+    if (yamlContent === undefined) return {};
     const parsed = parseYaml(yamlContent);
     return parsed && typeof parsed === "object"
       ? (parsed as ThemeDirectoryMetadata)
@@ -484,6 +504,10 @@ export class Theme {
       [left],
       [right],
     ) => left.localeCompare(right));
+
+    const writeJobs: Array<
+      { relPath: string; destPath: string; source: string | Uint8Array | URL }
+    > = [];
     for (const [relPath, source] of assets) {
       const destPath = join(assetsDir, relPath);
       const normalizedDestPath = resolve(destPath);
@@ -494,21 +518,28 @@ export class Theme {
       }
       occupiedPaths.add(normalizedDestPath);
       Deno.mkdirSync(dirname(destPath), { recursive: true });
-
-      if (typeof source === "string") {
-        Deno.writeTextFileSync(destPath, source);
-      } else if (source instanceof Uint8Array) {
-        Deno.writeFileSync(destPath, source);
-      } else if (source instanceof URL) {
-        const response = await fetch(source);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch theme asset: ${source.href}`);
-        }
-        Deno.writeFileSync(
-          destPath,
-          new Uint8Array(await response.arrayBuffer()),
-        );
-      }
+      writeJobs.push({ relPath, destPath, source });
     }
+
+    await mapWithConcurrency(
+      writeJobs,
+      ASSET_COPY_CONCURRENCY,
+      async ({ destPath, source }) => {
+        if (typeof source === "string") {
+          await Deno.writeTextFile(destPath, source);
+        } else if (source instanceof Uint8Array) {
+          await Deno.writeFile(destPath, source);
+        } else if (source instanceof URL) {
+          const response = await fetch(source);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch theme asset: ${source.href}`);
+          }
+          await Deno.writeFile(
+            destPath,
+            new Uint8Array(await response.arrayBuffer()),
+          );
+        }
+      },
+    );
   }
 }
