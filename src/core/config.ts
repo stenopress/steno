@@ -15,7 +15,7 @@ type PluginFactory = (
 
 type ResolvedPluginSourcePolicy = Required<PluginSourcePolicy>;
 
-function resolvePluginSourcePolicy(
+export function resolvePluginSourcePolicy(
   config: SiteConfig,
 ): ResolvedPluginSourcePolicy {
   const policy = config.custom?.pluginSourcePolicy ??

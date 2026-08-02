@@ -7,7 +7,7 @@ import {
   startDevServer,
   startPreviewServer,
 } from "../utils/server.ts";
-import { loadPlugins } from "./config.ts";
+import { loadPlugins, resolvePluginSourcePolicy } from "./config.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
 import { loadTheme } from "./steno_theme.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
@@ -30,6 +30,7 @@ export class Steno {
     signature: null,
     pages: new Map(),
   };
+  private readonly initPromise: Promise<void>;
 
   /**
    * Creates a Steno site instance.
@@ -50,7 +51,17 @@ export class Steno {
       this.theme = await loadTheme(project.config);
     });
     this.pluginsLoadingPromise = this.loadPlugins();
-    this.init();
+    this.initPromise = this.init();
+  }
+
+  /**
+   * Resolves once construction-time work (including the `autoBuildOnInit`
+   * build) has settled. Callers that pass `autoBuildOnInit: true` should
+   * await this to observe initialization failures instead of relying on an
+   * unhandled promise rejection.
+   */
+  public ready(): Promise<void> {
+    return this.initPromise;
   }
 
   /** Resolves and loads the configured plugins. */
@@ -58,9 +69,8 @@ export class Steno {
     const project = await this.projectPromise;
     await this.themeLoadingPromise;
     const sitePlugins = await loadPlugins(project.config);
-    const sourcePolicy = project.config.custom?.pluginSourcePolicy ??
-      project.config.custom?.pluginSecurity;
-    const allowThemePlugins = sourcePolicy?.allowThemePlugins !== false;
+    const allowThemePlugins =
+      resolvePluginSourcePolicy(project.config).allowThemePlugins;
 
     const themePlugins = allowThemePlugins
       ? (this.theme?.plugins ?? []).filter((plugin, index) => {
