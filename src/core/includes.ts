@@ -1,31 +1,46 @@
 import { dirname, isAbsolute, join } from "@std/path";
 
-const INCLUDE_PATTERN = /\{@include\s+"([^"]+)"\}/g;
+const INCLUDE_PATTERN_SOURCE = String.raw`\{@include\s+"([^"]+)"\}`;
 
-function resolveIncludePath(
+function hasControlCharacters(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    if (value.charCodeAt(i) < 0x20) return true;
+  }
+  return false;
+}
+
+function isUnsafeIncludePath(includePath: string): boolean {
+  return isAbsolute(includePath) ||
+    includePath.startsWith("/") ||
+    includePath.includes("\\") ||
+    includePath.split("/").includes("..") ||
+    /^[A-Za-z][A-Za-z\d+.-]*:/.test(includePath) ||
+    hasControlCharacters(includePath);
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    return (await Deno.stat(path)).isFile;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return false;
+    throw error;
+  }
+}
+
+async function resolveIncludePath(
   includePath: string,
   currentFile: string,
   contentDir: string,
-): string | null {
-  if (isAbsolute(includePath)) return null;
+): Promise<string | null> {
+  if (isUnsafeIncludePath(includePath)) return null;
 
   // try relative to current file first
   const relativeToFile = join(dirname(currentFile), includePath);
-  try {
-    Deno.statSync(relativeToFile);
-    return relativeToFile;
-  } catch {
-    // fall through
-  }
+  if (await fileExists(relativeToFile)) return relativeToFile;
 
   // fall back to contentDir
   const relativeToContent = join(contentDir, includePath);
-  try {
-    Deno.statSync(relativeToContent);
-    return relativeToContent;
-  } catch {
-    // not found
-  }
+  if (await fileExists(relativeToContent)) return relativeToContent;
 
   return null;
 }
@@ -34,19 +49,32 @@ function resolveIncludePath(
  * Recursively processes {@include "..."} directives in a Markdown body.
  * Detects circular includes and throws with a clear error.
  *
+ * Include paths must be relative and cannot traverse parent directories,
+ * use backslashes, carry a scheme prefix, or contain control characters —
+ * the same containment rules Tau templates enforce for `{@include}`.
+ *
  * @param body - The Markdown content to process.
  * @param currentFile - Absolute path to the file being processed.
  * @param contentDir - The root content directory for fallback resolution.
  * @param stack - Set of currently open files for circular detection.
  */
-export function processIncludes(
+export async function processIncludes(
   body: string,
   currentFile: string,
   contentDir: string,
   stack: Set<string> = new Set([currentFile]),
-): string {
-  return body.replace(INCLUDE_PATTERN, (_match, includePath: string) => {
-    const resolvedPath = resolveIncludePath(
+): Promise<string> {
+  const pattern = new RegExp(INCLUDE_PATTERN_SOURCE, "g");
+  let result = "";
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(body)) !== null) {
+    const [fullMatch, includePath] = match;
+    result += body.slice(lastIndex, match.index);
+    lastIndex = match.index + fullMatch.length;
+
+    const resolvedPath = await resolveIncludePath(
       includePath,
       currentFile,
       contentDir,
@@ -68,10 +96,18 @@ export function processIncludes(
       );
     }
 
-    const included = Deno.readTextFileSync(resolvedPath);
+    const included = await Deno.readTextFile(resolvedPath);
     const newStack = new Set([...stack, resolvedPath]);
 
     // recursively process includes in the included file
-    return processIncludes(included, resolvedPath, contentDir, newStack);
-  });
+    result += await processIncludes(
+      included,
+      resolvedPath,
+      contentDir,
+      newStack,
+    );
+  }
+
+  result += body.slice(lastIndex);
+  return result;
 }
