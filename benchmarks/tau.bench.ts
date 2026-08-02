@@ -109,8 +109,8 @@ const unclosedTemplate = `
 Deno.bench(
   "tau render (simple)",
   { group: "tau", baseline: true },
-  () => {
-    render({
+  async () => {
+    await render({
       template: simpleTemplate,
       context: simpleContext,
       components: {},
@@ -118,8 +118,8 @@ Deno.bench(
   },
 );
 
-Deno.bench("tau render (components + loops)", { group: "tau" }, () => {
-  render({
+Deno.bench("tau render (components + loops)", { group: "tau" }, async () => {
+  await render({
     template: layoutTemplate,
     context: complexContext,
     components,
@@ -129,8 +129,8 @@ Deno.bench("tau render (components + loops)", { group: "tau" }, () => {
 Deno.bench(
   "tau render (list of 1000 items)",
   { group: "tau-scale", baseline: true },
-  () => {
-    render({
+  async () => {
+    await render({
       template: largeListTemplate,
       context: { items: thousandItems },
       components: {
@@ -144,8 +144,8 @@ Deno.bench(
 Deno.bench(
   "tau render (4-level nested loops)",
   { group: "tau-scale" },
-  () => {
-    render({
+  async () => {
+    await render({
       template: nestedTemplate,
       context: { sections: deepTree },
       components: deepComponents,
@@ -156,9 +156,9 @@ Deno.bench(
 Deno.bench(
   "tau render (unclosed tag fails fast)",
   { group: "tau-errors", baseline: true },
-  () => {
+  async () => {
     try {
-      render({
+      await render({
         template: unclosedTemplate,
         context: {},
         components: {},

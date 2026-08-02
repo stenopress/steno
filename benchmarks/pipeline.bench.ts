@@ -47,11 +47,11 @@ const components = {
   Footer: "<footer>{#each tags as tag}<span>{tag}</span>{/each}</footer>",
 };
 
-function runPagePipeline(markdown: string): string {
+async function runPagePipeline(markdown: string): Promise<string> {
   const { frontmatter, body } = parseFrontmatter(markdown);
   const bodyHtml = marked.parse(body);
 
-  return render({
+  return await render({
     template: layoutTemplate,
     context: {
       site: { title: "Steno" },
@@ -65,13 +65,13 @@ function runPagePipeline(markdown: string): string {
 Deno.bench(
   "pipeline (typical page parse->markdown->tau)",
   { group: "pipeline", baseline: true },
-  () => {
-    runPagePipeline(pageTemplate);
+  async () => {
+    await runPagePipeline(pageTemplate);
   },
 );
 
 Deno.bench("pipeline (large page parse->markdown->tau)", {
   group: "pipeline",
-}, () => {
-  runPagePipeline(largePageTemplate);
+}, async () => {
+  await runPagePipeline(largePageTemplate);
 });
