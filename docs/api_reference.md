@@ -25,19 +25,22 @@ description, date) generated from the current page set, see
 
 `new Theme(themeData, userConfig?)` creates a theme. `Theme.loadFromDirectory`
 loads a convention-based local theme. `renderLayout(name, content, variables)`
-and `renderComponent(name, variables)` render templates; `copyAssets(outputDir)`
-writes its assets.
+and `renderComponent(name, variables)` render templates and return
+`Promise<string>`; `copyAssets(outputDir)` writes its assets.
 
 ## Tau
 
 `render({ template, context, components, filePath?, includeResolver?, limits? })`
-renders a template. `components` is required (use `{}` when none).
-`includeResolver` is a caller-supplied `(path: string) => string` function that
-resolves `{@include "path"}` directives to template source; it is required only
-when a template uses `{@include}`, and API consumers rendering templates
-directly (outside a theme) provide their own. `filters` is the mutable
-null-prototype map of built-in filter functions, enabling applications to add
-filters before rendering.
+renders a template and returns `Promise<string>`. It is async because a template
+expression may call a context-supplied function that returns a promise
+(`{someAsyncFn()}`); the result is awaited implicitly, so a sync function works
+the same way. Filters may also return a promise. `components` is required (use
+`{}` when none). `includeResolver` is a caller-supplied
+`(path: string) => string` function that resolves `{@include "path"}` directives
+to template source; it is required only when a template uses `{@include}`, and
+API consumers rendering templates directly (outside a theme) provide their own.
+`filters` is the mutable null-prototype map of built-in filter functions,
+enabling applications to add filters before rendering.
 
 Tau failures use `TauError`; its `code` property is a stable `TauErrorCode`, one
 of `TAU_COMPONENT_CYCLE`, `TAU_COMPONENT_NOT_FOUND`, `TAU_INCLUDE_CYCLE`,
