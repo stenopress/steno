@@ -370,7 +370,7 @@ export async function buildSite({
         };
 
         const layoutContent = theme
-          ? theme.renderLayout(layoutName, htmlContent, pageContext)
+          ? await theme.renderLayout(layoutName, htmlContent, pageContext)
           : htmlContent;
         const renderedContent = injectHeadTags(layoutContent, pageHead);
 

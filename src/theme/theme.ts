@@ -407,12 +407,12 @@ export class Theme {
   /**
    * Internal common renderer wrapper to dry up Tau orchestrations.
    */
-  private executeRender(
+  private async executeRender(
     template: string,
     context: Record<string, unknown>,
     filePath?: string,
-  ): string {
-    return render({
+  ): Promise<string> {
+    return await render({
       template,
       context,
       components: this.themeData.components || {},
@@ -428,11 +428,11 @@ export class Theme {
   /**
    * Renders a layout template with content and page variables using Tau.
    */
-  public renderLayout(
+  public async renderLayout(
     layoutName: string,
     content: string,
     variables: Record<string, unknown>,
-  ): string {
+  ): Promise<string> {
     const template = this.themeData.layouts[layoutName];
     if (!template) {
       throw new Error(
@@ -441,7 +441,7 @@ export class Theme {
         }`,
       );
     }
-    return this.executeRender(
+    return await this.executeRender(
       template,
       { content, ...variables },
       this.layoutPaths[layoutName],
@@ -451,17 +451,17 @@ export class Theme {
   /**
    * Renders a theme component using Tau.
    */
-  public renderComponent(
+  public async renderComponent(
     componentName: string,
     variables: Record<string, unknown>,
-  ): string {
+  ): Promise<string> {
     const template = this.themeData.components?.[componentName];
     if (!template) {
       throw new Error(
         `Component "${componentName}" not found in theme "${this.name}".`,
       );
     }
-    return this.executeRender(
+    return await this.executeRender(
       template,
       variables,
       this.componentPaths[componentName],

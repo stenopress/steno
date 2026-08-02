@@ -1,0 +1,57 @@
+[
+  {
+    "name": "comments are removed and produce no output",
+    "template": "a{# note: internal only #}b",
+    "context": {},
+    "output": "ab"
+  },
+  {
+    "name": "comment syntax does not collide with block keywords",
+    "template": "{#if true}yes{/if}",
+    "context": {},
+    "output": "yes"
+  },
+  {
+    "name": "each else renders when the array is empty",
+    "template": "{#each items as item}{item};{:else}empty{/each}",
+    "context": { "items": [] },
+    "output": "empty"
+  },
+  {
+    "name": "each else does not render when items exist",
+    "template": "{#each items as item}{item};{:else}empty{/each}",
+    "context": { "items": ["a", "b"] },
+    "output": "a;b;"
+  },
+  {
+    "name": "let binds a computed value for the rest of the block",
+    "template": "{#let total = a + b}Total: {total}",
+    "context": { "a": 2, "b": 3 },
+    "output": "Total: 5"
+  },
+  {
+    "name": "component children render in the caller's scope",
+    "template": "{#each posts as post}<Card>{post.title}</Card>{/each}",
+    "context": { "posts": [{ "title": "A" }, { "title": "B" }] },
+    "components": { "Card": "<li>{@children}</li>" },
+    "output": "<li>A</li><li>B</li>"
+  },
+  {
+    "name": "whitespace control trims across a loop",
+    "template": "<ul>\n  {#each items as item-}\n    <li>{item}</li>\n  {-/each}\n</ul>",
+    "context": { "items": ["a", "b"] },
+    "output": "<ul>\n  <li>a</li><li>b</li>\n</ul>"
+  },
+  {
+    "name": "an async context function is awaited without explicit syntax",
+    "template": "{fetchTitle()}",
+    "context": { "fetchTitle": "__async_hello__" },
+    "output": "Async Hello"
+  },
+  {
+    "name": "ternary and nullish coalescing are supported operators",
+    "template": "{flag ? \"yes\" : \"no\"} / {missing ?? \"fallback\"}",
+    "context": { "flag": true },
+    "output": "yes / fallback"
+  }
+]

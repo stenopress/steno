@@ -7,6 +7,7 @@ export interface Node {
     | "html"
     | "if"
     | "each"
+    | "let"
     | "component"
     | "include";
   value?: string;
@@ -16,11 +17,16 @@ export interface Node {
   array?: string;
   item?: string;
   indexVar?: string;
+  letName?: string;
   consequent?: Node[];
   alternate?: Node[];
   componentName?: string;
   props?: Record<string, string>;
   includePath?: string;
+  /** Whitespace-control: trim the sibling text immediately before this node. */
+  trimBefore?: boolean;
+  /** Whitespace-control: trim the sibling text immediately after this node. */
+  trimAfter?: boolean;
 }
 
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
@@ -73,6 +79,47 @@ function splitTopLevel(
   }
   parts.push(value.substring(start));
   return parts;
+}
+
+/**
+ * Whitespace-control tag variants. A tag written as `{-#if `/`{-:else}`/etc.
+ * trims the trailing whitespace of the text immediately before it; a tag
+ * written as `{#if cond-}`/`{:else-}`/etc. trims the leading whitespace of
+ * the text immediately after it. Scoped to `{#if}`, `{:else if}`, `{:else}`,
+ * `{/if}`, `{#each}`, and `{/each}`.
+ */
+function tagVariants(literal: string): string[] {
+  const withBefore = "{-" + literal.slice(1);
+  const withAfter = literal.slice(0, -1) + "-}";
+  const withBoth = "{-" + literal.slice(1, -1) + "-}";
+  return [withBoth, withBefore, withAfter, literal];
+}
+
+function prefixVariants(prefix: string): string[] {
+  return ["{-" + prefix.slice(1), prefix];
+}
+
+function trimTrailingWhitespace(nodes: Node[]): void {
+  const last = nodes[nodes.length - 1];
+  if (last?.type === "text" && last.value !== undefined) {
+    last.value = last.value.replace(/\s+$/, "");
+  }
+}
+
+function trimLeadingWhitespace(nodes: Node[]): void {
+  const first = nodes[0];
+  if (first?.type === "text" && first.value !== undefined) {
+    first.value = first.value.replace(/^\s+/, "");
+  }
+}
+
+function extractTrimSuffix(
+  raw: string,
+): { content: string; trimAfter: boolean } {
+  if (raw.endsWith("-")) {
+    return { content: raw.slice(0, -1).trim(), trimAfter: true };
+  }
+  return { content: raw, trimAfter: false };
 }
 
 function assertIdentifier(
@@ -193,6 +240,7 @@ export class TauParser {
   private readonly filePath?: string;
   private pos = 0;
   private depth = 0;
+  private pendingTrimStart = false;
 
   constructor(
     input: string,
@@ -227,6 +275,26 @@ export class TauParser {
     else this.throwError(`Expected "${str}"`);
   }
 
+  private matchBlockKeyword(): boolean {
+    return this.match("{#if ") || this.match("{#each ") || this.match("{#let ");
+  }
+
+  private matchCommentStart(): boolean {
+    return this.match("{#") && !this.matchBlockKeyword();
+  }
+
+  private parseCommentBlock(): void {
+    this.consume("{#");
+    while (this.pos < this.input.length && !this.match("#}")) this.pos++;
+    if (!this.match("#}")) {
+      this.throwError(
+        'Unclosed comment. Expected "#}".',
+        "TAU_PARSE_UNCLOSED_BLOCK",
+      );
+    }
+    this.consume("#}");
+  }
+
   public parseBlock(endTags: string[] = []): Node[] {
     this.depth++;
     if (this.depth > this.maxParseDepth) {
@@ -238,13 +306,32 @@ export class TauParser {
     const nodes: Node[] = [];
     try {
       while (this.pos < this.input.length) {
+        if (this.pendingTrimStart) {
+          this.pendingTrimStart = false;
+          while (
+            this.pos < this.input.length && /\s/.test(this.input[this.pos])
+          ) this.pos++;
+        }
         if (endTags.some((tag) => this.match(tag))) break;
 
-        if (this.match("{#if ")) nodes.push(this.parseIfBlock());
-        else if (this.match("{#each ")) nodes.push(this.parseEachBlock());
+        if (this.match("{#if ") || this.match("{-#if ")) {
+          const node = this.parseIfBlock();
+          if (node.trimBefore) trimTrailingWhitespace(nodes);
+          nodes.push(node);
+          if (node.trimAfter) this.pendingTrimStart = true;
+        } else if (this.match("{#each ") || this.match("{-#each ")) {
+          const node = this.parseEachBlock();
+          if (node.trimBefore) trimTrailingWhitespace(nodes);
+          nodes.push(node);
+          if (node.trimAfter) this.pendingTrimStart = true;
+        } else if (this.match("{#let ")) nodes.push(this.parseLetBlock());
+        else if (this.matchCommentStart()) this.parseCommentBlock();
         else if (this.match("{@include ")) nodes.push(this.parseIncludeBlock());
         else if (this.match("{@html ")) nodes.push(this.parseHtmlBlock());
-        else if (
+        else if (this.match("{@children}")) {
+          this.consume("{@children}");
+          nodes.push({ type: "html", expression: "children" });
+        } else if (
           this.peek() === "{" && !["#", "/", ":", "@"].includes(this.peek(1))
         ) nodes.push(this.parseVariableBlock());
         else if (this.peek() === "<" && /[A-Z]/.test(this.peek(1))) {
@@ -257,46 +344,100 @@ export class TauParser {
     }
   }
 
-  private parseIfBlock(prefix = "{#if "): Node {
+  private consumeTagPrefix(prefix: string): boolean {
+    const withDash = "{-" + prefix.slice(1);
+    if (this.match(withDash)) {
+      this.pos += withDash.length;
+      return true;
+    }
     this.consume(prefix);
+    return false;
+  }
+
+  private parseIfBlock(prefix = "{#if "): Node {
+    const trimBefore = this.consumeTagPrefix(prefix);
     const start = this.pos;
     while (this.pos < this.input.length && this.input[this.pos] !== "}") {
       this.pos++;
     }
-    const condition = this.input.substring(start, this.pos).trim();
+    const raw = this.input.substring(start, this.pos).trim();
     this.consume("}");
+    const { content: condition, trimAfter: trimAfterOpen } = extractTrimSuffix(
+      raw,
+    );
     if (!condition) {
       this.throwError("If condition cannot be empty.", "TAU_PARSE_EMPTY");
     }
 
-    const consequent = this.parseBlock(["{:else if ", "{:else}", "{/if}"]);
-    let alternate: Node[] = [];
+    const elseIfPrefixes = prefixVariants("{:else if ");
+    const elseVariants = tagVariants("{:else}");
+    const closeVariants = tagVariants("{/if}");
+    const consequent = this.parseBlock([
+      ...elseIfPrefixes,
+      ...elseVariants,
+      ...closeVariants,
+    ]);
+    if (trimAfterOpen) trimLeadingWhitespace(consequent);
 
-    if (this.match("{:else if ")) {
-      alternate = [this.parseIfBlock("{:else if ")];
-    } else if (this.match("{:else}")) {
-      this.consume("{:else}");
-      alternate = this.parseBlock(["{/if}"]);
-      this.consume("{/if}");
-    } else if (this.match("{/if}")) {
-      this.consume("{/if}");
+    let alternate: Node[] = [];
+    let trimAfter = false;
+
+    const elseIfMatch = elseIfPrefixes.find((p) => this.match(p));
+    const elseMatch = elseVariants.find((v) => this.match(v));
+    const closeMatch = closeVariants.find((v) => this.match(v));
+
+    if (elseIfMatch) {
+      if (elseIfMatch.startsWith("{-")) trimTrailingWhitespace(consequent);
+      const nested = this.parseIfBlock("{:else if ");
+      alternate = [nested];
+      trimAfter = nested.trimAfter === true;
+    } else if (elseMatch) {
+      if (elseMatch.startsWith("{-")) trimTrailingWhitespace(consequent);
+      this.pos += elseMatch.length;
+      const innerCloseVariants = tagVariants("{/if}");
+      alternate = this.parseBlock(innerCloseVariants);
+      if (elseMatch.endsWith("-}")) trimLeadingWhitespace(alternate);
+      const innerClose = innerCloseVariants.find((v) => this.match(v));
+      if (!innerClose) {
+        this.throwError(
+          'Unclosed if block. Expected "{/if}".',
+          "TAU_PARSE_UNCLOSED_BLOCK",
+        );
+      }
+      if (innerClose.startsWith("{-")) trimTrailingWhitespace(alternate);
+      this.pos += innerClose.length;
+      trimAfter = innerClose.endsWith("-}");
+    } else if (closeMatch) {
+      if (closeMatch.startsWith("{-")) trimTrailingWhitespace(consequent);
+      this.pos += closeMatch.length;
+      trimAfter = closeMatch.endsWith("-}");
     } else {
       this.throwError(
         'Unclosed if block. Expected "{/if}".',
         "TAU_PARSE_UNCLOSED_BLOCK",
       );
     }
-    return { type: "if", condition, consequent, alternate };
+    return {
+      type: "if",
+      condition,
+      consequent,
+      alternate,
+      trimBefore,
+      trimAfter,
+    };
   }
 
   private parseEachBlock(): Node {
-    this.consume("{#each ");
+    const trimBefore = this.consumeTagPrefix("{#each ");
     const start = this.pos;
     while (this.pos < this.input.length && this.input[this.pos] !== "}") {
       this.pos++;
     }
-    const rawEach = this.input.substring(start, this.pos).trim();
+    const raw = this.input.substring(start, this.pos).trim();
     this.consume("}");
+    const { content: rawEach, trimAfter: trimAfterOpen } = extractTrimSuffix(
+      raw,
+    );
 
     const asIndex = rawEach.indexOf(" as ");
     if (asIndex === -1) {
@@ -327,9 +468,86 @@ export class TauParser {
       );
     }
 
-    const consequent = this.parseBlock(["{/each}"]);
-    this.consume("{/each}");
-    return { type: "each", array, item, indexVar, consequent };
+    const elseVariants = tagVariants("{:else}");
+    const closeVariants = tagVariants("{/each}");
+    const consequent = this.parseBlock([...elseVariants, ...closeVariants]);
+    if (trimAfterOpen) trimLeadingWhitespace(consequent);
+
+    let alternate: Node[] = [];
+    let trimAfter = false;
+
+    const elseMatch = elseVariants.find((v) => this.match(v));
+    if (elseMatch) {
+      if (elseMatch.startsWith("{-")) trimTrailingWhitespace(consequent);
+      this.pos += elseMatch.length;
+      const innerCloseVariants = tagVariants("{/each}");
+      alternate = this.parseBlock(innerCloseVariants);
+      if (elseMatch.endsWith("-}")) trimLeadingWhitespace(alternate);
+      const innerClose = innerCloseVariants.find((v) => this.match(v));
+      if (!innerClose) {
+        this.throwError(
+          'Unclosed each block. Expected "{/each}".',
+          "TAU_PARSE_UNCLOSED_BLOCK",
+        );
+      }
+      if (innerClose.startsWith("{-")) trimTrailingWhitespace(alternate);
+      this.pos += innerClose.length;
+      trimAfter = innerClose.endsWith("-}");
+    } else {
+      const closeMatch = closeVariants.find((v) => this.match(v));
+      if (!closeMatch) {
+        this.throwError(
+          'Unclosed each block. Expected "{/each}".',
+          "TAU_PARSE_UNCLOSED_BLOCK",
+        );
+      }
+      if (closeMatch.startsWith("{-")) trimTrailingWhitespace(consequent);
+      this.pos += closeMatch.length;
+      trimAfter = closeMatch.endsWith("-}");
+    }
+
+    return {
+      type: "each",
+      array,
+      item,
+      indexVar,
+      consequent,
+      alternate,
+      trimBefore,
+      trimAfter,
+    };
+  }
+
+  private parseLetBlock(): Node {
+    this.consume("{#let ");
+    const start = this.pos;
+    while (this.pos < this.input.length && this.input[this.pos] !== "}") {
+      this.pos++;
+    }
+    const raw = this.input.substring(start, this.pos).trim();
+    this.consume("}");
+
+    const eqIndex = raw.indexOf("=");
+    if (eqIndex === -1) {
+      this.throwError(
+        `Invalid let binding syntax: "${raw}". Expected "name = expression".`,
+        "TAU_PARSE_EXPECTED_TOKEN",
+      );
+    }
+    const letName = raw.substring(0, eqIndex).trim();
+    const expression = raw.substring(eqIndex + 1).trim();
+    assertIdentifier(
+      letName,
+      "let binding",
+      (message) => this.throwError(message, "TAU_INVALID_IDENTIFIER"),
+    );
+    if (!expression) {
+      this.throwError(
+        "Let binding expression cannot be empty.",
+        "TAU_PARSE_EMPTY",
+      );
+    }
+    return { type: "let", letName, expression };
   }
 
   private parseIncludeBlock(): Node {
@@ -444,6 +662,7 @@ export class TauParser {
     this.consume("<");
     const start = this.pos;
     let braceCount = 0, inQuotes = false, quoteChar = "";
+    let selfClosing = false;
     while (this.pos < this.input.length) {
       const char = this.input[this.pos];
       if (inQuotes) {
@@ -457,11 +676,23 @@ export class TauParser {
       else if (char === "}") braceCount--;
       else if (
         char === "/" && this.input[this.pos + 1] === ">" && braceCount === 0
-      ) break;
+      ) {
+        selfClosing = true;
+        break;
+      } else if (char === ">" && braceCount === 0) {
+        selfClosing = false;
+        break;
+      }
       this.pos++;
     }
+    if (this.pos >= this.input.length) {
+      this.throwError(
+        'Unclosed component tag. Expected "/>" or ">".',
+        "TAU_PARSE_UNCLOSED_BLOCK",
+      );
+    }
     const componentStr = this.input.substring(start, this.pos).trim();
-    this.consume("/>");
+    this.consume(selfClosing ? "/>" : ">");
 
     const spaceIndex = componentStr.search(/\s/);
     const componentName = spaceIndex !== -1
@@ -476,8 +707,22 @@ export class TauParser {
     const attrString = spaceIndex !== -1
       ? componentStr.substring(spaceIndex).trim()
       : "";
+    const props = parseProps(attrString);
 
-    return { type: "component", componentName, props: parseProps(attrString) };
+    if (selfClosing) {
+      return { type: "component", componentName, props };
+    }
+
+    const closeTag = `</${componentName}>`;
+    const consequent = this.parseBlock([closeTag]);
+    if (!this.match(closeTag)) {
+      this.throwError(
+        `Unclosed component "<${componentName}>". Expected "${closeTag}".`,
+        "TAU_PARSE_UNCLOSED_BLOCK",
+      );
+    }
+    this.consume(closeTag);
+    return { type: "component", componentName, props, consequent };
   }
 
   private parseTextNode(endTags: string[]): Node {
@@ -485,8 +730,9 @@ export class TauParser {
     while (this.pos < this.input.length) {
       if (endTags.some((tag) => this.match(tag))) break;
       if (
-        this.match("{#if ") || this.match("{#each ") || this.match("{@html ") ||
-        this.match("{@include ") ||
+        this.match("{#if ") || this.match("{#each ") || this.match("{#let ") ||
+        this.match("{@html ") || this.match("{@children}") ||
+        this.match("{@include ") || this.matchCommentStart() ||
         (this.peek() === "{" && !["#", "/", ":", "@"].includes(this.peek(1))) ||
         (this.peek() === "<" && /[A-Z]/.test(this.peek(1)))
       ) break;
