@@ -8,6 +8,7 @@ import {
   resolveMarkdownScanIgnorePaths,
   resolvePageRoute,
 } from "./path_utils.ts";
+import { fileExists as pathExists } from "../utils/fs.ts";
 
 export interface ResolvedProject {
   config: SiteConfig;
@@ -45,17 +46,6 @@ function isProjectMarker(name: string): boolean {
     "mod.mts",
     "mod.mjs",
   ].includes(name);
-}
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    return (await Deno.stat(path)).isFile;
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) {
-      return false;
-    }
-    throw error;
-  }
 }
 
 async function scanRoot(rootDir: string): Promise<RootScanResult> {
@@ -195,6 +185,7 @@ async function discoverZeroConfigProject(
   const ignorePaths = resolveMarkdownScanIgnorePaths(
     scanRootDir,
     join(rootDir, "dist"),
+    join(scanRootDir, "public"),
   ).concat(join(scanRootDir, "dist"));
   const pages = await collectMarkdownPages(scanRootDir, { ignorePaths });
   if (!pages.length) return null;

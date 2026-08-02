@@ -188,6 +188,11 @@ export interface SiteConfig {
   contentDir?: string;
   /** Build output directory. */
   output?: string;
+  /**
+   * Directory, relative to `contentDir`, whose contents are copied verbatim
+   * to the output root. Defaults to `public`; set to `false` to disable.
+   */
+  publicDir?: string | false;
   /** Plugin module specifiers or detailed plugin entries. */
   plugins?: Array<string | PluginEntry>;
   /** Named collection definitions. */

@@ -1,3 +1,5 @@
+import { utf8ByteLength } from "../utils/text.ts";
+
 export const ISOLATED_PLUGIN_PROTOCOL_VERSION = 1;
 
 export type IsolatedPluginHook =
@@ -44,7 +46,7 @@ export async function* readProtocolLines(
       const { done, value } = await reader.read();
       if (done) break;
       buffered += decoder.decode(value, { stream: true });
-      if (new TextEncoder().encode(buffered).byteLength > maxBufferedBytes) {
+      if (utf8ByteLength(buffered) > maxBufferedBytes) {
         throw new Error(
           `Protocol message exceeds ${maxBufferedBytes} bytes.`,
         );

@@ -9,11 +9,17 @@ export interface PersistentBuildCache {
     relPath: string;
     outputPath: string;
     sourceText: string;
+    body?: string;
+    htmlContent?: string;
   }>;
 }
 
 export function resolveCachePath(contentDir: string): string {
   return join(contentDir, ".steno", "build-cache.json");
+}
+
+function resolveRelPath(page: { fullPath: string; relPath?: unknown }): string {
+  return typeof page.relPath === "string" ? page.relPath : page.fullPath;
 }
 
 export function loadPersistentBuildCache(
@@ -57,6 +63,8 @@ export function loadPersistentBuildCache(
       relPath?: unknown;
       outputPath?: unknown;
       sourceText?: unknown;
+      body?: unknown;
+      htmlContent?: unknown;
     };
 
     if (
@@ -69,11 +77,16 @@ export function loadPersistentBuildCache(
 
     pages.push({
       fullPath: typedEntry.fullPath,
-      relPath: typeof typedEntry.relPath === "string"
-        ? typedEntry.relPath
-        : typedEntry.fullPath,
+      relPath: resolveRelPath({
+        fullPath: typedEntry.fullPath,
+        relPath: typedEntry.relPath,
+      }),
       outputPath: typedEntry.outputPath,
       sourceText: typedEntry.sourceText,
+      body: typeof typedEntry.body === "string" ? typedEntry.body : undefined,
+      htmlContent: typeof typedEntry.htmlContent === "string"
+        ? typedEntry.htmlContent
+        : undefined,
     });
   }
 
@@ -85,13 +98,12 @@ export function toBuildStatePageMap(
 ): Map<string, BuildStateEntry> {
   const pageMap = new Map<string, BuildStateEntry>();
   for (const page of pages) {
-    const relPath = typeof page.relPath === "string"
-      ? page.relPath
-      : page.fullPath;
     pageMap.set(page.fullPath, {
-      relPath,
+      relPath: resolveRelPath(page),
       outputPath: page.outputPath,
       sourceText: page.sourceText,
+      body: page.body,
+      htmlContent: page.htmlContent,
     });
   }
   return pageMap;
@@ -111,6 +123,8 @@ export function savePersistentBuildCache(
       relPath: page.relPath,
       outputPath: page.outputPath,
       sourceText: page.sourceText,
+      body: page.body,
+      htmlContent: page.htmlContent,
     })),
   };
   Deno.writeTextFileSync(cachePath, JSON.stringify(payload));

@@ -13,12 +13,43 @@ import {
   type IsolatedPluginResponse,
   readProtocolLines,
 } from "./isolated_protocol.ts";
+import { utf8ByteLength } from "../utils/text.ts";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MEMORY_MB = 128;
 const workerUrl = new URL("./isolated_worker.ts", import.meta.url);
 const isolatedClients = new WeakMap<StenoPlugin, IsolatedPluginClient>();
+const isolatedSignatures = new WeakMap<StenoPlugin, string>();
+const encoder = new TextEncoder();
+
+/**
+ * Returns a build-cache signature fragment for an isolated plugin, or
+ * `undefined` for trusted (in-process) plugins.
+ *
+ * Isolated plugins expose only a wrapper closure to the trusted process, so
+ * `.toString()` on the hook functions can't detect changes to the actual
+ * subprocess-executed plugin code. This signature instead covers everything
+ * Steno controls about what will run: the module specifier, options,
+ * permissions, and integrity hash, plus the source file's mtime/size for
+ * local `file://` plugins so edits without a bumped `integrity` still
+ * invalidate the cache.
+ */
+export function getIsolatedPluginSignature(
+  plugin: StenoPlugin,
+): string | undefined {
+  return isolatedSignatures.get(plugin);
+}
+
+function fileSignature(packageName: string): unknown {
+  if (!packageName.startsWith("file://")) return null;
+  try {
+    const stat = Deno.statSync(new URL(packageName));
+    return { mtime: stat.mtime?.getTime() ?? null, size: stat.size };
+  } catch {
+    return null;
+  }
+}
 
 function permissionArg(
   name: string,
@@ -188,7 +219,7 @@ class IsolatedPluginClient {
       id,
       version: ISOLATED_PLUGIN_PROTOCOL_VERSION,
     };
-    const encoded = new TextEncoder().encode(`${JSON.stringify(message)}\n`);
+    const encoded = encoder.encode(`${JSON.stringify(message)}\n`);
     if (encoded.byteLength > this.#maxOutputBytes) {
       throw new Error(
         `Isolated plugin request exceeds ${this.#maxOutputBytes} bytes.`,
@@ -228,7 +259,7 @@ class IsolatedPluginClient {
       for await (
         const line of readProtocolLines(stream, this.#maxOutputBytes)
       ) {
-        if (new TextEncoder().encode(line).byteLength > this.#maxOutputBytes) {
+        if (utf8ByteLength(line) > this.#maxOutputBytes) {
           throw new Error(
             `Isolated plugin response exceeds ${this.#maxOutputBytes} bytes.`,
           );
@@ -295,6 +326,21 @@ export async function loadIsolatedPlugin(
     name: initialized.plugin.name,
   };
   isolatedClients.set(plugin, client);
+  isolatedSignatures.set(
+    plugin,
+    JSON.stringify({
+      package: entry.package,
+      options: entry.options ?? null,
+      permissions: entry.permissions ?? null,
+      integrity: entry.integrity ?? null,
+      timeoutMs: entry.timeoutMs ?? null,
+      maxOutputBytes: entry.maxOutputBytes ?? null,
+      memoryMb: entry.memoryMb ?? null,
+      lockFile: entry.lockFile ?? null,
+      hooks: [...hooks].sort(),
+      file: fileSignature(entry.package),
+    }),
+  );
   if (hooks.has("beforeBuild")) {
     plugin.beforeBuild = (config: SiteConfig) =>
       client.call("beforeBuild", config).then(() => undefined);

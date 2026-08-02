@@ -208,6 +208,12 @@ export async function buildCollections(
   config: SiteConfig,
   plugins: StenoPlugin[],
   pages?: MarkdownPage[],
+  options: {
+    /** Include-resolved body per page, keyed by `fullPath`, overriding `page.body`. */
+    processedBodies?: Map<string, string>;
+    /** Shared rendered-HTML cache keyed by `fullPath`, read and populated in place. */
+    htmlCache?: Map<string, string>;
+  } = {},
 ): Promise<CollectionMap> {
   const collections: CollectionMap = {};
   const shortUrls = config.custom?.shortUrls ?? false;
@@ -220,10 +226,14 @@ export async function buildCollections(
 
     const collectionName = parts[0];
 
-    let tokens = marked.lexer(page.body);
-    tokens = await runAstTransforms(tokens, plugins);
-    let htmlContent = marked.parser(tokens);
-    htmlContent = await runHtmlTransforms(htmlContent, plugins);
+    const body = options.processedBodies?.get(page.fullPath) ?? page.body;
+    let htmlContent = options.htmlCache?.get(page.fullPath);
+    if (htmlContent === undefined) {
+      let tokens = marked.lexer(body);
+      tokens = await runAstTransforms(tokens, plugins);
+      htmlContent = await runHtmlTransforms(marked.parser(tokens), plugins);
+      options.htmlCache?.set(page.fullPath, htmlContent);
+    }
 
     const url = resolvePageRoute(page, shortUrls).url;
 
