@@ -71,8 +71,9 @@ Expressions are JavaScript expressions and are HTML-escaped:
 
 Use `{@html expression}` only for trusted HTML, such as Steno's generated
 `content`. Built-in filters are `date`, `truncate(length)`, `upper`, and
-`lower`. Invoke a component with `<Header />`; props may be literals,
-expressions (`title={title}`), or shorthand (`{title}`).
+`lower`; see [Built-in filters](tau_syntax.md#built-in-filters) for their
+defaults and edge-case behavior. Invoke a component with `<Header />`; props may
+be literals, expressions (`title={title}`), or shorthand (`{title}`).
 
 `{@include "name"}` in a theme resolves a registered component name through the
 theme renderer. For Markdown source-file includes, see [Content](content.md).

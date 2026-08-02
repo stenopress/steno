@@ -25,7 +25,7 @@ instant live-reloading, and near-zero external dependencies.
 
 ## Performance Benchmarks
 
-Steno tracks cold, unchanged warm, and atomic incremental builds—including a
+Steno tracks cold, unchanged warm, and atomic incremental builds, including a
 4,000-page fixture. Performance claims are tied to a recorded machine and Deno
 version rather than presented as universal numbers. See the
 [latest benchmark report](docs/benchmarks.md) for averages and tail latency.
@@ -221,11 +221,18 @@ steno [command] [options]
 - `build` (default): Compiles the site into your distribution folder.
 - `dev`: Spins up the local development server with file watching and SSE
   live-reloading.
+- `preview`: Serves the already-built output without watching. Requires a prior
+  `build`.
+- `doctor`: Checks your project for common configuration problems. See
+  [docs/doctor.md](docs/doctor.md).
+- `help`: Prints CLI usage.
 
 ### Options
 
 - `-c, --config <path>`: Manually specify a path to your config file (defaults
   to `content/.steno/config.yml`).
+- `-p, --port <number>`: Port for the `preview` server (defaults to 4173).
+- `-h, --help`: Show CLI usage.
 
 ---
 
@@ -269,10 +276,12 @@ We love contributors. The Steno repository contains a fully configured workspace
 so you can test changes immediately.
 
 ```sh
-deno task dev     # Starts the sandbox development app under /test
-deno task test    # Runs the complete test harness
-deno lint         # Enforce standard code styling
-deno check        # Type check the codebase
+deno task dev            # Starts the sandbox development app under /test
+deno task test           # Runs the unit test suite
+deno task test:sites     # Builds real-world sample sites as regression tests
+deno task test:ecosystem # Runs official plugin/theme compatibility tests
+deno task check          # Runs fmt, lint, type check, doc lint, and all tests
+deno task bench          # Runs the benchmark suite
 ```
 
 For a comprehensive guide on building themes, writing filters, or extending the

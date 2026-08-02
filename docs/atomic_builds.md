@@ -41,6 +41,12 @@ compatibility and additionally receives `stagingPath` for transactional writes.
 Writing directly to the final path from trusted code bypasses Steno's
 transaction and is unsupported.
 
+The `SiteConfig` passed to `beforeBuild` and `afterBuild` also carries a `pages`
+array, populated just before rendering starts. Each entry has `slug` (the
+output-relative path), `title`, and optional `description` and `date`, sourced
+from that page's frontmatter. Plugins and hooks can use it to build a sitemap,
+an RSS feed, or a search index without re-scanning `contentDir`.
+
 ## Determinism and collisions
 
 Fresh output trees remove stale pages and assets naturally. Steno rejects
@@ -54,5 +60,44 @@ output, Steno performs a no-op warm build without materializing or promoting a
 new tree. Changed production builds remain transactional and are reported
 separately as atomic incremental builds in the benchmark suite.
 
+A warm build qualifies as a no-op only when all of the following hold: no theme
+is configured, no plugins are configured, none of `beforeBuild`, `afterPage`, or
+`afterBuild` is set on the caller-provided hooks, no `content/_data` files
+exist, no `PUBLIC_*` environment variables are set, no `redirects` are
+configured, no active page's body contains `{@include`, and every previously
+built page's source text and output path are unchanged and its output file still
+exists on disk. Any one of these being false forces a full staged rebuild.
+
 The filesystem root and the project working directory cannot be configured as
 the output because neither can be safely promoted.
+
+## Build cache
+
+Steno keeps a build signature and per-page state in memory across `build()`
+calls on the same `Steno` instance, and additionally persists it to
+`<contentDir>/.steno/build-cache.json` after every committed build. On startup,
+if the in-memory state does not already match the current build signature, Steno
+reads this file and reuses it when its signature matches. The file lets a warm
+no-op build or a cache-assisted incremental build happen on the first `build()`
+call of a new process, not only on a long-running `dev()` session. It is safe to
+delete; Steno rebuilds it on the next build. Add `.steno/build-cache.json` to
+`.gitignore`.
+
+The build signature that gates cache reuse is computed from the full site
+config, the theme's layouts and components (sorted), the theme's resolved
+config, and the source text of every configured hook and plugin hook function
+(via `Function.prototype.toString`). Editing an inline hook or plugin function
+invalidates the cache; editing the internals of a function called _from_ that
+hook, without changing the hook's own source text, does not.
+
+## Staging directory names
+
+While a build runs, Steno creates a sibling directory next to the configured
+output directory named `.<output-name>.steno-stage-<id>`. On promotion, the
+previous output is moved to `.<output-name>.steno-backup` and then the staged
+tree is renamed into place; a leftover backup from an interrupted promotion is
+named `.<output-name>.steno-backup.retired-<id>`. These directories live beside
+`dist/` (or your configured output), not inside it. Add
+`.<output-name>.steno-stage-*`, `.<output-name>.steno-backup`, and
+`.<output-name>.steno-backup.retired-*` to `.gitignore` and to any custom
+watcher or deployment script alongside the output directory itself.
