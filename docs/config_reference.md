@@ -9,6 +9,7 @@ description: A concise description
 author: Ada Lovelace
 contentDir: content # default: content
 output: dist # default: dist
+publicDir: public # default: public; set to false to disable
 head:
   - name: robots
     content: index,follow
@@ -47,10 +48,23 @@ redirects:
   /old-url: /new-url
 ```
 
+## Redirects
+
+Each `redirects` entry writes a static meta-refresh HTML page rather than a
+server-level redirect. `from` must start with `/`; entries that do not are
+skipped with a console warning. An empty `to` value is skipped the same way.
+`shortUrls` controls the emitted path: with `shortUrls: true`, `/old-url`
+becomes `<output>/old-url/index.html`; otherwise it becomes
+`<output>/old-url.html`. Redirects participate in the same output-collision
+detection as pages and theme assets, so a redirect that would overwrite an
+existing page or asset fails the build with an `Output collision` error.
+
 `title`, `description`, and `author` are the site fields exposed as `site` in
 templates. `contentDir` and `output` are relative to the working directory
-unless absolute. `navigation` optionally supplies a tree of
-`{ title, url,
+unless absolute. `publicDir` is relative to `contentDir`; files under it are
+copied verbatim to the output root (see
+[Public assets](content.md#public-assets)). `navigation` optionally supplies a
+tree of `{ title, url,
 children }` nodes for themes.
 
 ## Managed head tags
@@ -62,10 +76,16 @@ Script entries use `tag: script` with `src` or inline `content`, and support
 `type`, `async`, `defer`, `noModule`, `integrity`, `crossOrigin`, and
 `referrerPolicy`.
 
-Pages can add or replace entries through `steno.head` frontmatter. Meta tags are
-matched by name/property, canonical links by `rel`, and external scripts by
-`src`. Set an explicit `key` to control replacement for any entry. Unmatched
-entries are appended in declaration order.
+Pages can add or replace entries through `steno.head` frontmatter. A page entry
+replaces a site entry when they share the same identity, and is otherwise
+appended in declaration order. Identity is, in priority order: an explicit `key`
+if either entry sets one; for a meta tag, its `name`, `property`, or `httpEquiv`
+value lowercased (a `charset` meta is always its own single identity); for a
+link tag, `rel: canonical` is always one shared identity regardless of `href`,
+while any other `rel` is identified by `rel` and `href` together; for a script
+tag, its `src`. Inline scripts without `src` and link tags without a recognized
+`rel` have no identity and are always appended. A meta entry must set exactly
+one of `name`, `property`, `httpEquiv`, or `charset`.
 
 ## `custom`
 
@@ -74,7 +94,8 @@ entries are appended in declaration order.
 `globals` are available both directly and as `globals` in page layouts.
 
 `shortUrls` defaults to `false`. `devPort` selects the initial development
-server port; Steno finds a later available port when necessary.
+server port (default 5735). If it is unavailable, Steno scans forward one port
+at a time up to 65535 and binds the first free one.
 
 `stylesheets` is a theme-facing configuration value; Steno exposes it but does
 not inject tags automatically.
@@ -113,11 +134,23 @@ during a build.
 Object plugin entries can set `mode: isolated`. Isolated plugins accept
 `permissions` allowlists for `read`, `write`, `net`, `env`, `run`, `ffi`, `sys`,
 and remote `import` hosts. They also accept `timeoutMs`, `maxOutputBytes`,
-`memoryMb`, `lockFile`, and an optional `integrity` value.
+`memoryMb`, `lockFile`, and an optional `integrity` value. When omitted,
+`timeoutMs` defaults to 5000, `maxOutputBytes` to 4194304 (4 MiB), and
+`memoryMb` to 128.
 
 String entries and entries without a mode remain `trusted` and run in-process
 for compatibility. See the [plugin sandbox](plugin_sandbox.md) before granting
 capabilities.
+
+### Plugin integrity
+
+Any object plugin entry, `trusted` or `isolated`, may set
+`integrity:
+sha256-<base64>`. Steno verifies the digest of a `file://` or
+`https://` plugin's source before importing it and fails the build on a
+mismatch. `jsr:` and `npm:` specifiers cannot be verified this way; pin their
+exact version and use a frozen Deno lockfile (`lockFile`, isolated mode only) to
+protect their dependency graph instead.
 
 ## CLI
 
@@ -125,6 +158,11 @@ capabilities.
 deno x jsr:@steno/steno [build|dev|preview|doctor|help] [--config path] [--port number]
 ```
 
-`build` is the default. `dev` watches and serves the site, `preview` builds and
-serves the production output without watching, and `doctor` reports common
-project/configuration problems. `--port` selects the preview port.
+`build` is the default. `dev` watches and serves the site, `preview` serves the
+already-built production output without watching, and `doctor` reports common
+project/configuration problems; see [Doctor](doctor.md) for the full check list.
+`--port` selects the preview port, which defaults to 4173 and searches upward
+for the next available port the same way the dev server does. `preview` requires
+a prior `build`: it fails with an error naming the missing output directory if
+`dist/` does not exist yet. `preview` always binds to `127.0.0.1`; `dev` binds
+to `0.0.0.0`.

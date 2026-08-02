@@ -32,3 +32,19 @@ that order, then validated. The top-level merge is shallow, while schema
 validation and defaults can be recursive. Undeclared top-level keys are allowed
 for backwards compatibility. Invalid values fail theme loading with a path to
 the offending setting.
+
+## Resolution
+
+`custom.theme` accepts, in order of how Steno tries to resolve it:
+
+1. One of the three bundled theme specifiers, `jsr:@steno/theme-minimal`,
+   `jsr:@steno/theme-docs-minimal`, or `jsr:@steno/theme-marketing-minimal`,
+   which Steno loads from its own bundled copy without a network request.
+2. A local path (starting with `.`, `/`, or `file://`). If the directory
+   contains `theme.yaml` or `theme.yml`, it loads as a convention-based
+   directory theme; see [Themes and Tau](theme_development.md). Otherwise Steno
+   looks for `mod.ts`, `theme.ts`, or `index.ts`, in that order, and imports the
+   first one found as a module exporting a `StenoTheme`. A local directory with
+   neither a theme manifest nor one of those three files fails to load.
+3. Any other specifier (`jsr:`, `npm:`, or `https:`) is imported directly as a
+   module exporting a `StenoTheme`.

@@ -8,6 +8,7 @@
 - [Theme specification](theme-specification.md)
 - [Plugins](plugins.md)
 - [Plugin sandbox](plugin_sandbox.md)
+- [Doctor](doctor.md)
 - [Transactional builds](atomic_builds.md)
 - [Benchmark report and methodology](benchmarks.md)
 - [API reference](api_reference.md)

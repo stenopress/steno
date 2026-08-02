@@ -89,6 +89,21 @@ content/_data/team.json              → data.team
 content/_data/blog/authors.yaml      → data.blog.authors
 ```
 
+## Public assets
+
+Files in `content/public/` are copied verbatim to the output root, preserving
+their relative path:
+
+```text
+content/public/favicon.ico           → dist/favicon.ico
+content/public/css/style.css         → dist/css/style.css
+```
+
+The directory is excluded from Markdown scanning and never rendered. Override
+the directory name with `publicDir` in config, or set `publicDir: false` to
+disable it. A public asset that would overwrite a generated page, theme asset,
+or redirect fails the build instead of silently overwriting it.
+
 ## Collections
 
 Every first-level content directory becomes a collection. For example,
@@ -119,3 +134,15 @@ highest precedence.
 
 Only `PUBLIC_*` values are rendered into templates. Do not put secrets in
 variables with that prefix. Add `.env.local` and `.env.*.local` to `.gitignore`.
+
+Each dotenv file uses `KEY=value` lines. Keys must match
+`^[A-Za-z_][A-Za-z0-9_]*$`. An optional `export` prefix is stripped. Blank lines
+and lines starting with `#` are ignored. An unquoted value may carry a trailing
+`# comment`, which is stripped. A double-quoted value interprets `\n`, `\r`,
+`\t`, `\"`, and `\\`; a single-quoted value is taken literally. An invalid key
+or an unterminated quoted value fails with the file name and line number.
+
+## Redirects
+
+See [Redirects](config_reference.md#redirects) for how `redirects` entries are
+resolved to output paths and validated during a build.

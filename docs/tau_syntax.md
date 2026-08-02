@@ -41,9 +41,12 @@ indexing, comparisons, arithmetic, boolean logic, optional chaining, literals,
 and calls to functions explicitly supplied in the render context.
 
 Tau rejects assignment, increment/decrement, arrow and function expressions,
-classes, `new`, `await`, `yield`, `delete`, template literals, statement
-separators, escaped identifiers, ambient runtime globals, generated renderer
-locals, and access to `constructor`, `prototype`, or `__proto__`.
+classes, `new`, `await`, `yield`, `delete`, template literals, and statement
+separators. It also rejects any identifier in a fixed blocklist, regardless of
+whether it resolves to anything in context: `AsyncFunction`, `Deno`, `Function`,
+`WebAssembly`, `__proto__`, `__tauIterable`, `constructor`, `context`, `eval`,
+`globalThis`, `helpers`, `html`, `import`, `module`, `process`, `prototype`,
+`require`, `self`, and `window`.
 
 Tau hardening is defense in depth for trusted theme templates. The expression
 subset is not an isolation boundary for arbitrary hostile code.
@@ -60,6 +63,21 @@ subset is not an isolation boundary for arbitrary hostile code.
 - Component boolean props have the value `true`.
 - A missing component, filter, or include resolver is an error.
 - Filter-specific conversion rules are part of each filter's contract.
+
+## Built-in filters
+
+- `date` formats a value with `Date.prototype.toLocaleDateString()` in the
+  host's locale. A falsy input renders as an empty string; an input that does
+  not parse to a valid date renders as `String(value)` unchanged.
+- `truncate(length)` cuts a stringified value to `length` characters, appending
+  `...` when it was longer. `length` defaults to 100 and falls back to 100 if it
+  does not parse as a number. `null`/`undefined` render as an empty string.
+- `upper` and `lower` stringify and change case; a falsy input renders as an
+  empty string.
+- `url` validates a value for use in a URL attribute; see below.
+
+Filters chain left to right: `{value | truncate(20) | upper}` truncates first,
+then uppercases the result.
 
 ## Escaping and output contexts
 

@@ -65,3 +65,14 @@ Before adding a plugin or a theme:
 Do not load untrusted plugins unless the entry explicitly sets `mode: isolated`.
 See the [plugin sandbox](plugin_sandbox.md) for its permissions, guarantees, and
 limitations.
+
+## Official plugins
+
+Steno publishes two official plugins, installable directly or through the
+`--plugins tailwind,shiki` flag of `deno create jsr:@steno/init`:
+
+- `jsr:@steno/plugin-tailwind` compiles Tailwind CSS during the build.
+- `jsr:@steno/plugin-shiki` highlights fenced code blocks with Shiki.
+
+Both are declared with `mode: trusted` by the scaffolder and run in-process. Pin
+an exact version rather than a range when adding them manually.
