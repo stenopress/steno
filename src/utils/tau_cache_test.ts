@@ -2,10 +2,10 @@ import { assertEquals } from "@std/assert";
 import { clearTauCache, getTauCacheStats, render } from "./tau.ts";
 
 export function registerTauCacheTests(): void {
-  Deno.test("tau cache: remains bounded and reports LRU pressure", () => {
+  Deno.test("tau cache: remains bounded and reports LRU pressure", async () => {
     clearTauCache();
     for (let index = 0; index < 700; index++) {
-      render({
+      await render({
         template: `<p>${index}:{value}</p>${"x".repeat(512)}`,
         context: { value: index },
         components: {},
@@ -19,15 +19,15 @@ export function registerTauCacheTests(): void {
     assertEquals(stats.evictions, 188);
   });
 
-  Deno.test("tau cache: records hits and can release retained templates", () => {
+  Deno.test("tau cache: records hits and can release retained templates", async () => {
     clearTauCache();
     const options = {
       template: "<p>{value}</p>",
       context: { value: "x" },
       components: {},
     };
-    render(options);
-    render(options);
+    await render(options);
+    await render(options);
 
     assertEquals(getTauCacheStats(), {
       size: 1,

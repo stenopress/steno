@@ -21,11 +21,11 @@ function randomString(random: () => number, length: number): string {
 }
 
 export function registerTauFuzzTests(): void {
-  Deno.test("tau property: escaped interpolation never emits raw HTML delimiters", () => {
+  Deno.test("tau property: escaped interpolation never emits raw HTML delimiters", async () => {
     const random = createRandom(0x54415508);
     for (let index = 0; index < 1_000; index++) {
       const value = randomString(random, Math.floor(random() * 80));
-      const output = render({
+      const output = await render({
         template: "{value}",
         context: { value },
         components: {},
@@ -33,7 +33,7 @@ export function registerTauFuzzTests(): void {
       assertEquals(output, escapeHtml(value));
       assertEquals(
         output,
-        render({
+        await render({
           template: "{value}",
           context: { value },
           components: {},
@@ -56,11 +56,11 @@ export function registerTauFuzzTests(): void {
     }
   });
 
-  Deno.test("tau adversarial: parser rejects excessive syntax depth", () => {
+  Deno.test("tau adversarial: parser rejects excessive syntax depth", async () => {
     const template = `${"{#if true}".repeat(300)}x${"{/if}".repeat(300)}`;
-    const error = (() => {
+    const error = await (async () => {
       try {
-        render({ template, context: {}, components: {} });
+        await render({ template, context: {}, components: {} });
       } catch (caught) {
         return caught;
       }
@@ -69,15 +69,15 @@ export function registerTauFuzzTests(): void {
     assertEquals(error.code, "TAU_LIMIT_DEPTH");
   });
 
-  Deno.test("tau adversarial: infinite iterables stop at the shared limit", () => {
+  Deno.test("tau adversarial: infinite iterables stop at the shared limit", async () => {
     const infinite = {
       *[Symbol.iterator]() {
         while (true) yield "x";
       },
     };
-    const error = (() => {
+    const error = await (async () => {
       try {
-        render({
+        await render({
           template: "{#each values as value}{value}{/each}",
           context: { values: infinite },
           components: {},
@@ -91,10 +91,10 @@ export function registerTauFuzzTests(): void {
     assertEquals(error.code, "TAU_LIMIT_ITERATIONS");
   });
 
-  Deno.test("tau property: output never exceeds its configured byte limit", () => {
+  Deno.test("tau property: output never exceeds its configured byte limit", async () => {
     const limit = 128;
     try {
-      const output = render({
+      const output = await render({
         template: "{#each values as value}{value}{/each}",
         context: { values: Array(100).fill("😀") },
         components: {},

@@ -19,7 +19,7 @@ export function registerProjectTests(): void {
       assertEquals(theme?.name, "marketing-minimal");
       if (!theme) throw new Error("Marketing theme failed to load.");
       assertEquals(theme?.config.primaryLabel, "Get started");
-      const html = theme?.renderLayout("layout", "<h2>Details</h2>", {
+      const html = await theme?.renderLayout("layout", "<h2>Details</h2>", {
         title: "Launch",
         site: { title: "Launch", navigation: [] },
         theme: { name: theme.name, version: theme.version, ...theme.config },

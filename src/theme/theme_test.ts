@@ -1,4 +1,9 @@
-import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
+import {
+  assertEquals,
+  assertRejects,
+  assertStringIncludes,
+  assertThrows,
+} from "@std/assert";
 import { join } from "@std/path";
 import { Theme } from "./theme.ts";
 
@@ -18,7 +23,7 @@ export function registerThemeTests(): void {
     assertEquals(theme.config.author, "site");
   });
 
-  Deno.test("theme: renderLayout receives page/site/theme context", () => {
+  Deno.test("theme: renderLayout receives page/site/theme context", async () => {
     const theme = new Theme({
       name: "minimal",
       version: "1.0.0",
@@ -31,7 +36,7 @@ export function registerThemeTests(): void {
       defaultConfig: { author: "theme-author" },
     });
 
-    const out = theme.renderLayout("layout", "<p>Body</p>", {
+    const out = await theme.renderLayout("layout", "<p>Body</p>", {
       title: "Post",
       site: { title: "Site" },
       theme: { author: "theme-author" },
@@ -97,13 +102,13 @@ export function registerThemeTests(): void {
       Deno.writeTextFileSync(join(themeDir, "assets", "style.css"), `body {}`);
 
       const theme = Theme.loadFromDirectory(themeDir, { author: "override" });
-      const rendered = theme.renderLayout("layout", "<p>x</p>", {
+      const rendered = await theme.renderLayout("layout", "<p>x</p>", {
         site: { title: "My Site" },
         theme: { author: theme.config.author },
       });
 
       assertStringIncludes(rendered, "<h1>My Site</h1>");
-      assertThrows(
+      await assertRejects(
         () => theme.renderLayout("legacy", "", {}),
         Error,
         'Layout "legacy" not found',
