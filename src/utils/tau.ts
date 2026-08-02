@@ -1,6 +1,7 @@
 import { type Node, TauParser } from "./tau_parser.ts";
 import { TauError } from "./tau_error.ts";
 import { utf8ByteLength } from "./text.ts";
+import { BLOCKED_EXPRESSION_NAMES, compileExpression } from "./tau_expr.ts";
 
 /** Options accepted by the Tau template renderer. */
 export interface TauOptions {
@@ -30,7 +31,7 @@ export interface TauLimits {
   maxTemplateBytes: number;
 }
 
-/** Function signature for a Tau value filter. */
+/** Function signature for a Tau value filter. May be sync or async. */
 export type FilterFunction = (
   val: unknown,
   ...args: unknown[]
@@ -38,11 +39,12 @@ export type FilterFunction = (
 type CompiledTemplateFn = (
   context: Record<string, unknown>,
   helpers: TauHelpers,
-) => string;
+) => Promise<string>;
 
 interface TauHelpers {
   filters: Record<string, FilterFunction>;
   append: (target: string[], value: unknown, escape: boolean) => void;
+  get: (obj: unknown, key: unknown, optional: boolean) => unknown;
   isIterable: (value: unknown) => boolean;
   countIteration: () => void;
   renderComponent: (
@@ -50,13 +52,18 @@ interface TauHelpers {
     props: Record<string, unknown>,
     parentContext: Record<string, unknown>,
     target: string[],
-  ) => string;
+  ) => Promise<string>;
   resolveInclude: (
     path: string,
     context: Record<string, unknown>,
     target: string[],
-  ) => string;
+  ) => Promise<string>;
 }
+
+// `new Function` can't construct an async function directly; borrow the
+// AsyncFunction constructor the same way the language spec does.
+const AsyncFunction: FunctionConstructor =
+  Object.getPrototypeOf(async function () {}).constructor;
 
 const templateCache = new Map<string, CompiledTemplateFn>();
 let templateCacheHits = 0;
@@ -78,59 +85,12 @@ interface RenderState {
   componentStack: string[];
 }
 
-const BLOCKED_EXPRESSION_NAMES = new Set([
-  "AsyncFunction",
-  "Deno",
-  "Function",
-  "WebAssembly",
-  "__proto__",
-  "__tauIterable",
-  "constructor",
-  "eval",
-  "helpers",
-  "html",
-  "globalThis",
-  "import",
-  "module",
-  "process",
-  "prototype",
-  "require",
-  "self",
-  "context",
-  "window",
-]);
-
 function hasControlCharacters(value: string): boolean {
   for (let index = 0; index < value.length; index++) {
     const code = value.charCodeAt(index);
     if (code <= 0x1F || code === 0x7F) return true;
   }
   return false;
-}
-
-function assertSafeExpression(expression: string): void {
-  const syntax = expression.replace(
-    /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,
-    '""',
-  );
-  if (
-    /(?:=>|;|`|\\|\+\+|--|\b(?:await|class|delete|function|new|this|yield)\b)/
-      .test(syntax) ||
-    /(?:^|[^=!<>])=(?!=|>)/.test(syntax)
-  ) {
-    throw new TauError(
-      "TAU_UNSAFE_EXPRESSION",
-      `Unsafe Tau expression syntax: "${expression}".`,
-    );
-  }
-  for (const identifier of syntax.match(/[A-Za-z_$][\w$]*/g) ?? []) {
-    if (BLOCKED_EXPRESSION_NAMES.has(identifier)) {
-      throw new TauError(
-        "TAU_UNSAFE_EXPRESSION",
-        `Tau expression access to "${identifier}" is not allowed.`,
-      );
-    }
-  }
 }
 
 function resolveLimits(overrides?: Partial<TauLimits>): TauLimits {
@@ -204,14 +164,36 @@ export function escapeHtml(val: unknown): string {
   ).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-function compileNodes(nodes: Node[]): string {
+const EMPTY_LOCALS: ReadonlySet<string> = new Set();
+
+/** Shared across one compileToFunction call to name child-content buffers uniquely. */
+interface CompileState {
+  nextId: number;
+}
+
+function compileNodes(
+  nodes: Node[],
+  locals: ReadonlySet<string> = EMPTY_LOCALS,
+  target = "html",
+  state: CompileState = { nextId: 0 },
+): string {
   let code = "";
+  // Mutated in place by "let" nodes so a binding is visible to later
+  // siblings in this block without leaking to the caller's scope.
+  let currentLocals = locals;
   for (const node of nodes) {
     if (node.type === "text") {
-      code += `helpers.append(html, ${JSON.stringify(node.value)}, false);\n`;
+      code += `helpers.append(${target}, ${
+        JSON.stringify(node.value)
+      }, false);\n`;
+    } else if (node.type === "let") {
+      const value = compileExpression(node.expression!, currentLocals);
+      code += `const ${node.letName} = ${value};\n`;
+      const nextLocals = new Set(currentLocals);
+      nextLocals.add(node.letName!);
+      currentLocals = nextLocals;
     } else if (node.type === "expression") {
-      let expr = node.expression;
-      assertSafeExpression(expr!);
+      let expr = compileExpression(node.expression!, currentLocals);
       for (const filter of node.filters || []) {
         if (!Object.hasOwn(filters, filter.name)) {
           throw new TauError(
@@ -219,48 +201,70 @@ function compileNodes(nodes: Node[]): string {
             `Unknown Tau filter "${filter.name}".`,
           );
         }
-        for (const arg of filter.args) assertSafeExpression(arg);
-        expr = `helpers.filters.${filter.name}(${
-          [expr, ...filter.args].join(", ")
-        })`;
+        const args = filter.args.map((arg) =>
+          compileExpression(arg, currentLocals)
+        );
+        expr = `(await helpers.filters.${filter.name}(${
+          [expr, ...args].join(", ")
+        }))`;
       }
-      code += `helpers.append(html, ${expr}, true);\n`;
+      code += `helpers.append(${target}, ${expr}, true);\n`;
     } else if (node.type === "html") {
-      assertSafeExpression(node.expression!);
-      code += `helpers.append(html, ${node.expression}, false);\n`;
+      const expr = compileExpression(node.expression!, currentLocals);
+      code += `helpers.append(${target}, ${expr}, false);\n`;
     } else if (node.type === "include") {
-      code += `helpers.resolveInclude(${
+      code += `await helpers.resolveInclude(${
         JSON.stringify(node.includePath)
-      }, context, html);\n`;
+      }, context, ${target});\n`;
     } else if (node.type === "if") {
-      assertSafeExpression(node.condition!);
-      code += `if (${node.condition}) {\n${
-        compileNodes(node.consequent || [])
+      const condition = compileExpression(node.condition!, currentLocals);
+      code += `if (${condition}) {\n${
+        compileNodes(node.consequent || [], currentLocals, target, state)
       }}`;
       if (node.alternate?.length) {
-        code += ` else {\n${compileNodes(node.alternate)}}\n`;
+        code += ` else {\n${
+          compileNodes(node.alternate, currentLocals, target, state)
+        }}\n`;
       } else code += "\n";
     } else if (node.type === "each") {
-      assertSafeExpression(node.array!);
-      code += `{\nconst __tauIterable = ${node.array};\n`;
+      const array = compileExpression(node.array!, currentLocals);
+      const loopLocals = new Set(currentLocals);
+      loopLocals.add(node.item!);
+      if (node.indexVar) loopLocals.add(node.indexVar);
+      const hasElse = (node.alternate?.length ?? 0) > 0;
+      code += `{\nconst __tauIterable = ${array};\n`;
+      if (hasElse) code += `let __tauHadItems = false;\n`;
       code += `if (helpers.isIterable(__tauIterable)) {\n`;
       if (node.indexVar) code += `  let ${node.indexVar} = 0;\n`;
-      code +=
-        `  for (const ${node.item} of __tauIterable) {\n    helpers.countIteration();\n${
-          compileNodes(node.consequent || [])
-        }`;
+      code += `  for (const ${node.item} of __tauIterable) {\n${
+        hasElse ? "    __tauHadItems = true;\n" : ""
+      }    helpers.countIteration();\n${
+        compileNodes(node.consequent || [], loopLocals, target, state)
+      }`;
       if (node.indexVar) code += `    ${node.indexVar}++;\n`;
-      code += `  }\n}\n}\n`;
+      code += `  }\n}\n`;
+      if (hasElse) {
+        code += `if (!__tauHadItems) {\n${
+          compileNodes(node.alternate || [], currentLocals, target, state)
+        }}\n`;
+      }
+      code += `}\n`;
     } else if (node.type === "component") {
-      const propsObj = `{ ${
-        Object.entries(node.props || {}).map(([k, v]) => {
-          assertSafeExpression(v);
-          return `${JSON.stringify(k)}: ${v}`;
-        }).join(", ")
-      } }`;
-      code += `helpers.renderComponent(${
+      const propsEntries = Object.entries(node.props || {}).map(([k, v]) => {
+        const value = compileExpression(v, currentLocals);
+        return `${JSON.stringify(k)}: ${value}`;
+      });
+      if (node.consequent && node.consequent.length > 0) {
+        const childTarget = `__tauChildren${state.nextId++}`;
+        code += `const ${childTarget} = [];\n${
+          compileNodes(node.consequent, currentLocals, childTarget, state)
+        }`;
+        propsEntries.push(`children: ${childTarget}.join("")`);
+      }
+      const propsObj = `{ ${propsEntries.join(", ")} }`;
+      code += `await helpers.renderComponent(${
         JSON.stringify(node.componentName)
-      }, ${propsObj}, context, html);\n`;
+      }, ${propsObj}, context, ${target});\n`;
     }
   }
   return code;
@@ -272,11 +276,11 @@ export function compileToFunction(
 ): CompiledTemplateFn {
   const body = compileNodes(new TauParser(template, filePath).parseBlock());
   try {
-    return new Function(
+    return new AsyncFunction(
       "context",
       "helpers",
-      `const html = []; with (context) {\n${body}\n} return html.join("");`,
-    ) as CompiledTemplateFn;
+      `const html = [];\n${body}\nreturn html.join("");`,
+    ) as unknown as CompiledTemplateFn;
   } catch (err) {
     throw new TauError(
       "TAU_UNSAFE_EXPRESSION",
@@ -342,12 +346,12 @@ export function clearTauCache(): void {
   templateCacheEvictions = 0;
 }
 
-function renderWithCompiledTemplate(
+async function renderWithCompiledTemplate(
   renderFn: CompiledTemplateFn,
   options: TauOptions,
   componentFnCache: Map<string, CompiledTemplateFn>,
   state: RenderState,
-): string {
+): Promise<string> {
   state.depth++;
   if (state.depth > state.limits.maxDepth) {
     state.depth--;
@@ -370,6 +374,16 @@ function renderWithCompiledTemplate(
       }
       target.push(output);
     },
+    get: (obj: unknown, key: unknown, optional: boolean) => {
+      if (optional && (obj === null || obj === undefined)) return undefined;
+      if (typeof key === "string" && BLOCKED_EXPRESSION_NAMES.has(key)) {
+        throw new TauError(
+          "TAU_UNSAFE_EXPRESSION",
+          `Tau expression access to "${key}" is not allowed.`,
+        );
+      }
+      return (obj as Record<string, unknown>)[key as string];
+    },
     isIterable: (value: unknown) =>
       value != null &&
       typeof (value as { [Symbol.iterator]?: unknown })[Symbol.iterator] ===
@@ -383,7 +397,7 @@ function renderWithCompiledTemplate(
         );
       }
     },
-    resolveInclude: (
+    resolveInclude: async (
       path: string,
       ctx: Record<string, unknown>,
       target: string[],
@@ -406,7 +420,7 @@ function renderWithCompiledTemplate(
       try {
         const includedTemplate = options.includeResolver(path);
         assertTemplateSize(includedTemplate, state.limits);
-        const output = renderWithCompiledTemplate(
+        const output = await renderWithCompiledTemplate(
           getCompiledTemplate(includedTemplate, path),
           {
             ...options,
@@ -423,7 +437,7 @@ function renderWithCompiledTemplate(
         state.includeStack.pop();
       }
     },
-    renderComponent: (
+    renderComponent: async (
       name: string,
       props: Record<string, unknown>,
       parentContext: Record<string, unknown>,
@@ -467,7 +481,7 @@ function renderWithCompiledTemplate(
           : {};
       state.componentStack.push(name);
       try {
-        const output = renderWithCompiledTemplate(
+        const output = await renderWithCompiledTemplate(
           componentRenderFn,
           {
             ...options,
@@ -491,21 +505,9 @@ function renderWithCompiledTemplate(
     },
   };
 
-  const contextProxy = new Proxy(options.context, {
-    has: (_, key) =>
-      typeof key !== "symbol" &&
-      !["html", "helpers", "context"].includes(key as string),
-    get: (target, key) => {
-      if (key === Symbol.unscopables) return undefined;
-      if (Object.hasOwn(target, key)) return target[key as string];
-      if (key in helpers) return undefined;
-      return undefined;
-    },
-  });
-
   try {
     try {
-      return renderFn(contextProxy, helpers);
+      return await renderFn(options.context, helpers);
     } catch (error) {
       if (error instanceof TauError) throw error;
       throw new TauError(
@@ -535,13 +537,17 @@ function assertTemplateSize(template: string, limits: TauLimits): void {
 /**
  * Renders a Tau template with the supplied context and components.
  *
+ * Async because template expressions may call a context-supplied async
+ * function (`{someAsyncFn()}`); the result is awaited implicitly, so a sync
+ * function works too. Filters may also be async.
+ *
  * @param options Template source, context, components, and optional limits.
  * @returns The rendered HTML string.
  */
-export function render(options: TauOptions): string {
+export async function render(options: TauOptions): Promise<string> {
   const limits = resolveLimits(options.limits);
   assertTemplateSize(options.template, limits);
-  return renderWithCompiledTemplate(
+  return await renderWithCompiledTemplate(
     getCompiledTemplate(options.template, options.filePath),
     options,
     new Map(),
