@@ -125,15 +125,15 @@ export function commitOutputTransaction(
   }
 
   if (previousBackup) {
-    void Promise.resolve().then(() => {
+    try {
       fs.removeSync(previousBackup, { recursive: true });
-    }).catch((error) => {
+    } catch (error) {
       console.warn(
         `Build committed, but failed to remove retired backup "${previousBackup}": ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
-    });
+    }
   }
 }
 

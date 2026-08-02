@@ -179,11 +179,22 @@ export function commonAncestorDir(paths: string[]): string {
   return ancestor;
 }
 
+/** Resolves the `public` passthrough directory, or `null` when disabled. */
+export function resolvePublicDir(
+  contentDir: string,
+  publicDir: string | false | undefined,
+): string | null {
+  if (publicDir === false) return null;
+  return join(contentDir, publicDir || "public");
+}
+
 export function resolveMarkdownScanIgnorePaths(
   contentDir: string,
   outputDir?: string,
+  publicDir?: string | null,
 ): string[] {
   const ignorePaths = [join(contentDir, ".steno")];
   if (outputDir) ignorePaths.push(outputDir);
+  if (publicDir) ignorePaths.push(publicDir);
   return ignorePaths;
 }

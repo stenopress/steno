@@ -390,6 +390,88 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
+    name: "build: a data file change forces a rebuild instead of stale output",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme({
+        layout: `<html><body>{data.site.message}{@html content}</body></html>`,
+      });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writePage(
+        "index.md",
+        `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`,
+      );
+      f.writePage("_data/site.json", `{"message":"v1"}`);
+
+      const steno = new Steno(f.configPath, false);
+      await steno.build();
+      assertStringIncludes(
+        Deno.readTextFileSync(join(f.outputDir, "index.html")),
+        "v1",
+      );
+
+      // The page's own source is untouched - only the data file changes.
+      // Before the build signature accounted for data, this page's cache
+      // entry would still match and the stale "v1" output would be copied
+      // forward unchanged.
+      f.writePage("_data/site.json", `{"message":"v2"}`);
+      await steno.build();
+      const html = Deno.readTextFileSync(join(f.outputDir, "index.html"));
+      assertStringIncludes(html, "v2");
+      assertEquals(html.includes("v1"), false);
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name:
+      "build: reuses cached HTML across processes when output is missing but content is unchanged",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+
+      let transformCalls = 0;
+      const plugin: StenoPlugin = {
+        name: "counter",
+        transformHtml: (html: string) => {
+          transformCalls++;
+          return html;
+        },
+      };
+
+      const stenoV1 = new Steno(f.configPath, false);
+      await replacePlugins(stenoV1, [plugin]);
+      await stenoV1.build();
+      assertEquals(transformCalls, 1);
+
+      // Simulate a clean rebuild from a fresh process: the output directory
+      // is gone, but content is unchanged and the persistent disk cache
+      // still matches the build signature.
+      Deno.removeSync(f.outputDir, { recursive: true });
+
+      const stenoV2 = new Steno(f.configPath, false);
+      await replacePlugins(stenoV2, [plugin]);
+      await stenoV2.build();
+
+      assertEquals(
+        transformCalls,
+        1,
+        "transformHtml should not run again when cached HTML is reused",
+      );
+      assertStringIncludes(
+        Deno.readTextFileSync(join(f.outputDir, "index.html")),
+        "Hello.",
+      );
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
     name:
       "build: persistent cache re-renders pages when theme layout templates change",
     permissions: { read: true, write: true },
@@ -1062,6 +1144,107 @@ Body.`,
         "last-good",
       );
       Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "build: copies public directory files to output root",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+      f.writePage("public/favicon.ico", "ICO");
+      f.writePage("public/css/style.css", "body {}");
+
+      await new Steno(f.configPath, false).build();
+
+      assertEquals(
+        Deno.readTextFileSync(join(f.outputDir, "favicon.ico")),
+        "ICO",
+      );
+      assertEquals(
+        Deno.readTextFileSync(join(f.outputDir, "css", "style.css")),
+        "body {}",
+      );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: public directory is excluded from page scanning",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+      f.writePage("public/downloads/readme.md", "# not a page");
+
+      await new Steno(f.configPath, false).build();
+
+      assertEquals(
+        Deno.readTextFileSync(join(f.outputDir, "downloads", "readme.md")),
+        "# not a page",
+      );
+      assertEquals(
+        fileExists(join(f.outputDir, "downloads", "readme.html")),
+        false,
+      );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: publicDir: false disables the public directory",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig(`publicDir: false\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+      f.writePage("public/favicon.ico", "ICO");
+
+      await new Steno(f.configPath, false).build();
+
+      assertEquals(fileExists(join(f.outputDir, "favicon.ico")), false);
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: publicDir overrides the directory name",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig(`publicDir: static\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+      f.writePage("static/favicon.ico", "ICO");
+      f.writePage("public/favicon.ico", "should-not-be-copied");
+
+      await new Steno(f.configPath, false).build();
+
+      assertEquals(
+        Deno.readTextFileSync(join(f.outputDir, "favicon.ico")),
+        "ICO",
+      );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: public asset colliding with a page fails the build",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("about.md", `---\ntitle: "About"\n---\nHello.`);
+      f.writePage("public/about.html", "not the real page");
+
+      await assertRejects(
+        () => new Steno(f.configPath, false).build(),
+        Error,
+        "Output collision",
+      );
+      f.cleanup();
     },
   });
 }

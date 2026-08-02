@@ -1,5 +1,6 @@
 import { type Node, TauParser } from "./tau_parser.ts";
 import { TauError } from "./tau_error.ts";
+import { utf8ByteLength } from "./text.ts";
 
 /** Options accepted by the Tau template renderer. */
 export interface TauOptions {
@@ -105,28 +106,6 @@ function hasControlCharacters(value: string): boolean {
     if (code <= 0x1F || code === 0x7F) return true;
   }
   return false;
-}
-
-function utf8ByteLength(value: string): number {
-  let bytes = value.length;
-  for (let index = 0; index < value.length; index++) {
-    const code = value.charCodeAt(index);
-    if (code <= 0x7F) continue;
-    if (code <= 0x7FF) {
-      bytes++;
-    } else if (
-      code >= 0xD800 && code <= 0xDBFF &&
-      index + 1 < value.length &&
-      value.charCodeAt(index + 1) >= 0xDC00 &&
-      value.charCodeAt(index + 1) <= 0xDFFF
-    ) {
-      bytes += 2;
-      index++;
-    } else {
-      bytes += 2;
-    }
-  }
-  return bytes;
 }
 
 function assertSafeExpression(expression: string): void {

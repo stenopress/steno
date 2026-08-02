@@ -151,6 +151,40 @@ Deno.test({
 });
 
 Deno.test({
+  name: "cache: persists body and htmlContent across save/load",
+  permissions: { read: true, write: true },
+  fn: () => {
+    const tempDir = Deno.makeTempDirSync();
+    const cachePath = join(tempDir, ".steno", "build-cache.json");
+    const pages = new Map([
+      [
+        "/content/index.md",
+        {
+          relPath: "index.md",
+          outputPath: "/dist/index.html",
+          sourceText: "# Hello",
+          body: "# Hello",
+          htmlContent: "<h1>Hello</h1>",
+        },
+      ],
+    ]);
+
+    savePersistentBuildCache(cachePath, "sig-123", pages);
+    const loaded = loadPersistentBuildCache(cachePath);
+
+    assertEquals(loaded?.pages[0].body, "# Hello");
+    assertEquals(loaded?.pages[0].htmlContent, "<h1>Hello</h1>");
+
+    const stateMap = toBuildStatePageMap(loaded!.pages);
+    const entry = stateMap.get("/content/index.md");
+    assertEquals(entry?.body, "# Hello");
+    assertEquals(entry?.htmlContent, "<h1>Hello</h1>");
+
+    Deno.removeSync(tempDir, { recursive: true });
+  },
+});
+
+Deno.test({
   name: "cache: toBuildStatePageMap converts pages correctly",
   fn: () => {
     const pages = [

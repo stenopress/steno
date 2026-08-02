@@ -1,6 +1,16 @@
-import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
+import {
+  assertEquals,
+  assertNotEquals,
+  assertRejects,
+  assertStringIncludes,
+} from "@std/assert";
 import { join } from "@std/path";
 import { loadPlugins } from "../core/config.ts";
+import {
+  disposeIsolatedPlugins,
+  getIsolatedPluginSignature,
+  loadIsolatedPlugin,
+} from "./isolated_plugin.ts";
 
 function writePlugin(
   directory: string,
@@ -286,6 +296,53 @@ export function registerIsolatedPluginTests(): void {
       );
       assertStringIncludes(error.message, "exited with code 23");
       assertEquals(1 + 1, 2);
+    },
+  });
+
+  Deno.test({
+    name:
+      "isolated plugins: build-cache signature changes when local plugin content changes",
+    permissions: { read: true, write: true, run: true, env: true },
+    fn: async () => {
+      const directory = Deno.makeTempDirSync();
+      const packageName = writePlugin(
+        directory,
+        "versioned.ts",
+        `export default function() {
+          return { name: "versioned", transformHtml(html) { return html; } };
+        }`,
+      );
+
+      const pluginV1 = await loadIsolatedPlugin({
+        package: packageName,
+        mode: "isolated",
+      });
+      const signatureV1 = getIsolatedPluginSignature(pluginV1);
+      disposeIsolatedPlugins([pluginV1]);
+
+      // Same package specifier and options, but the file content (and thus
+      // size/mtime) changed - the cache signature must reflect that so a
+      // rebuild doesn't reuse output rendered by the old plugin code.
+      writePlugin(
+        directory,
+        "versioned.ts",
+        `export default function() {
+          return {
+            name: "versioned",
+            transformHtml(html) { return html + "<!-- v2 -->"; },
+          };
+        }`,
+      );
+
+      const pluginV2 = await loadIsolatedPlugin({
+        package: packageName,
+        mode: "isolated",
+      });
+      const signatureV2 = getIsolatedPluginSignature(pluginV2);
+      disposeIsolatedPlugins([pluginV2]);
+
+      assertEquals(typeof signatureV1, "string");
+      assertNotEquals(signatureV1, signatureV2);
     },
   });
 }
