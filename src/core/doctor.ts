@@ -1,4 +1,4 @@
-import { loadConfig } from "./config.ts";
+import { loadConfig, resolvePluginSourcePolicy } from "./config.ts";
 import { join } from "@std/path";
 import { c, fail, info, ok, success, warn } from "../utils/output.ts";
 
@@ -151,19 +151,18 @@ export async function runDoctor(configPath: string): Promise<void> {
     }
 
     // Check the top-level plugin source policy. This is not a runtime sandbox.
-    const sourcePolicy = config.custom?.pluginSourcePolicy ??
-      config.custom?.pluginSecurity;
-    if (sourcePolicy?.allowLocal) {
+    const sourcePolicy = resolvePluginSourcePolicy(config);
+    if (sourcePolicy.allowLocal) {
       warn(
         `pluginSourcePolicy.allowLocal is enabled - trusted local plugins may be loaded`,
       );
     }
-    if (sourcePolicy?.allowRemoteHttp) {
+    if (sourcePolicy.allowRemoteHttp) {
       warn(
         `pluginSourcePolicy.allowRemoteHttp is enabled - mutable URL plugins may be loaded`,
       );
     }
-    if (sourcePolicy?.allowNodeBuiltins) {
+    if (sourcePolicy.allowNodeBuiltins) {
       warn(
         "pluginSourcePolicy.allowNodeBuiltins permits top-level node: sources; it does not control transitive imports",
       );
