@@ -1,4 +1,4 @@
-import { basename, dirname, isAbsolute, join } from "@std/path";
+import { basename, dirname, isAbsolute, join, relative } from "@std/path";
 import { loadConfig } from "./config.ts";
 import { collectMarkdownPages, type MarkdownPage } from "./collections.ts";
 import type { NavigationNode, SiteConfig } from "../types.ts";
@@ -199,10 +199,22 @@ async function discoverZeroConfigProject(
   }
 
   if (pages.length === 1) {
+    // contentDir becomes the file's own parent directory, which may sit
+    // deeper than scanRootDir (e.g. a lone "content/index.md" at the
+    // project root). relPath was computed against scanRootDir during the
+    // scan above, so it must be recomputed against the reassigned
+    // contentDir or downstream output-path resolution nests an extra
+    // directory into the emitted file (dist/content/index.html instead of
+    // dist/index.html).
+    const contentDir = dirname(pages[0].fullPath);
+    const page = {
+      ...pages[0],
+      relPath: relative(contentDir, pages[0].fullPath),
+    };
     return {
       mode: "single-file",
-      contentDir: dirname(pages[0].fullPath),
-      pages,
+      contentDir,
+      pages: [page],
     };
   }
 
@@ -248,19 +260,17 @@ function buildZeroConfigSiteConfig(
             : join(rootDir, stenoConfig.output.trim()))
           : join(rootDir, "dist"),
       navigation: buildNavigationTree(pages, stenoConfig.shortUrls !== false),
-      custom: {
-        shortUrls: stenoConfig.shortUrls !== false,
-        theme: typeof stenoConfig.theme === "string" &&
-            stenoConfig.theme.trim()
-          ? stenoConfig.theme.trim()
-          : theme,
-        themeConfig: stenoConfig.themeConfig &&
-            typeof stenoConfig.themeConfig === "object" &&
-            stenoConfig.themeConfig !== null &&
-            !Array.isArray(stenoConfig.themeConfig)
-          ? stenoConfig.themeConfig as Record<string, unknown>
-          : {},
-      },
+      shortUrls: stenoConfig.shortUrls !== false,
+      theme: typeof stenoConfig.theme === "string" &&
+          stenoConfig.theme.trim()
+        ? stenoConfig.theme.trim()
+        : theme,
+      themeConfig: stenoConfig.themeConfig &&
+          typeof stenoConfig.themeConfig === "object" &&
+          stenoConfig.themeConfig !== null &&
+          !Array.isArray(stenoConfig.themeConfig)
+        ? stenoConfig.themeConfig as Record<string, unknown>
+        : {},
     };
   }
 
@@ -271,11 +281,9 @@ function buildZeroConfigSiteConfig(
     contentDir: discovery.contentDir,
     output: join(rootDir, "dist"),
     navigation,
-    custom: {
-      shortUrls: true,
-      theme,
-      themeConfig: {},
-    },
+    shortUrls: true,
+    theme,
+    themeConfig: {},
   };
 }
 

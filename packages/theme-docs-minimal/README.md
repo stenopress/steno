@@ -10,24 +10,22 @@ quiet and highly readable.
 To use this theme, specify it in `content/.steno/config.yml`:
 
 ```yaml
-custom:
-  theme: jsr:@steno/theme-docs-minimal@^0.10.0
+theme: jsr:@steno/theme-docs-minimal@^0.10.0
 ```
 
 ## Configuration
 
-All fields are optional strings and can be set under `custom.themeConfig`:
+All fields are optional strings and can be set under `themeConfig`:
 
 ```yaml
-custom:
-  theme: jsr:@steno/theme-docs-minimal@^0.10.0
-  themeConfig:
-    accent: "#7760a9"
-    accentHover: "#5f488f"
-    accentFg: "#ffffff"
-    accentDark: "#9d86d0"
-    accentDarkHover: "#b29ddd"
-    accentDarkFg: "#171519"
+theme: jsr:@steno/theme-docs-minimal@^0.10.0
+themeConfig:
+  accent: "#7760a9"
+  accentHover: "#5f488f"
+  accentFg: "#ffffff"
+  accentDark: "#9d86d0"
+  accentDarkHover: "#b29ddd"
+  accentDarkFg: "#171519"
 ```
 
 `accent`, `accentHover`, and `accentFg` set the light-mode accent color, its

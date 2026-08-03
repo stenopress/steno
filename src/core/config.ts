@@ -8,6 +8,7 @@ import type {
 } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
 import { loadIsolatedPlugin } from "../plugins/isolated_plugin.ts";
+import { DEFAULT_DEV_PORT } from "../utils/server.ts";
 
 type PluginFactory = (
   options: Record<string, unknown>,
@@ -18,7 +19,8 @@ type ResolvedPluginSourcePolicy = Required<PluginSourcePolicy>;
 export function resolvePluginSourcePolicy(
   config: SiteConfig,
 ): ResolvedPluginSourcePolicy {
-  const policy = config.custom?.pluginSourcePolicy ??
+  const policy = config.pluginSourcePolicy ??
+    config.custom?.pluginSourcePolicy ??
     config.custom?.pluginSecurity ??
     {};
   return {
@@ -27,6 +29,35 @@ export function resolvePluginSourcePolicy(
     allowNodeBuiltins: policy.allowNodeBuiltins === true,
     allowThemePlugins: policy.allowThemePlugins !== false,
   };
+}
+
+/** Resolves the active theme module specifier, preferring top-level `theme`. */
+export function resolveTheme(config: SiteConfig): string | undefined {
+  return config.theme ?? config.custom?.theme;
+}
+
+/** Resolves theme configuration values, preferring top-level `themeConfig`. */
+export function resolveThemeConfig(
+  config: SiteConfig,
+): Record<string, unknown> | undefined {
+  return config.themeConfig ?? config.custom?.themeConfig;
+}
+
+/** Resolves whether directory URLs omit `index.html`. Defaults to `false`. */
+export function resolveShortUrls(config: SiteConfig): boolean {
+  return config.shortUrls ?? config.custom?.shortUrls ?? false;
+}
+
+/** Resolves the development server port. */
+export function resolveDevPort(config: SiteConfig): number {
+  return config.devPort ?? config.custom?.devPort ?? DEFAULT_DEV_PORT;
+}
+
+/** Resolves global values exposed to templates. */
+export function resolveGlobals(
+  config: SiteConfig,
+): Record<string, unknown> | undefined {
+  return config.globals ?? config.custom?.globals;
 }
 
 function getBlockedPluginReason(
@@ -58,16 +89,16 @@ function getBlockedPluginReason(
     case "file:":
       return policy.allowLocal
         ? null
-        : "local `file://` plugin imports are disabled by default. Set `custom.pluginSourcePolicy.allowLocal: true` to allow them.";
+        : "local `file://` plugin imports are disabled by default. Set `pluginSourcePolicy.allowLocal: true` to allow them.";
     case "http:":
     case "https:":
       return policy.allowRemoteHttp
         ? null
-        : "remote `http(s)://` plugin imports are disabled by default. Set `custom.pluginSourcePolicy.allowRemoteHttp: true` to allow them.";
+        : "remote `http(s)://` plugin imports are disabled by default. Set `pluginSourcePolicy.allowRemoteHttp: true` to allow them.";
     case "node:":
       return policy.allowNodeBuiltins
         ? null
-        : "`node:` builtin plugin imports are disabled by default. Set `custom.pluginSourcePolicy.allowNodeBuiltins: true` to allow them.";
+        : "`node:` builtin plugin imports are disabled by default. Set `pluginSourcePolicy.allowNodeBuiltins: true` to allow them.";
     case "data:":
     case "blob:":
       return `\`${url.protocol}\` plugin imports are not allowed.`;

@@ -1,6 +1,7 @@
 import { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoTheme } from "../types.ts";
 import { fromFileUrl, isAbsolute, join, toFileUrl } from "@std/path";
+import { resolveTheme, resolveThemeConfig } from "./config.ts";
 
 const bundledThemeSources: Record<string, URL> = {
   "jsr:@steno/theme-minimal": new URL(
@@ -51,13 +52,14 @@ async function loadBundledTheme(
 export async function loadTheme(
   config: SiteConfig,
 ): Promise<Theme | undefined> {
-  const themeName = config.custom?.theme;
+  const themeName = resolveTheme(config);
   if (!themeName) return;
+  const themeConfig = resolveThemeConfig(config);
 
   try {
     const bundledTheme = await loadBundledTheme(
       themeName,
-      config.custom?.themeConfig,
+      themeConfig,
     );
     if (bundledTheme) {
       return bundledTheme;
@@ -86,7 +88,7 @@ export async function loadTheme(
       }
 
       if (hasThemeYaml) {
-        return Theme.loadFromDirectory(themeDir, config.custom?.themeConfig);
+        return Theme.loadFromDirectory(themeDir, themeConfig);
       }
 
       let resolvedPath = themeName.startsWith("file://")
@@ -128,12 +130,12 @@ export async function loadTheme(
 
       const themeModule = await import(resolvedPath);
       const themeData = (themeModule.default || themeModule) as StenoTheme;
-      return new Theme(themeData, config.custom?.themeConfig);
+      return new Theme(themeData, themeConfig);
     }
 
     const themeModule = await import(themeName);
     const themeData = (themeModule.default || themeModule) as StenoTheme;
-    return new Theme(themeData, config.custom?.themeConfig);
+    return new Theme(themeData, themeConfig);
   } catch (error) {
     console.error(`Failed to load theme "${themeName}":`, error);
   }

@@ -1,6 +1,14 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { join } from "@std/path";
-import { loadConfig, loadPlugins } from "./config.ts";
+import {
+  loadConfig,
+  loadPlugins,
+  resolveDevPort,
+  resolveGlobals,
+  resolveShortUrls,
+  resolveTheme,
+  resolveThemeConfig,
+} from "./config.ts";
 
 export function registerConfigTests(): void {
   Deno.test({
@@ -97,6 +105,99 @@ export function registerConfigTests(): void {
         plugins: [],
       });
       assertEquals(result, []);
+    },
+  });
+
+  const base = { title: "", description: "", author: "" };
+
+  Deno.test({
+    name: "config: resolveTheme prefers top-level over custom.theme",
+    fn: () => {
+      assertEquals(
+        resolveTheme({
+          ...base,
+          theme: "./top",
+          custom: { theme: "./nested" },
+        }),
+        "./top",
+      );
+      assertEquals(
+        resolveTheme({ ...base, custom: { theme: "./nested" } }),
+        "./nested",
+      );
+      assertEquals(resolveTheme(base), undefined);
+    },
+  });
+
+  Deno.test({
+    name:
+      "config: resolveThemeConfig prefers top-level over custom.themeConfig",
+    fn: () => {
+      assertEquals(
+        resolveThemeConfig({
+          ...base,
+          themeConfig: { a: 1 },
+          custom: { themeConfig: { a: 2 } },
+        }),
+        { a: 1 },
+      );
+      assertEquals(
+        resolveThemeConfig({ ...base, custom: { themeConfig: { a: 2 } } }),
+        { a: 2 },
+      );
+    },
+  });
+
+  Deno.test({
+    name: "config: resolveShortUrls prefers top-level, defaults to false",
+    fn: () => {
+      assertEquals(
+        resolveShortUrls({
+          ...base,
+          shortUrls: true,
+          custom: { shortUrls: false },
+        }),
+        true,
+      );
+      assertEquals(
+        resolveShortUrls({ ...base, custom: { shortUrls: true } }),
+        true,
+      );
+      assertEquals(resolveShortUrls(base), false);
+    },
+  });
+
+  Deno.test({
+    name: "config: resolveDevPort prefers top-level, defaults to 5735",
+    fn: () => {
+      assertEquals(
+        resolveDevPort({ ...base, devPort: 4000, custom: { devPort: 5000 } }),
+        4000,
+      );
+      assertEquals(
+        resolveDevPort({ ...base, custom: { devPort: 5000 } }),
+        5000,
+      );
+      assertEquals(resolveDevPort(base), 5735);
+    },
+  });
+
+  Deno.test({
+    name: "config: resolveGlobals prefers top-level over custom.globals",
+    fn: () => {
+      assertEquals(
+        resolveGlobals({
+          ...base,
+          globals: { a: 1 },
+          custom: { globals: { a: 2 } },
+        }),
+        { a: 1 },
+      );
+      assertEquals(
+        resolveGlobals({ ...base, custom: { globals: { a: 2 } } }),
+        { a: 2 },
+      );
+      assertEquals(resolveGlobals(base), undefined);
     },
   });
 }

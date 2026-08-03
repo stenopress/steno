@@ -1,4 +1,5 @@
-import { loadConfig, resolvePluginSourcePolicy } from "./config.ts";
+import { resolvePluginSourcePolicy, resolveTheme } from "./config.ts";
+import { resolveProject } from "./project.ts";
 import { join } from "@std/path";
 import { c, fail, info, ok, success, warn } from "../utils/output.ts";
 
@@ -49,21 +50,20 @@ export async function runDoctor(configPath: string): Promise<void> {
     warn(`Deno ${denoVersion} - v2.0.0 or later recommended`);
   }
 
-  // Config file
-  if (!pathIs(configPath, "isFile")) {
-    fail(`Config not found at "${configPath}"`);
-    console.log();
-    console.log(
-      `  ${c.red}Doctor found errors. Fix them and try again.${c.reset}`,
-    );
-    console.log();
-    return;
-  }
-
+  // Config file, or zero-config fallback (single-file/docs discovery) - the
+  // same resolution Steno itself uses to build, so doctor never flags a
+  // project that would actually build fine.
   let config;
   try {
-    config = loadConfig(configPath);
-    ok(`Config found at "${configPath}"`);
+    const project = await resolveProject(configPath);
+    config = project.config;
+    if (project.mode === "configured") {
+      ok(`Config found at "${configPath}"`);
+    } else {
+      ok(
+        `Zero-config mode (${project.mode}) - no "${configPath}" required`,
+      );
+    }
   } catch (e) {
     fail(`Config invalid: ${(e as Error).message}`);
     console.log();
@@ -108,7 +108,7 @@ export async function runDoctor(configPath: string): Promise<void> {
   }
 
   // Theme
-  const themeName = config.custom?.theme;
+  const themeName = resolveTheme(config);
   if (themeName) {
     ok(`Theme declared (${themeName})`);
     // warn on local path themes
@@ -125,6 +125,24 @@ export async function runDoctor(configPath: string): Promise<void> {
     }
   } else {
     warn(`No theme declared - pages will render as plain HTML`);
+  }
+
+  // Deprecated `custom.*` nesting - these fields moved to the top level.
+  const deprecatedCustomKeys: Array<[string, string]> = [
+    ["theme", "theme"],
+    ["themeConfig", "themeConfig"],
+    ["shortUrls", "shortUrls"],
+    ["devPort", "devPort"],
+    ["globals", "globals"],
+    ["pluginSourcePolicy", "pluginSourcePolicy"],
+    ["pluginSecurity", "pluginSourcePolicy"],
+  ];
+  for (const [customKey, topLevelKey] of deprecatedCustomKeys) {
+    if (config.custom?.[customKey] !== undefined) {
+      warn(
+        `custom.${customKey} is deprecated - move it to top-level "${topLevelKey}"`,
+      );
+    }
   }
 
   // Plugins

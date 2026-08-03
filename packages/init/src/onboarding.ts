@@ -382,11 +382,10 @@ author: ${toYamlString(author)}
 ${toPluginList(plugins)}contentDir: "content"
 output: "dist"
 
-custom:
-  shortUrls: true
-  theme: ${toYamlString(themePackage)}
-  themeConfig:
-    author: ${toYamlString(author)}
+shortUrls: true
+theme: ${toYamlString(themePackage)}
+themeConfig:
+  author: ${toYamlString(author)}
 `,
   );
 

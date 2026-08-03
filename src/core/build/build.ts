@@ -30,6 +30,7 @@ import {
 import { resolvePageConfigOverrides } from "../page_config.ts";
 import { injectHeadTags, mergeHeadTags, validateHeadTags } from "../head.ts";
 import { fileExistsSync as fileExists } from "../../utils/fs.ts";
+import { resolveShortUrls } from "../config.ts";
 
 export type { BuildContext, BuildState, BuildStateEntry } from "./context.ts";
 const STAGING_COPY_CONCURRENCY = 128;
@@ -141,7 +142,7 @@ export async function buildSite({
     const globalVars = resolveConfigGlobals(config);
     const publicEnv = getPublicEnvVars(environment);
     const siteHead = config.head ? validateHeadTags(config.head) : [];
-    const shortUrls = config.custom?.shortUrls ?? false;
+    const shortUrls = resolveShortUrls(config);
     const cachePath = resolveCachePath(contentDir);
     const publicDirPath = resolvePublicDir(contentDir, config.publicDir);
     const publicFiles = publicDirPath

@@ -15,9 +15,9 @@ project.
   exists; it is created on build either way.
 - **Data directory**: informational. Reports whether `contentDir/_data` exists;
   it is optional.
-- **Theme**: warns if no `custom.theme` is declared, since pages then render as
-  plain HTML with no layout. If the theme is a local path (starts with `.` or
-  `/`), fails when that directory does not exist.
+- **Theme**: warns if no `theme` is declared, since pages then render as plain
+  HTML with no layout. If the theme is a local path (starts with `.` or `/`),
+  fails when that directory does not exist.
 - **Plugins**: reports the declared count, and how many are `isolated` versus
   `trusted`. Trusted plugins produce a warning, since they run in-process with
   Steno's own Deno permissions. Each plugin specifier is checked against the

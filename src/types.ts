@@ -199,24 +199,37 @@ export interface SiteConfig {
   collections?: Record<string, CollectionConfig>;
   /** Source-path to destination-path redirect mappings. */
   redirects?: Record<string, string>;
-  /** Steno runtime, theme, and project-specific configuration. */
+  /** Whether directory URLs omit `index.html`. */
+  shortUrls?: boolean;
+  /** Development server port. */
+  devPort?: number;
+  /** Theme module specifier or local path. */
+  theme?: string;
+  /** Values supplied to the active theme. */
+  themeConfig?: Record<string, unknown>;
+  /** Global values exposed to templates. */
+  globals?: Record<string, unknown>;
+  /** Allowed plugin source and execution modes. */
+  pluginSourcePolicy?: PluginSourcePolicy;
+  /** Free-form, project-specific configuration not covered by other fields. */
   custom?: {
     /** Stylesheets injected by the fallback theme. */
     stylesheets?: string[];
-    /** Whether directory URLs omit `index.html`. */
+    /** @deprecated Use top-level `shortUrls` instead. */
     shortUrls?: boolean;
-    /** Development server port. */
+    /** @deprecated Use top-level `devPort` instead. */
     devPort?: number;
-    /** Theme module specifier or local path. */
+    /** @deprecated Use top-level `theme` instead. */
     theme?: string;
-    /** Values supplied to the active theme. */
+    /** @deprecated Use top-level `themeConfig` instead. */
     themeConfig?: Record<string, unknown>;
-    /** Global values exposed to templates. */
+    /** @deprecated Use top-level `globals` instead. */
     globals?: Record<string, unknown>;
-    /** Allowed plugin source and execution modes. */
+    /** @deprecated Use top-level `pluginSourcePolicy` instead. */
     pluginSourcePolicy?: PluginSourcePolicy;
-    /** @deprecated Use `pluginSourcePolicy`. */
+    /** @deprecated Use top-level `pluginSourcePolicy`. */
     pluginSecurity?: PluginSecurityConfig;
+    [key: string]: unknown;
   };
   /** Site-wide navigation tree. */
   navigation?: NavigationNode[];
