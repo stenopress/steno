@@ -23,6 +23,14 @@ compiled templating runtime combining Svelte and Astro syntax), Steno compiles
 thousands of pages in fractions of a second, shipping with a local dev server,
 instant live-reloading, and near-zero external dependencies.
 
+Unlike other static site generators, a Steno plugin doesn't have to run with
+full access to your machine. Set `mode: isolated` and it executes in a dedicated
+subprocess with every capability denied by default — filesystem, network,
+environment, subprocess, and FFI access are all opt-in, permission by
+permission. A malicious or compromised `npm:`/`jsr:` plugin can't read your
+`.env`, exfiltrate secrets, or touch files outside what you explicitly grant.
+See [Plugin sandbox](docs/plugin_sandbox.md) for the full threat model.
+
 ## Performance Benchmarks
 
 Steno tracks cold, unchanged warm, and atomic incremental builds, including a
@@ -45,6 +53,12 @@ deno task bench:report     # Regenerate the published benchmark report
 - **Zero-Configuration Mode:** Compile on the fly. Run Steno with nothing but a
   single Markdown file, no config files or complex directory structures
   required.
+- **Sandboxed Plugins:** Run any plugin with `mode: isolated` in a dedicated
+  Deno subprocess with every capability — filesystem, network, environment,
+  subprocess, FFI — denied unless explicitly granted. Enforced timeouts, memory
+  ceilings, and output limits contain a hung, crashed, or hostile plugin without
+  taking down the build. No other major static site generator isolates plugin
+  execution like this.
 - **Remote Theme Resolvers:** Load and share themes effortlessly. Steno supports
   importing themes directly from remote modules like JSR, npm, or secure HTTPS
   URLs, removing the need to manually clone or manage local theme folders.
@@ -55,11 +69,9 @@ deno task bench:report     # Regenerate the published benchmark report
 - **Tau Pipe-Syntax Filters:** Format your template variables elegantly. Tau
   supports Unix-style pipes for clean, readable layout transformations like
   formatting dates or joining arrays inside your HTML.
-- **Trusted Plugin Architecture:** Extend the build pipeline with compile-time
-  plugins loaded from JSR, npm, or explicitly enabled sources.
-- **Plugin Source Policy:** Restrict top-level plugin specifiers by protocol.
-  Plugins execute in-process with Steno's Deno permissions, so only trusted
-  packages should be configured.
+- **Plugin Source Policy:** Restrict top-level plugin specifiers by protocol,
+  independent of execution mode. `mode: trusted` remains available for
+  compatibility and runs in-process with Steno's own Deno permissions.
 - **Tau Templating:** Premium Svelte and Astro style syntax parsing with native
   layout and component structures.
 - **Double-Engine Frontmatter:** First-class, rapid parsing for both `---`

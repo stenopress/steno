@@ -148,6 +148,9 @@ export async function runDoctor(configPath: string): Promise<void> {
           trustedCount === 1 ? "" : "s"
         } run in-process with Steno's Deno permissions`,
       );
+      info(
+        `Consider "mode: isolated" for third-party plugins - see docs/plugin_sandbox.md`,
+      );
     }
 
     // Check the top-level plugin source policy. This is not a runtime sandbox.
