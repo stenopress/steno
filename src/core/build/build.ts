@@ -33,6 +33,7 @@ import { fileExistsSync as fileExists } from "../../utils/fs.ts";
 
 export type { BuildContext, BuildState, BuildStateEntry } from "./context.ts";
 const STAGING_COPY_CONCURRENCY = 128;
+const PAGE_RENDER_CONCURRENCY = 16;
 
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -245,17 +246,16 @@ export async function buildSite({
       }
     }
 
-    let collections: CollectionMap | undefined;
-    const getCollections = async (): Promise<CollectionMap> => {
-      if (collections) return collections;
-      collections = await buildCollections(
+    let collectionsPromise: Promise<CollectionMap> | undefined;
+    const getCollections = (): Promise<CollectionMap> => {
+      collectionsPromise ??= buildCollections(
         contentDir,
         config,
         plugins,
         scannedPages,
         { processedBodies, htmlCache },
       );
-      return collections;
+      return collectionsPromise;
     };
 
     const nextPages = new Map<string, BuildStateEntry>();
@@ -281,33 +281,48 @@ export async function buildSite({
       }
     };
 
-    for (const page of scannedPages) {
-      if (page.frontmatter.draft === true && !dev) continue;
+    interface PageRenderResult {
+      page: typeof scannedPages[number];
+      outputFilePath: string;
+      stagedOutputFilePath: string;
+      processedBody: string;
+      needsRender: boolean;
+      htmlContent?: string;
+      renderedContent?: string;
+    }
 
-      const outputPath = resolvePageRoute(page, shortUrls).outputPath;
-      const outputFilePath = join(outputDir, outputPath);
-      const stagedOutputFilePath = join(stagingDir, outputPath);
-      const normalizedStagedPath = resolve(stagedOutputFilePath);
-      if (occupiedPaths.has(normalizedStagedPath)) {
-        throw new Error(
-          `Output collision: multiple pages resolve to "${outputFilePath}".`,
-        );
-      }
-      occupiedPaths.add(normalizedStagedPath);
+    // Rendering (markdown transforms + Tau) is the only part safe to run
+    // concurrently: it has no shared mutable state across pages besides
+    // caches that are idempotent to recompute. Collision detection, hook
+    // firing, and cache bookkeeping stay in a second, sequential pass below
+    // so their order and error behavior are unchanged from a plain for-loop.
+    const pageResults = await mapWithConcurrency(
+      activePages,
+      PAGE_RENDER_CONCURRENCY,
+      async (page): Promise<PageRenderResult> => {
+        const outputPath = resolvePageRoute(page, shortUrls).outputPath;
+        const outputFilePath = join(outputDir, outputPath);
+        const stagedOutputFilePath = join(stagingDir, outputPath);
+        const cachedPage = previousPages.get(page.fullPath);
+        const processedBody = processedBodies.get(page.fullPath)!;
 
-      const cachedPage = previousPages.get(page.fullPath);
-      const processedBody = processedBodies.get(page.fullPath)!;
+        const needsRender = !cachedPage ||
+          cachedPage.sourceText !== page.sourceText ||
+          cachedPage.outputPath !== outputFilePath ||
+          !fileExists(outputFilePath);
 
-      const needsRender = !cachedPage ||
-        cachedPage.sourceText !== page.sourceText ||
-        cachedPage.outputPath !== outputFilePath ||
-        !fileExists(outputFilePath);
+        if (!needsRender) {
+          return {
+            page,
+            outputFilePath,
+            stagedOutputFilePath,
+            processedBody,
+            needsRender,
+            htmlContent: cachedPage?.htmlContent,
+          };
+        }
 
-      let htmlContent: string | undefined;
-
-      if (needsRender) {
-        htmlContent = htmlCache.get(page.fullPath);
-
+        let htmlContent = htmlCache.get(page.fullPath);
         if (htmlContent === undefined) {
           let tokens = marked.lexer(processedBody);
           tokens = await runAstTransforms(tokens, plugins);
@@ -374,12 +389,44 @@ export async function buildSite({
           : htmlContent;
         const renderedContent = injectHeadTags(layoutContent, pageHead);
 
+        return {
+          page,
+          outputFilePath,
+          stagedOutputFilePath,
+          processedBody,
+          needsRender,
+          htmlContent,
+          renderedContent,
+        };
+      },
+    );
+
+    for (const result of pageResults) {
+      const {
+        page,
+        outputFilePath,
+        stagedOutputFilePath,
+        processedBody,
+        needsRender,
+        htmlContent,
+        renderedContent,
+      } = result;
+
+      const normalizedStagedPath = resolve(stagedOutputFilePath);
+      if (occupiedPaths.has(normalizedStagedPath)) {
+        throw new Error(
+          `Output collision: multiple pages resolve to "${outputFilePath}".`,
+        );
+      }
+      occupiedPaths.add(normalizedStagedPath);
+
+      if (needsRender) {
         Deno.mkdirSync(dirname(stagedOutputFilePath), { recursive: true });
-        Deno.writeTextFileSync(stagedOutputFilePath, renderedContent);
+        Deno.writeTextFileSync(stagedOutputFilePath, renderedContent!);
         await fireAfterPage(
           outputFilePath,
           stagedOutputFilePath,
-          renderedContent,
+          renderedContent!,
         );
       } else {
         Deno.mkdirSync(dirname(stagedOutputFilePath), { recursive: true });
@@ -394,7 +441,7 @@ export async function buildSite({
         outputPath: outputFilePath,
         sourceText: page.sourceText,
         body: processedBody,
-        htmlContent: needsRender ? htmlContent : cachedPage?.htmlContent,
+        htmlContent,
       });
     }
     await copyFilesToStaging(unchangedFiles);
