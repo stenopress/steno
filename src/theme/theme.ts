@@ -256,6 +256,11 @@ export class Theme {
 
   /** Resolves and validates shallow theme overrides for a single page. */
   public resolveConfig(overrides: ThemeConfig = {}): ThemeConfig {
+    // The base config is already validated once in the constructor; skip
+    // re-validating it on every page when there's no per-page override
+    // (the common case) instead of re-walking the whole schema each time.
+    if (Object.keys(overrides).length === 0) return this.config;
+
     const config = { ...this.config, ...overrides };
     if (this.themeData.configSchema) {
       validateThemeConfig(this.name, this.themeData.configSchema, config);
