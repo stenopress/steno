@@ -6,10 +6,10 @@ and runtime versions.
 
 ## Environment
 
-- Generated: 2026-07-29T15:46:29.466Z
-- Revision: 261febbe2e00
+- Generated: 2026-08-03T09:56:22.704Z
+- Revision: e0ccfc0c4330
 - Working tree: dirty (includes uncommitted changes)
-- Runtime: Deno/2.9.2 aarch64-apple-darwin
+- Runtime: Deno/2.9.4 aarch64-apple-darwin
 - OS: darwin 25.5.0
 - Architecture: aarch64
 - Logical CPUs: 10
@@ -19,11 +19,11 @@ and runtime versions.
 
 | Scenario                                           | Samples |       Min |   Average |       p75 |       p99 |
 | -------------------------------------------------- | ------: | --------: | --------: | --------: | --------: |
-| build (cold, 250 pages)                            |      22 |  27.06 ms |  27.82 ms |  28.19 ms |  28.79 ms |
-| build (cold, 1000 pages)                           |      13 | 106.53 ms | 108.16 ms | 108.75 ms | 110.71 ms |
-| build (cold, 4000 pages)                           |      11 | 429.75 ms | 507.02 ms | 461.96 ms |    1.08 s |
-| build (warm, 1000 pages unchanged)                 |      28 |  27.51 ms |  29.05 ms |  28.80 ms |  39.94 ms |
-| build (atomic incremental, 1 changed page of 1000) |      13 | 213.87 ms | 219.21 ms | 220.97 ms | 230.49 ms |
+| build (cold, 250 pages)                            |      22 |  26.31 ms |  26.92 ms |  27.14 ms |  28.06 ms |
+| build (cold, 1000 pages)                           |      13 | 105.04 ms | 107.76 ms | 108.02 ms | 120.25 ms |
+| build (cold, 4000 pages)                           |      11 | 417.49 ms | 432.78 ms | 450.84 ms | 463.76 ms |
+| build (warm, 1000 pages unchanged)                 |      28 |  27.32 ms |  27.99 ms |  27.99 ms |  29.53 ms |
+| build (atomic incremental, 1 changed page of 1000) |      13 | 212.37 ms | 220.35 ms | 223.65 ms | 240.06 ms |
 
 Cold scenarios delete output and persistent cache before every measured build.
 Warm unchanged uses an initialized 1,000-page site. Atomic incremental changes
@@ -34,19 +34,19 @@ is outside the explicit benchmark timer.
 
 | Scenario                                     | Samples |       Min |   Average |       p75 |       p99 |
 | -------------------------------------------- | ------: | --------: | --------: | --------: | --------: |
-| parseFrontmatter (body only)                 |   14431 |   3.22 ns |   3.47 ns |   3.45 ns |   4.17 ns |
-| parseFrontmatter (yaml + 10k-word body)      |      71 | 805.38 ns | 822.21 ns | 825.02 ns | 880.54 ns |
-| parseFrontmatter (yaml)                      |      37 |   1.86 µs |   1.88 µs |   1.89 µs |   1.93 µs |
-| parseFrontmatter (toml)                      |      26 |   3.12 µs |   3.17 µs |   3.17 µs |   3.38 µs |
-| parseFrontmatter (invalid yaml fails fast)   |   40941 |  10.88 µs |  12.22 µs |  12.42 µs |  16.46 µs |
-| parseFrontmatter (missing closing delimiter) |    3106 |  14.55 ns |  16.15 ns |  16.26 ns |  19.43 ns |
-| pipeline (typical page parse->markdown->tau) |    5130 |  85.88 µs |  97.67 µs |  97.38 µs | 133.13 µs |
-| pipeline (large page parse->markdown->tau)   |    1122 | 405.33 µs | 449.89 µs | 453.46 µs | 529.92 µs |
-| tau render (simple)                          |      40 |   1.64 µs |   1.68 µs |   1.69 µs |   1.83 µs |
-| tau render (components + loops)              |   17189 |  26.21 µs |  29.11 µs |  29.00 µs |  37.92 µs |
-| tau render (list of 1000 items)              |     256 |   1.97 ms |   2.04 ms |   2.07 ms |   2.22 ms |
-| tau render (4-level nested loops)            |     135 |   3.92 ms |   4.02 ms |   4.06 ms |   4.35 ms |
-| tau render (unclosed tag fails fast)         |      21 |   4.52 µs |   4.69 µs |   4.59 µs |   5.49 µs |
+| parseFrontmatter (body only)                 |   14576 |   3.17 ns |   3.43 ns |   3.46 ns |   4.29 ns |
+| parseFrontmatter (yaml + 10k-word body)      |      72 | 799.82 ns | 817.46 ns | 821.82 ns | 938.31 ns |
+| parseFrontmatter (yaml)                      |      37 |   1.86 µs |   1.87 µs |   1.87 µs |   1.93 µs |
+| parseFrontmatter (toml)                      |      26 |   3.15 µs |   3.19 µs |   3.19 µs |   3.42 µs |
+| parseFrontmatter (invalid yaml fails fast)   |   40030 |  10.92 µs |  12.49 µs |  12.96 µs |  14.92 µs |
+| parseFrontmatter (missing closing delimiter) |    3154 |  13.86 ns |  15.90 ns |  16.37 ns |  18.04 ns |
+| pipeline (typical page parse->markdown->tau) |    5327 |  82.50 µs |  94.05 µs |  94.04 µs | 123.00 µs |
+| pipeline (large page parse->markdown->tau)   |    1141 | 408.29 µs | 442.37 µs | 443.75 µs | 501.00 µs |
+| tau render (simple)                          |      66 | 873.34 ns | 894.46 ns | 899.34 ns |   1.06 µs |
+| tau render (components + loops)              |   56188 |   7.83 µs |   8.90 µs |   8.79 µs |  13.33 µs |
+| tau render (list of 1000 items)              |     771 | 628.04 µs | 657.80 µs | 668.54 µs | 708.75 µs |
+| tau render (4-level nested loops)            |     439 |   1.10 ms |   1.16 ms |   1.17 ms |   1.39 ms |
+| tau render (unclosed tag fails fast)         |   70138 |   6.21 µs |   7.13 µs |   7.17 µs |   7.79 µs |
 
 ## Reproduce
 
