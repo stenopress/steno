@@ -52,7 +52,7 @@ Plain content.
       const project = await resolveProject(configPath, tempDir);
       assertEquals(project.mode, "single-file");
       assertEquals(project.config.title, "Welcome");
-      assertEquals(project.config.custom?.theme, "jsr:@steno/theme-minimal");
+      assertEquals(project.config.theme, "jsr:@steno/theme-minimal");
       assertEquals(project.pages?.[0].frontmatter.steno, {
         theme: "jsr:@steno/theme-minimal",
       });
@@ -71,6 +71,56 @@ Plain content.
       const html = Deno.readTextFileSync(join(tempDir, "dist", "index.html"));
       assertStringIncludes(html, "<h1>Welcome</h1>");
       assertStringIncludes(html, "Plain content.");
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name:
+      "zero-config: single-file mode nested in a subdirectory builds to the site root",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      // The README's own quickstart tells users to create "content/index.md"
+      // at the project root. contentDir is reassigned to the file's parent
+      // directory ("content/") in single-file mode, one level deeper than
+      // the scan root - relPath must be recomputed against that, or the
+      // extra directory segment leaks into the output path.
+      const tempDir = Deno.makeTempDirSync();
+      const configPath = join(tempDir, ".steno", "config.yml");
+      const sourcePath = join(tempDir, "content", "index.md");
+
+      Deno.mkdirSync(join(tempDir, "content"), { recursive: true });
+      Deno.writeTextFileSync(
+        sourcePath,
+        `---\ntitle: "Nested"\n---\n# Nested\n`,
+      );
+
+      const project = await resolveProject(configPath, tempDir);
+      assertEquals(project.mode, "single-file");
+      assertEquals(project.config.contentDir, join(tempDir, "content"));
+      assertEquals(project.pages?.[0].relPath, "index.md");
+
+      await buildSite({
+        config: project.config,
+        plugins: [],
+        hooks: {},
+        pages: project.pages,
+      });
+
+      const html = Deno.readTextFileSync(join(tempDir, "dist", "index.html"));
+      assertStringIncludes(html, "<h1>Nested</h1>");
+      assertEquals(
+        (() => {
+          try {
+            Deno.statSync(join(tempDir, "dist", "content", "index.html"));
+            return true;
+          } catch {
+            return false;
+          }
+        })(),
+        false,
+      );
 
       Deno.removeSync(tempDir, { recursive: true });
     },
@@ -103,7 +153,7 @@ Steps.
       const project = await resolveProject(configPath, tempDir);
       assertEquals(project.mode, "docs");
       assertEquals(
-        project.config.custom?.theme,
+        project.config.theme,
         "jsr:@steno/theme-docs-minimal",
       );
       assertEquals(project.config.navigation?.[0].title, "Docs Home");

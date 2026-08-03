@@ -60,13 +60,13 @@ plugin can read or modify project files and generated output without
 restriction. Theme-bundled plugins run at this same trust level unless disabled
 with `allowThemePlugins: false`.
 
-`custom.pluginSourcePolicy` is a top-level module source policy, not an
-execution sandbox — it applies to both modes equally. It does not inspect a
-plugin's transitive imports and cannot prevent an allowed JSR or npm plugin from
+`pluginSourcePolicy` is a top-level module source policy, not an execution
+sandbox — it applies to both modes equally. It does not inspect a plugin's
+transitive imports and cannot prevent an allowed JSR or npm plugin from
 importing another module or a Node built-in.
 
 Only `jsr:` and `npm:` top-level plugin specifiers are allowed by default.
-Enable other sources deliberately under `custom.pluginSourcePolicy`; see
+Enable other sources deliberately under `pluginSourcePolicy`; see
 [Configuration](config_reference.md#plugin-source-policy).
 
 Before adding any plugin or theme, trusted or isolated:

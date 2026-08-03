@@ -1,4 +1,5 @@
 import type { SiteConfig } from "../../types.ts";
+import { resolveGlobals } from "../config.ts";
 
 export function getPublicEnvVars(
   fileValues: Record<string, string> = {},
@@ -21,10 +22,10 @@ export function getPublicEnvVars(
 export function resolveConfigGlobals(
   config: SiteConfig,
 ): Record<string, unknown> {
-  const globals = config.custom?.globals;
+  const globals = resolveGlobals(config);
   if (globals === undefined) return {};
   if (!globals || typeof globals !== "object" || Array.isArray(globals)) {
-    throw new Error("Invalid `custom.globals` in config: expected an object.");
+    throw new Error("Invalid `globals` in config: expected an object.");
   }
   return globals;
 }

@@ -9,6 +9,7 @@ import {
   resolveMarkdownScanIgnorePaths,
   resolvePageRoute,
 } from "./path_utils.ts";
+import { resolveShortUrls } from "./config.ts";
 
 /** A page captured as part of a collection. */
 export interface CollectionItem {
@@ -216,7 +217,7 @@ export async function buildCollections(
   } = {},
 ): Promise<CollectionMap> {
   const collections: CollectionMap = {};
-  const shortUrls = config.custom?.shortUrls ?? false;
+  const shortUrls = resolveShortUrls(config);
   const collectionConfigs = config.collections ?? {};
   const markdownPages = pages ?? await collectMarkdownPages(contentDir);
 

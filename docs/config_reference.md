@@ -22,16 +22,17 @@ head:
     src: /assets/app.js
     defer: true
 
+theme: ./theme
+themeConfig:
+  accent: purple
+globals:
+  repository: https://example.com/source
+shortUrls: true
+devPort: 5735
+
 custom:
-  theme: ./theme
-  themeConfig:
-    accent: purple
-  globals:
-    repository: https://example.com/source
   stylesheets:
     - /assets/site.css
-  shortUrls: true
-  devPort: 5735
 
 collections:
   posts:
@@ -87,7 +88,7 @@ tag, its `src`. Inline scripts without `src` and link tags without a recognized
 `rel` have no identity and are always appended. A meta entry must set exactly
 one of `name`, `property`, `httpEquiv`, or `charset`.
 
-## `custom`
+## Theme, globals, and other core settings
 
 `theme` accepts a local directory, a local module, or an importable `jsr:`,
 `npm:`, or HTTPS module. `themeConfig` is merged shallowly with theme defaults.
@@ -97,8 +98,18 @@ one of `name`, `property`, `httpEquiv`, or `charset`.
 server port (default 5735). If it is unavailable, Steno scans forward one port
 at a time up to 65535 and binds the first free one.
 
-`stylesheets` is a theme-facing configuration value; Steno exposes it but does
-not inject tags automatically.
+These fields, along with `pluginSourcePolicy` (below), used to live nested under
+a `custom` object. That nesting is deprecated: set them at the top level of the
+config instead. `steno doctor` warns if it finds any of them still under
+`custom`.
+
+## `custom`
+
+`custom` is reserved for free-form, project-specific values that aren't part of
+Steno's own config surface — for example a theme-facing `stylesheets` list that
+Steno exposes but never reads itself. Anything Steno interprets directly
+(`theme`, `themeConfig`, `shortUrls`, `devPort`, `globals`,
+`pluginSourcePolicy`) belongs at the top level, not under `custom`.
 
 ## Plugin source policy
 
@@ -107,20 +118,20 @@ HTTP(S), and `node:` specifiers require an explicit opt-in; `data:` and `blob:`
 are never allowed.
 
 ```yaml
-custom:
-  pluginSourcePolicy:
-    allowLocal: true
-    allowRemoteHttp: false
-    allowNodeBuiltins: false
-    allowThemePlugins: true # default
+pluginSourcePolicy:
+  allowLocal: true
+  allowRemoteHttp: false
+  allowNodeBuiltins: false
+  allowThemePlugins: true # default
 ```
 
 These settings are source filters rather than a runtime sandbox. They do not
 inspect transitive imports or reduce plugin permissions. All configured and
 theme-bundled plugins run in-process with the permissions granted to Steno.
 
-The historical `custom.pluginSecurity` name remains accepted as a deprecated
-compatibility alias. New projects should use `custom.pluginSourcePolicy`.
+The historical `custom.pluginSourcePolicy` and `custom.pluginSecurity` names
+remain accepted as deprecated compatibility aliases. New projects should use
+top-level `pluginSourcePolicy`.
 
 `allowNodeBuiltins` controls only a configured top-level `node:` specifier. It
 cannot prevent a JSR, npm, file, or HTTP(S) plugin from importing a Node

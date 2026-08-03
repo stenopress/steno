@@ -2,12 +2,12 @@ import type { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
 import { disposeIsolatedPlugins } from "../plugins/isolated_plugin.ts";
+import { startDevServer, startPreviewServer } from "../utils/server.ts";
 import {
-  DEFAULT_DEV_PORT,
-  startDevServer,
-  startPreviewServer,
-} from "../utils/server.ts";
-import { loadPlugins, resolvePluginSourcePolicy } from "./config.ts";
+  loadPlugins,
+  resolveDevPort,
+  resolvePluginSourcePolicy,
+} from "./config.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
 import { loadTheme } from "./steno_theme.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
@@ -86,7 +86,7 @@ export class Steno {
 
     if (!allowThemePlugins && (this.theme?.plugins?.length ?? 0) > 0) {
       console.warn(
-        "Theme plugins are disabled by `custom.pluginSourcePolicy.allowThemePlugins: false`.",
+        "Theme plugins are disabled by `pluginSourcePolicy.allowThemePlugins: false`.",
       );
     }
 
@@ -133,7 +133,7 @@ export class Steno {
     const project = await this.projectPromise;
     const contentDir = project.config.contentDir || "content";
     const outputDir = project.config.output || "dist";
-    const devPort = project.config.custom?.devPort ?? DEFAULT_DEV_PORT;
+    const devPort = resolveDevPort(project.config);
     const envFiles = getEnvironmentFilePaths(Deno.cwd(), "development").filter(
       (path) => {
         try {

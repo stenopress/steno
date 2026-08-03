@@ -85,7 +85,7 @@ Deno.test({
           }),
         ),
       Error,
-      "Invalid `custom.globals`",
+      "Invalid `globals`",
     );
   },
 });
@@ -101,7 +101,7 @@ Deno.test({
           }),
         ),
       Error,
-      "Invalid `custom.globals`",
+      "Invalid `globals`",
     );
   },
 });
