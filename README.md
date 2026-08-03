@@ -5,7 +5,8 @@
     <img width="233" height="81" alt="Steno Logo" src="https://github.com/user-attachments/assets/1659f847-7180-4539-8ce9-57b610669d51">
   </picture>
   <br><br>
-  <p><strong>An ultra-lightweight, sub-millisecond static site generator powered by Deno.</strong></p>
+  <p><strong>Fast sites. Safe builds. Flexible setup.</strong></p>
+  <p>A fast, configurable static site generator powered by Deno.</p>
   <small>Sponsored by <a href="https://tuta.com">Tuta</a></small>
   <br><br>
 
@@ -17,143 +18,103 @@
 
 <br>
 
-Steno is a high-performance, developer-first static site generator built on
-Deno. By pairing an asynchronous file-system pipeline with Tau (a custom
-compiled templating runtime combining Svelte and Astro syntax), Steno compiles
-thousands of pages in fractions of a second, shipping with a local dev server,
-instant live-reloading, and near-zero external dependencies.
+Steno supports both configured projects and an optional zero-config mode. Use a
+configuration file for structured content, themes, plugins, and project-wide
+settings, or build a single Markdown file without any setup. Builds are
+incremental and transactional, so failed builds preserve the last successful
+output.
 
-Unlike other static site generators, a Steno plugin doesn't have to run with
-full access to your machine. Set `mode: isolated` and it executes in a dedicated
-subprocess with every capability denied by default — filesystem, network,
-environment, subprocess, and FFI access are all opt-in, permission by
-permission. A malicious or compromised `npm:`/`jsr:` plugin can't read your
-`.env`, exfiltrate secrets, or touch files outside what you explicitly grant.
-See [Plugin sandbox](docs/plugin_sandbox.md) for the full threat model.
-
-## Performance Benchmarks
-
-Steno tracks cold, unchanged warm, and atomic incremental builds, including a
-4,000-page fixture. Performance claims are tied to a recorded machine and Deno
-version rather than presented as universal numbers. See the
-[latest benchmark report](docs/benchmarks.md) for averages and tail latency.
-
-To run performance diagnostics locally:
-
-```sh
-deno task bench            # Run the benchmark suite
-deno task bench:check      # Assert performance budget thresholds
-deno task bench:report     # Regenerate the published benchmark report
-```
-
----
-
-## Features
-
-- **Zero-Configuration Mode:** Compile on the fly. Run Steno with nothing but a
-  single Markdown file, no config files or complex directory structures
-  required.
-- **Sandboxed Plugins:** Run any plugin with `mode: isolated` in a dedicated
-  Deno subprocess with every capability — filesystem, network, environment,
-  subprocess, FFI — denied unless explicitly granted. Enforced timeouts, memory
-  ceilings, and output limits contain a hung, crashed, or hostile plugin without
-  taking down the build. No other major static site generator isolates plugin
-  execution like this.
-- **Remote Theme Resolvers:** Load and share themes effortlessly. Steno supports
-  importing themes directly from remote modules like JSR, npm, or secure HTTPS
-  URLs, removing the need to manually clone or manage local theme folders.
-- **Intelligent Port Auto-Recovery:** Never deal with crashed local servers due
-  to blocked addresses. The dev server automatically detects if your preferred
-  port (default 5735) is in use and seamlessly increments to the next available
-  port.
-- **Tau Pipe-Syntax Filters:** Format your template variables elegantly. Tau
-  supports Unix-style pipes for clean, readable layout transformations like
-  formatting dates or joining arrays inside your HTML.
-- **Plugin Source Policy:** Restrict top-level plugin specifiers by protocol,
-  independent of execution mode. `mode: trusted` remains available for
-  compatibility and runs in-process with Steno's own Deno permissions.
-- **Tau Templating:** Premium Svelte and Astro style syntax parsing with native
-  layout and component structures.
-- **Double-Engine Frontmatter:** First-class, rapid parsing for both `---`
-  (YAML) and `+++` (TOML).
-- **Sub-Millisecond Live Reload:** Driven by a native Server-Sent Events (SSE)
-  server for instant browser updates on `http://localhost:5735`.
-- **Hybrid Caching:** Advanced recursive compilation with layered memory caching
-  to only rebuild what changed.
-- **Transactional Output:** Builds pages, assets, redirects, and plugin output
-  in staging, then promotes the complete tree with rollback and interruption
-  recovery.
-- **Interactive Scaffolding:** Spin up modern theme templates instantly with a
-  dedicated initializer.
-
----
+Plugins can run in isolated, deny-by-default Deno subprocesses with explicit
+permissions, deadlines, memory ceilings, output limits, cancellation, and crash
+containment. Trusted plugins remain available when full in-process access is
+required.
 
 ## Quick Start
 
-Steno is designed to get out of your way. You can run it in **zero-config mode**
-with just a single Markdown file, or scale up to a fully structured project.
+### Create a Configured Project
 
-### Zero-Config (Single File)
+The interactive initializer creates a configured project with your selected
+theme, optional plugins, structured content, and reusable tasks:
 
-If you just want to render a quick page, you do not need any config files.
+```sh
+deno create jsr:@steno/init@0.10.0
+```
 
-1. Create a file named `content/index.md`:
+The generated project is ready to run:
+
+```sh
+deno task dev
+deno task build
+```
+
+### Use Zero-Config Mode
+
+For a single page or a small experiment, create `my-site/content/index.md`:
 
 ```md
-# My Page
-
-Hello from Steno!
+# Hello from Steno
 ```
 
-2. Compile it instantly:
+From `my-site`, build it:
 
 ```sh
-deno run -A jsr:@steno/steno build
+deno x jsr:@steno/steno@0.10.0 build
 ```
 
-_Steno will automatically detect your file, apply default settings, and output
-the static HTML directly to `dist/index.html`._
-
----
-
-### Structured Project Setup
-
-When you are ready to scale up to custom metadata, structured content
-directories, and themes, initialize a standard project workspace:
-
-```sh
-deno create jsr:@steno/init
-```
-
-#### Manual Setup
-
-If you prefer to configure your workspace manually, structure your directory
-like this:
+Steno detects the single Markdown file, applies the default theme, and writes:
 
 ```text
-.steno/
-└── config.yml
+dist/
+└── index.html
+```
+
+Zero-config mode is optional. Add `content/.steno/config.yml` whenever the site
+needs explicit project settings.
+
+## Why Steno
+
+- **Flexible setup:** Use a full configuration file or optionally build from one
+  Markdown file without configuration.
+- **Transactional output:** A failed build preserves the last successful site.
+- **Incremental compilation:** Unchanged pages reuse cached output.
+- **Isolated plugins:** Deny filesystem, environment, network, subprocess, and
+  FFI access until each capability is explicitly granted.
+- **Tau templates:** Use expressions, components, loops, conditions, includes,
+  filters, and contextual escaping.
+- **Flexible themes:** Load bundled, local, JSR, npm, or HTTPS themes.
+- **Structured content:** Use collections, data files, drafts, redirects, custom
+  routes, and YAML or TOML frontmatter.
+- **Development server:** Watch files and reload the browser as content changes.
+- **Real-world testing:** Exercise complete sites and official plugins in CI,
+  with additional cross-platform coverage on Linux, macOS, and Windows.
+
+## Structured Project
+
+A configured Steno project keeps content and configuration together:
+
+```text
 content/
+├── .steno/
+│   └── config.yml
 └── index.md
 ```
 
-1. **Configure your site in content/.steno/config.yml. You can point to a local
-   theme folder, or keep your project completely lightweight by referencing a
-   remote theme directly from JSR:
+Configure the site in `content/.steno/config.yml`:
 
 ```yaml
 title: "My Steno Site"
-description: "A high-performance blog"
+description: "A site built with Steno"
 author: "Your Name"
 contentDir: "content"
 output: "dist"
 
 custom:
-  shortUrls: true # Generates /about/index.html instead of /about.html
-  theme: "jsr:@steno/minimal-theme" # Point to a remote JSR theme or local directory
+  shortUrls: true
+  theme: "jsr:@steno/theme-minimal@^0.10.0"
 ```
 
-2. **Write** your first document in `content/index.md`:
+Add frontmatter to `content/index.md` when the page needs metadata or a specific
+layout:
 
 ```md
 ---
@@ -163,30 +124,25 @@ layout: layout
 
 # Hello World
 
-Welcome to an ultra-fast site powered by Steno and Tau.
+Welcome to a site powered by Steno and Tau.
 ```
 
-3. **Run** the development server with real-time live reload:
+Run the development server:
 
 ```sh
-deno run -A jsr:@steno/steno dev
+deno x jsr:@steno/steno@0.10.0 dev
 ```
 
-4. **Build** your production-ready static assets:
+Create production output:
 
 ```sh
-deno run -A jsr:@steno/steno build
+deno x jsr:@steno/steno@0.10.0 build
 ```
 
----
+## Themes and Tau
 
-## Themes & Tau Templating
-
-Steno themes are powered by **Tau**, our custom compiled template engine. Themes
-live in a directory or can be resolved as remote module imports (`jsr:`, `npm:`,
-`https:`).
-
-### Project Layout
+Themes can live in a local directory or be loaded from JSR, npm, or HTTPS. A
+theme contains metadata, assets, layouts, and optional components:
 
 ```text
 themes/minimalist/
@@ -199,13 +155,11 @@ themes/minimalist/
     └── layout.tau
 ```
 
-### Tau Syntax Example
-
-Write clean, declarative markup in your `.tau` templates:
+Tau is Steno's compiled template language:
 
 ```tau
 {#if title}
-  <Header/>
+  <Header />
 {/if}
 
 <main class="prose">
@@ -217,103 +171,131 @@ Write clean, declarative markup in your `.tau` templates:
 {/each}
 ```
 
----
+Regular interpolated expressions are HTML-escaped. `{@html expression}`
+deliberately emits raw HTML and should only receive trusted or sanitized
+content. See the [Tau syntax specification](docs/tau_syntax.md) for its complete
+semantics and security rules.
 
-## CLI Reference
+## Plugins and Isolation
 
-The Steno command-line utility provides intuitive, clean endpoints for your
-development workflows.
+Plugins can transform Markdown tokens and HTML, or run before and after builds.
+Pin plugin versions so builds remain reproducible:
+
+```yaml
+plugins:
+  - package: "jsr:@steno/plugin-shiki@1.0.0"
+    mode: isolated
+    options:
+      theme: github-dark
+
+  - package: "jsr:@steno/plugin-seo@0.7.0"
+    mode: trusted
+    options:
+      siteUrl: "https://example.com"
+```
+
+Plugins configured with `mode: isolated` execute in a separate Deno process.
+Runtime capabilities are denied unless the plugin entry grants them explicitly.
+Isolation also enforces hook deadlines, bounded messages, a heap ceiling,
+cancellation, and crash containment.
+
+String plugin entries and plugins configured with `mode: trusted` run in-process
+with Steno's permissions. Themes and theme-provided plugins are also trusted.
+Only install trusted extensions from sources you have reviewed.
+
+Top-level plugin sources can be restricted independently of execution mode:
+
+```yaml
+custom:
+  pluginSourcePolicy:
+    allowLocal: false
+    allowRemoteHttp: false
+    allowNodeBuiltins: false
+    allowThemePlugins: true
+```
+
+The source policy validates the configured top-level specifier. See the
+[plugin sandbox threat model](docs/plugin_sandbox.md) for permission examples,
+transitive-import behavior, integrity checks, and current limitations.
+
+## Performance
+
+Steno benchmarks cold, unchanged warm, and atomic incremental builds. The suite
+also includes a 4,000-page fixture, frontmatter parsing, the Markdown-to-Tau
+pipeline, and Tau rendering at multiple scales.
+
+Performance varies by machine and Deno version. The
+[benchmark report](docs/benchmarks.md) records the test environment, averages,
+and tail latency instead of presenting one result as universal.
 
 ```sh
+deno task bench
+deno task bench:check
+deno task bench:report
+```
+
+## CLI
+
+```text
 steno [command] [options]
 ```
 
-### Commands
+| Command   | Description                                                     |
+| --------- | --------------------------------------------------------------- |
+| `build`   | Build the site. This is the default command.                    |
+| `dev`     | Build, watch files, and serve with live reload.                 |
+| `preview` | Serve an existing production build without watching.            |
+| `doctor`  | Check the project for common configuration and security issues. |
+| `help`    | Print CLI usage.                                                |
 
-- `build` (default): Compiles the site into your distribution folder.
-- `dev`: Spins up the local development server with file watching and SSE
-  live-reloading.
-- `preview`: Serves the already-built output without watching. Requires a prior
-  `build`.
-- `doctor`: Checks your project for common configuration problems. See
-  [docs/doctor.md](docs/doctor.md).
-- `help`: Prints CLI usage.
+| Option                | Description                                     |
+| --------------------- | ----------------------------------------------- |
+| `-c, --config <path>` | Use a specific configuration file.              |
+| `-p, --port <number>` | Select the preview port. The default is `4173`. |
+| `-h, --help`          | Show CLI usage.                                 |
 
-### Options
+The default configuration path is `content/.steno/config.yml`. See the
+[doctor guide](docs/doctor.md) for project diagnostics.
 
-- `-c, --config <path>`: Manually specify a path to your config file (defaults
-  to `content/.steno/config.yml`).
-- `-p, --port <number>`: Port for the `preview` server (defaults to 4173).
-- `-h, --help`: Show CLI usage.
+## Documentation
 
----
+- [Getting started](docs/getting_started.md)
+- [Configuration reference](docs/config_reference.md)
+- [Content and collections](docs/content.md)
+- [Tau syntax specification](docs/tau_syntax.md)
+- [Plugin development](docs/plugins.md)
+- [Plugin sandbox and threat model](docs/plugin_sandbox.md)
+- [Theme development](docs/theme_development.md)
+- [Theme specification](docs/theme-specification.md)
+- [API reference](docs/api_reference.md)
+- [Atomic build guarantees](docs/atomic_builds.md)
+- [Performance methodology](docs/benchmarks.md)
 
-## Plugins & Source Policy
+## Contributing
 
-Steno features an extensible, trusted plugin ecosystem. You can register custom
-build pipeline plugins directly via JSR or npm inside your `config.yml`:
-
-```yaml
-# Add plugins directly to your build pipeline
-plugins:
-  - "jsr:@stenodevs/my-trusted-plugin@1.0.0"
-  - package: "npm:@steno/html-minifier@1.0.0"
-    mode: isolated
-    options:
-      collapseWhitespace: true
-
-# Control import access policies for third-party extensions
-custom:
-  pluginSourcePolicy:
-    allowLocal: false # Allow top-level file:// plugin specifiers
-    allowRemoteHttp: false # Allow top-level HTTP(S) plugin specifiers
-    allowNodeBuiltins: false # Allow top-level node: plugin specifiers
-    allowThemePlugins: true # Enable/disable plugins bundled within themes
-```
-
-The source policy filters only the configured top-level specifier. Plugins
-configured with `mode: isolated` run in a dedicated deny-by-default Deno
-subprocess with explicit capability grants, hook deadlines, bounded messages, a
-heap ceiling, and crash containment. String plugins and plugins configured with
-`mode: trusted` run in-process with Steno's permissions.
-
-Themes and theme-bundled plugins are currently trusted, not sandboxed. See the
-[plugin sandbox](docs/plugin_sandbox.md) for the threat model and limitations.
-
----
-
-## Developer Workflow
-
-We love contributors. The Steno repository contains a fully configured workspace
-so you can test changes immediately.
+The repository includes unit, conformance, security, real-site, ecosystem, and
+performance tests:
 
 ```sh
-deno task dev            # Starts the sandbox development app under /test
-deno task test           # Runs the unit test suite
-deno task test:sites     # Builds real-world sample sites as regression tests
-deno task test:ecosystem # Runs official plugin/theme compatibility tests
-deno task check          # Runs fmt, lint, type check, doc lint, and all tests
-deno task bench          # Runs the benchmark suite
+deno task dev
+deno task test
+deno task test:sites
+deno task test:ecosystem
+deno task check
+deno task bench:check
 ```
 
-For a comprehensive guide on building themes, writing filters, or extending the
-core compiler, see
-[`CONTRIBUTING.md`](https://github.com/GabsEdits/steno/blob/main/CONTRIBUTING.md).
-
----
-
-## License
-
-MIT (c) [Gabriel Cozma](https://gxbs.dev) and Contributors. See
-[`LICENSE.txt`](https://github.com/GabsEdits/steno/blob/main/LICENSE.txt) for
-details.
-
----
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change.
 
 ## Sponsors
 
 <div align="center">
   <a href="https://tuta.com">
-<img width="233" alt="Tuta Logo" src="https://github.com/user-attachments/assets/4849c0dd-79a0-44a4-b6e8-12127559961f" />
+    <img width="233" alt="Tuta Logo" src="https://github.com/user-attachments/assets/4849c0dd-79a0-44a4-b6e8-12127559961f">
   </a>
 </div>
+
+## License
+
+MIT © [Gabriel Cozma](https://gxbs.dev) and contributors. See
+[LICENSE.txt](LICENSE.txt) for details.
