@@ -669,6 +669,7 @@ export class Theme {
     return manifest;
   }
 
+  /** Resolves a theme asset's raw source to bytes/text, fetching URL sources. */
   private static async resolveAssetContent(
     relPath: string,
     source: string | Uint8Array | URL,
