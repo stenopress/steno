@@ -33,7 +33,7 @@ const configSchema = Object.fromEntries(
 /** Marketing-focused official Steno theme. */
 const theme: StenoTheme = {
   name: "marketing-minimal",
-  version: "0.10.0",
+  version: "0.11.0",
   layouts: { layout },
   assets: {
     "style.css": new URL("./assets/style.css", import.meta.url),

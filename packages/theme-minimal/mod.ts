@@ -14,7 +14,7 @@ const layout = await fetch(new URL("./layouts/layout.tau", import.meta.url))
 /** Minimal official Steno theme. */
 const theme: StenoTheme = {
   name: "minimal",
-  version: "0.10.0",
+  version: "0.11.0",
   layouts: { layout },
   assets: {
     "style.css": new URL("./assets/style.css", import.meta.url),
