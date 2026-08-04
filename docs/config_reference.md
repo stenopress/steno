@@ -111,7 +111,7 @@ config instead. `steno doctor` warns if it finds any of them still under
 ## `custom`
 
 `custom` is reserved for free-form, project-specific values that aren't part of
-Steno's own config surface — for example a theme-facing `stylesheets` list that
+Steno's own config surface - for example a theme-facing `stylesheets` list that
 Steno exposes but never reads itself. Anything Steno interprets directly
 (`theme`, `themeConfig`, `shortUrls`, `devPort`, `globals`,
 `pluginSourcePolicy`) belongs at the top level, not under `custom`.
