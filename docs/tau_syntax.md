@@ -81,7 +81,7 @@ subset is not an isolation boundary for arbitrary hostile code.
 ### Async function calls
 
 A call in an expression (`{fn()}`, `{obj.method(arg)}`) is always awaited, so a
-context-supplied function may be sync or async without any special syntax —
+context-supplied function may be sync or async without any special syntax -
 `await` itself remains rejected as expression syntax. Filters registered on the
 `filters` export may also return a promise; it is awaited the same way.
 `render()` is therefore always `async` and returns `Promise<string>`.
@@ -97,7 +97,7 @@ render({
 ## Local bindings
 
 `{#let name = expression}` computes `expression` once and binds it to `name` for
-the rest of the enclosing block — the same each/if/component nesting a `{#each}`
+the rest of the enclosing block - the same each/if/component nesting a `{#each}`
 item variable would use. It does not need a closing tag; `name` stops being
 visible at the end of the block it appears in (end of the template, or the
 enclosing `{#if}`/`{#each}`/component-children block).
@@ -115,7 +115,7 @@ cannot start with `__tau`.
 ## Control flow
 
 `{#each items as item}...{:else}...{/each}` renders the `{:else}` branch when
-`items` is nullish, non-iterable, or empty — the loop body never ran. This
+`items` is nullish, non-iterable, or empty - the loop body never ran. This
 mirrors `{#if}`'s `{:else}` but keys off iteration count instead of a boolean.
 
 ```tau
@@ -130,8 +130,8 @@ mirrors `{#if}`'s `{:else}` but keys off iteration count instead of a boolean.
 
 A component tag is either self-closing (`<Card title={title} />`) or carries
 children (`<Card title={title}>{@html body}</Card>`). Children are compiled in
-the _caller's_ scope — they can reference the surrounding `{#each}` item,
-`{#let}` bindings, and page context — and rendered once, before the component
+the _caller's_ scope - they can reference the surrounding `{#each}` item,
+`{#let}` bindings, and page context - and rendered once, before the component
 template runs. The component template retrieves the rendered children with
 `{@children}`, a zero-argument tag equivalent to `{@html children}`:
 
@@ -258,7 +258,7 @@ patch releases. Source-backed parse errors also expose `filePath`, `line`, and
 
 Tau follows Steno's compatibility policy. The executable fixtures under
 `src/utils/fixtures/tau/` record output and error-code behavior for each
-released Tau language line. Tau 0.9 is purely additive over 0.8 — every
+released Tau language line. Tau 0.9 is purely additive over 0.8 - every
 construct in `v0.8.json` still produces the same output or error code; new
 behavior (comments, `{#let}`, each/`{:else}`, component children, whitespace
 control, async calls) is covered separately in `v0.9.json`.

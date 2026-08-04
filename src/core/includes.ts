@@ -50,7 +50,7 @@ async function resolveIncludePath(
  * Detects circular includes and throws with a clear error.
  *
  * Include paths must be relative and cannot traverse parent directories,
- * use backslashes, carry a scheme prefix, or contain control characters —
+ * use backslashes, carry a scheme prefix, or contain control characters -
  * the same containment rules Tau templates enforce for `{@include}`.
  *
  * @param body - The Markdown content to process.
