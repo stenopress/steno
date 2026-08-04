@@ -1,8 +1,15 @@
 # Doctor
 
-`deno x jsr:@steno/steno doctor` inspects a configured project and prints a
-report without building it. It exits after printing; it does not modify the
-project.
+Not sure why your site won't build, or want a second opinion before you ship?
+Run:
+
+```sh
+deno x jsr:@steno/steno doctor
+```
+
+It inspects your project and prints a report, without building anything or
+changing a single file. Below is exactly what it checks and how to read the
+result.
 
 ## Checks
 

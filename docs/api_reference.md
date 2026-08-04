@@ -1,32 +1,60 @@
 # API reference
 
+Most projects never need this page: the `deno x jsr:@steno/steno` CLI covers
+building, developing, and previewing a site. Read this if you're embedding Steno
+in your own script or tool, writing a plugin, or calling `render()` directly
+instead of through a theme.
+
 The public module is `jsr:@steno/steno` (or this repository's `mod.ts`).
 
 ```ts
-import { filters, render, Steno, Theme } from "jsr:@steno/steno";
+import { filters, mergeTheme, render, Steno, Theme } from "jsr:@steno/steno";
 import type { SiteConfig, StenoPlugin, StenoTheme } from "jsr:@steno/steno";
 ```
 
 ## `Steno`
 
 `new Steno(configPath?, autoBuildOnInit?, hooks?)` creates the site generator.
-`build()` compiles it, `dev()` starts the watched development server, and
-`preview(port?)` serves the already-built production output without watching; it
-throws if `build()` has not produced output yet. `cancel()` terminates active
-isolated-plugin workers; it also runs automatically after every `build()` and
-`dev()` rebuild, so calling it yourself is only needed to stop work early. The
-default configuration path is `content/.steno/config.yml`. `hooks` may provide
-`beforeBuild`, `afterPage`, and `afterBuild` callbacks; the `SiteConfig` passed
-to `beforeBuild`/`afterBuild` includes a `pages` array (slug, title,
-description, date) generated from the current page set, see
+The default configuration path is `content/.steno/config.yml`.
+
+- `ready()` resolves once construction-time work has settled, including the
+  initial build if `autoBuildOnInit` is `true` (the default). Await this after
+  constructing a `Steno` with `autoBuildOnInit: true` if you want to observe an
+  initialization failure directly, instead of it surfacing as an unhandled
+  rejection.
+- `build()` compiles the site once.
+- `dev()` starts the watched development server: it builds, serves the output,
+  and rebuilds on every relevant file change, including the config file itself,
+  until the process is stopped.
+- `preview(port?)` serves the already-built production output without watching;
+  it throws if `build()` has not produced output yet.
+- `cancel()` terminates active isolated-plugin workers. It also runs
+  automatically after every `build()` and `dev()` rebuild, so calling it
+  yourself is only needed to stop work early.
+
+`hooks` may provide `beforeBuild`, `afterPage`, and `afterBuild` callbacks; the
+`SiteConfig` passed to `beforeBuild`/`afterBuild` includes a `pages` array
+(slug, title, description, date) generated from the current page set, see
 [Transactional builds](atomic_builds.md#plugin-and-hook-paths).
 
 ## `Theme`
 
-`new Theme(themeData, userConfig?)` creates a theme. `Theme.loadFromDirectory`
-loads a convention-based local theme. `renderLayout(name, content, variables)`
-and `renderComponent(name, variables)` render templates and return
-`Promise<string>`; `copyAssets(outputDir)` writes its assets.
+`new Theme(themeData, userConfig?)` creates a theme from a plain `StenoTheme`
+object. `Theme.loadFromDirectory` loads a convention-based local theme (a folder
+with `theme.yaml`) instead. `renderLayout(name, content, variables)` and
+`renderComponent(name,
+variables)` render templates and return
+`Promise<string>`. `copyAssets(outputDir, occupiedPaths?, hashAssets?)` writes
+the theme's assets to disk and returns a manifest mapping each asset's source
+path to its (possibly content-hashed) output path; see
+[Themes and Tau](theme_development.md#layout-context).
+
+`mergeTheme(base, overrides)` merges a base `StenoTheme` (for example, one of
+the three official themes' exported default) with overrides, producing a new
+`StenoTheme` for extending a bundled theme instead of writing one from scratch.
+See
+[Extending a bundled theme](theme-specification.md#extending-a-bundled-theme)
+for the merge rules and a full example.
 
 ## Tau
 
@@ -58,10 +86,11 @@ limit, and compatibility semantics.
 
 ## Types
 
-Exports include `SiteConfig`, `StenoTheme`, `StenoPlugin`, `StenoHooks`,
-`PluginEntry`, `PluginSourcePolicy`, the deprecated `PluginSecurityConfig`
-alias, `IsolatedPluginPermissions`, `CollectionConfig`, `NavigationNode`,
-`HeadTag`, `PageConfigOverrides`, `ThemeConfigField`, `MarkdownTokens`,
-`TauOptions`, `TauLimits`, `TauCacheStats`, `TauErrorCode`, `Collection`,
-`CollectionItem`, and `CollectionMap`. The authoritative contracts are exported
-from `mod.ts`.
+Exports include `SiteConfig`, `StenoTheme`, `ThemeConfig`, `StenoPlugin`,
+`StenoHooks`, `PluginEntry`, `PluginSourcePolicy`, the deprecated
+`PluginSecurityConfig` alias, `IsolatedPluginPermissions`, `CollectionConfig`,
+`NavigationNode`, `HeadTag`, `PageConfigOverrides`, `ThemeConfigField`,
+`MarkdownTokens`, `FilterFunction`, `TauOptions`, `TauLimits`, `TauCacheStats`,
+`TauErrorCode`, `Collection`, `CollectionItem`, and `CollectionMap`, among
+others. This list isn't exhaustive and Steno is still pre-1.0, so treat `mod.ts`
+itself as the authoritative, up-to-date list of what's exported.

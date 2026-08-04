@@ -1,8 +1,17 @@
 # Transactional builds
 
-Steno builds every site into a temporary directory beside the configured output
-directory. Pages, theme assets, redirects, and lifecycle hooks must all succeed
-before the staged tree is promoted.
+You don't need to read this to use Steno day to day, `steno build` and
+`steno dev` already handle everything below for you automatically. This page is
+for when you're writing a plugin or hook that touches the filesystem, or you're
+curious what actually happens if a build fails partway through.
+
+The short version: a build never overwrites your existing `dist/` folder until
+every single page, asset, and hook has succeeded. If anything fails, your
+previous output is left exactly as it was, nothing is half-written.
+
+In detail: Steno builds every site into a temporary directory beside the
+configured output directory. Pages, theme assets, redirects, and lifecycle hooks
+must all succeed before the staged tree is promoted.
 
 If parsing, rendering, a plugin, a hook, an asset copy, redirect generation, or
 promotion fails:

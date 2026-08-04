@@ -1,5 +1,12 @@
 # Themes and Tau
 
+This page covers directory-based themes: a folder with a `theme.yaml`, built
+with Tau templates, loaded from a local path. For themes authored as a `mod.ts`
+module (including how Steno resolves a `theme` specifier, and the `StenoTheme`
+shape either kind of theme produces), see the
+[Theme specification](theme-specification.md). For the template language itself
+(expressions, filters, control flow), see [Tau syntax](tau_syntax.md).
+
 A local theme is a directory with layouts, optional registered components, and
 optional assets:
 
@@ -38,6 +45,11 @@ page without `layout` uses `layout`, so it needs `layouts/layout.tau`.
 Components must be declared in `theme.yaml`; their declared key is capitalized
 when loaded (`header` becomes `<Header />`). Assets are copied to
 `<output>/assets/`.
+
+Point a project at this theme with `theme: ./theme` (or wherever the folder
+lives, relative to the config file) in `content/.steno/config.yml`. See
+[Resolution](theme-specification.md#resolution) for every specifier form `theme`
+accepts, and [Configuration](config_reference.md) for `themeConfig`.
 
 ## Scripts
 
@@ -157,3 +169,12 @@ template by default. API consumers can lower these limits through
 These controls harden rendering against malformed templates and accidental
 resource exhaustion. Tau templates remain trusted theme code and are not a
 security sandbox for arbitrary user-authored expressions.
+
+## See also
+
+- [Tau syntax](tau_syntax.md) for the full expression grammar, built-in filters,
+  and escaping rules.
+- [Theme specification](theme-specification.md) for module-based (`mod.ts`)
+  themes, `configSchema` validation rules, and how `theme` is resolved.
+- [Configuration](config_reference.md) for `theme`, `themeConfig`, `hashAssets`,
+  and other site-level settings.

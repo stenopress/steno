@@ -1,5 +1,10 @@
 # Plugin sandbox
 
+This page is the detailed security model behind `mode: isolated`, written for
+people deciding whether to trust a plugin, or writing a plugin others will
+trust. If you only want the short version, see
+[Trust and permissions](plugins.md#trust-and-permissions) in the plugins guide.
+
 Steno supports two explicit plugin execution modes:
 
 - `trusted` is the default for compatibility. The plugin is imported into the

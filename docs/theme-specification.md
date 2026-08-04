@@ -33,6 +33,45 @@ and defaults can be recursive. Undeclared top-level keys are allowed for
 backwards compatibility. Invalid values fail theme loading with a path to the
 offending setting.
 
+## Extending a bundled theme
+
+Each official theme's `mod.ts` exports its `StenoTheme` object as the module
+default, in addition to being loadable directly as
+`theme:
+jsr:@steno/theme-minimal`. Import that object and pass it to
+`mergeTheme` to override or add to it without repeating everything it already
+defines:
+
+```ts
+import { mergeTheme } from "jsr:@steno/steno";
+import minimal from "jsr:@steno/theme-minimal";
+
+export default mergeTheme(minimal, {
+  layouts: {
+    // Overrides "layout"; every other layout from `minimal` is untouched.
+    layout: `<main class="custom">{@html content}</main>`,
+  },
+  defaultConfig: { accent: "indigo" },
+}) satisfies StenoTheme;
+```
+
+`mergeTheme(base, overrides)` merges `layouts`, `components`, `assets`,
+`configSchema`, and `defaultConfig` shallowly by key: a key present in
+`overrides` replaces that entry in `base`; every other key from `base` survives
+untouched. `name`, `version`, and `plugins` are replaced wholesale when
+`overrides` sets them, otherwise `base`'s value is kept. This is why
+`mergeTheme` exists instead of a plain object spread: overriding one entry with
+`{ ...minimal, layouts: { layout: "..." } }` replaces the whole `layouts`
+object, so any other layout, component, or asset `base` ships (for example
+`theme-marketing-minimal`'s four separate `assets` entries) would silently
+disappear too. `mergeTheme` merges each of those objects key by key instead, so
+only the entry actually named in `overrides` changes.
+
+This only applies to module-based themes (an importable `StenoTheme` object). A
+directory-based theme (`theme.yaml`) has no equivalent object to import and
+merge - copy or `{@include}` from it instead; see
+[Themes and Tau](theme_development.md).
+
 ## Resolution
 
 `theme` accepts, in order of how Steno tries to resolve it:

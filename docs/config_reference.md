@@ -1,7 +1,9 @@
 # Configuration reference
 
-Steno reads YAML (`.yml`/`.yaml`) or TOML from `content/.steno/config.yml` by
-default. Pass another path with `--config`.
+Steno reads `content/.steno/config.yml` by default; pass another path with
+`--config`. The format is picked from the file extension: `.yml`/`.yaml` for
+YAML, `.toml` for TOML - so `--config content/.steno/config.toml` reads the same
+fields written as TOML instead.
 
 ```yaml
 title: My site
@@ -67,6 +69,11 @@ copied verbatim to the output root (see
 [Public assets](content.md#public-assets)). `navigation` optionally supplies a
 tree of `{ title, url,
 children }` nodes for themes.
+
+`collections` groups pages by their content subdirectory (`content/posts/*` into
+`collections.posts`) with optional sorting, filtering, pagination, and
+frontmatter schema validation; see [Collections](content.md#collections) for
+every field `sortBy`, `order`, `limit`, `filter`, and `schema` accept.
 
 ## Managed head tags
 
@@ -177,8 +184,20 @@ deno x jsr:@steno/steno [build|dev|preview|doctor|help] [--config path] [--port 
 `build` is the default. `dev` watches and serves the site, `preview` serves the
 already-built production output without watching, and `doctor` reports common
 project/configuration problems; see [Doctor](doctor.md) for the full check list.
-`--port` selects the preview port, which defaults to 4173 and searches upward
-for the next available port the same way the dev server does. `preview` requires
-a prior `build`: it fails with an error naming the missing output directory if
-`dist/` does not exist yet. `preview` always binds to `127.0.0.1`; `dev` binds
-to `0.0.0.0`.
+`--port` only applies to `preview`; it selects that server's port, which
+defaults to 4173 and searches upward for the next available port the same way
+`dev` does. `dev`'s port comes from `devPort` in config instead (see above),
+since it has no `--port` flag of its own. `preview` requires a prior `build`: it
+fails with an error naming the missing output directory if `dist/` does not
+exist yet. `preview` always binds to `127.0.0.1`; `dev` binds to `0.0.0.0`.
+
+## See also
+
+- [Content](content.md) for frontmatter, `_data`, collections, and per-page
+  overrides via `steno.*` frontmatter.
+- [Themes and Tau](theme_development.md) and
+  [Theme specification](theme-specification.md) for what `theme`/`themeConfig`
+  feed into.
+- [Plugins](plugins.md) for the `plugins` list itself, beyond source policy.
+- [Doctor](doctor.md) to catch config issues (like `custom.*` nesting) before
+  they reach a build.
