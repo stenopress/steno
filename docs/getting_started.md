@@ -66,7 +66,8 @@ deno x jsr:@steno/steno build
 
 This writes the final website into a `dist/` folder. That folder is your whole
 site: plain HTML, CSS, and JavaScript files. Upload it to any static web host
-(Netlify, Cloudflare Pages, GitHub Pages, or similar) and you are live.
+(Netlify, Cloudflare Pages, GitHub Pages, or similar) and you are live. See
+[Deploying](deploying.md) for step by step setup, including GitHub Actions.
 
 Before you upload, you can double check exactly what will ship with:
 
@@ -87,6 +88,8 @@ you see precisely what your visitors will see.
 - [Tau syntax](tau_syntax.md): the template language themes are written in.
 - [Plugins](plugins.md): optional build-time extensions like Tailwind CSS.
 - [Doctor](doctor.md): a command that checks your project for common mistakes.
+- [Deploying](deploying.md): hosting your site on GitHub Pages, Vercel, Netlify,
+  Cloudflare Pages, or your own server.
 
 ## Going further
 

@@ -201,3 +201,4 @@ exist yet. `preview` always binds to `127.0.0.1`; `dev` binds to `0.0.0.0`.
 - [Plugins](plugins.md) for the `plugins` list itself, beyond source policy.
 - [Doctor](doctor.md) to catch config issues (like `custom.*` nesting) before
   they reach a build.
+- [Deploying](deploying.md) for `output` in the context of an actual host.
