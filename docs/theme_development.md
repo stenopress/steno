@@ -52,17 +52,16 @@ already has full control over how it builds its own `assets` map. Omit
 ## Layout context
 
 Every layout receives `content` (compiled Markdown), `site`, `theme`, `data`,
-`collections`, `env`, `globals`, `assets`, public environment variables, and
-all page frontmatter. `theme` contains its name/version plus merged
-configuration.
+`collections`, `env`, `globals`, `assets`, public environment variables, and all
+page frontmatter. `theme` contains its name/version plus merged configuration.
 
-`assets` maps each theme asset's source-relative path (as written in
-`assets/` or `scripts/`) to its output filename. CSS and JS assets are
-written under a content-hashed filename by default (`site.css` ->
-`site.a1b2c3d4.css`) so a redeploy with changed styles or scripts gets a new
-URL automatically - no CDN cache purge needed. Set `hashAssets: false` in the
-site config to keep source filenames as-is. Reference assets through this map
-rather than hardcoding the source filename either way:
+`assets` maps each theme asset's source-relative path (as written in `assets/`
+or `scripts/`) to its output filename. CSS and JS assets are written under a
+content-hashed filename by default (`site.css` -> `site.a1b2c3d4.css`) so a
+redeploy with changed styles or scripts gets a new URL automatically - no CDN
+cache purge needed. Set `hashAssets: false` in the site config to keep source
+filenames as-is. Reference assets through this map rather than hardcoding the
+source filename either way:
 
 ```html
 <!doctype html>
