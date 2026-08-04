@@ -262,6 +262,13 @@ export async function buildSite({
     const nextPages = new Map<string, BuildStateEntry>();
     const occupiedPaths = new Set<string>();
     const unchangedFiles: Array<{ source: string; destination: string }> = [];
+    const themeAssets = theme
+      ? await theme.copyAssets(
+        stagingDir,
+        occupiedPaths,
+        config.hashAssets ?? true,
+      )
+      : {};
 
     const fireAfterPage = async (
       finalPath: string,
@@ -383,6 +390,7 @@ export async function buildSite({
           collections: await getCollections(),
           data,
           title: page.frontmatter.title || page.title || config.title,
+          assets: themeAssets,
         };
 
         const layoutContent = theme
@@ -446,8 +454,6 @@ export async function buildSite({
       });
     }
     await copyFilesToStaging(unchangedFiles);
-
-    if (theme) await theme.copyAssets(stagingDir, occupiedPaths);
 
     if (publicDirPath && publicFiles.length > 0) {
       await copyPublicDir(
