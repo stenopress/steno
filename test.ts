@@ -20,6 +20,7 @@ import { registerOutputTransactionTests } from "./src/core/build/output_transact
 import { registerPathUtilsTests } from "./src/core/path_utils_test.ts";
 import { registerOutputTests } from "./src/utils/output_test.ts";
 import { registerDoctorTests } from "./src/core/doctor_test.ts";
+import { registerModTests } from "./mod_test.ts";
 
 registerCliTests();
 registerConfigTests();
@@ -43,3 +44,4 @@ registerOutputTransactionTests();
 registerPathUtilsTests();
 registerOutputTests();
 registerDoctorTests();
+registerModTests();

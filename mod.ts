@@ -64,7 +64,15 @@ export type {
 export { mergeTheme, Theme } from "./src/theme/theme.ts";
 export type { ThemeConfig } from "./src/theme/theme.ts";
 
-if (import.meta.main) {
+// Deliberately not `await`-ed at the top level: a top-level await here would
+// keep this module's own evaluation pending for as long as the build runs.
+// A theme loaded mid-build that imports a *value* (not just a type) from
+// this same module - `Theme`, `mergeTheme`, etc. - would then dynamically
+// re-import a module whose evaluation can never finish until this very
+// `await` resolves, deadlocking the build. Firing it without awaiting lets
+// this module finish evaluating immediately; the process still stays alive
+// on the pending work underneath, and still exits non-zero on failure.
+async function runCli(): Promise<void> {
   try {
     await runStenoCli(Deno.args);
   } catch (error) {
@@ -78,4 +86,8 @@ if (import.meta.main) {
     printHelp();
     Deno.exit(1);
   }
+}
+
+if (import.meta.main) {
+  runCli();
 }
