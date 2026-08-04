@@ -8,6 +8,30 @@ import { transpile } from "@deno/emit";
 export type ThemeConfig = Record<string, unknown>;
 
 const ASSET_COPY_CONCURRENCY = 32;
+/** Assets matching this pattern get a content hash baked into their output filename. */
+const HASHABLE_ASSET_PATTERN = /\.m?js$|\.css$/i;
+
+async function hashContent(content: string | Uint8Array): Promise<string> {
+  const bytes = typeof content === "string"
+    ? new TextEncoder().encode(content)
+    : new Uint8Array(content);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 8);
+}
+
+/** Inserts a hash before an asset's file extension: `style.css` -> `style.<hash>.css`. */
+function insertAssetHash(relPath: string, hash: string): string {
+  const slashIndex = relPath.lastIndexOf("/");
+  const dir = slashIndex === -1 ? "" : relPath.slice(0, slashIndex + 1);
+  const fileName = slashIndex === -1 ? relPath : relPath.slice(slashIndex + 1);
+  const dotIndex = fileName.lastIndexOf(".");
+  return dotIndex === -1
+    ? `${dir}${fileName}.${hash}`
+    : `${dir}${fileName.slice(0, dotIndex)}.${hash}${fileName.slice(dotIndex)}`;
+}
 
 async function mapWithConcurrency<T>(
   items: T[],
@@ -528,7 +552,7 @@ export class Theme {
     }
     return await this.executeRender(
       template,
-      { content, ...variables },
+      { assets: {}, content, ...variables },
       this.layoutPaths[layoutName],
     );
   }
@@ -577,12 +601,19 @@ export class Theme {
 
   /**
    * Copies all theme assets to the output directory (e.g., dist/assets/).
+   *
+   * CSS and JS assets are written under a content-hashed filename (e.g.
+   * `style.css` -> `style.a1b2c3d4.css`) so redeploys don't need a manual
+   * CDN cache purge - the returned manifest maps the original relative path
+   * to the hashed one, ready to expose to templates.
    */
   public async copyAssets(
     outputDir: string,
     occupiedPaths: Set<string> = new Set(),
-  ): Promise<void> {
-    if (!this.themeData.assets) return;
+    hashAssets = true,
+  ): Promise<Record<string, string>> {
+    const manifest: Record<string, string> = {};
+    if (!this.themeData.assets) return manifest;
     const assetsDir = join(outputDir, "assets");
 
     const assets = Object.entries(this.themeData.assets).sort((
@@ -590,11 +621,27 @@ export class Theme {
       [right],
     ) => left.localeCompare(right));
 
+    const resolved = new Array<
+      { relPath: string; destRelPath: string; content: string | Uint8Array }
+    >(assets.length);
+
+    await mapWithConcurrency(
+      assets.map((entry, index) => ({ entry, index })),
+      ASSET_COPY_CONCURRENCY,
+      async ({ entry: [relPath, source], index }) => {
+        const content = await Theme.resolveAssetContent(relPath, source);
+        const destRelPath = hashAssets && HASHABLE_ASSET_PATTERN.test(relPath)
+          ? insertAssetHash(relPath, await hashContent(content))
+          : relPath;
+        resolved[index] = { relPath, destRelPath, content };
+      },
+    );
+
     const writeJobs: Array<
-      { relPath: string; destPath: string; source: string | Uint8Array | URL }
+      { destPath: string; content: string | Uint8Array }
     > = [];
-    for (const [relPath, source] of assets) {
-      const destPath = join(assetsDir, relPath);
+    for (const { relPath, destRelPath, content } of resolved) {
+      const destPath = join(assetsDir, destRelPath);
       const normalizedDestPath = resolve(destPath);
       if (occupiedPaths.has(normalizedDestPath)) {
         throw new Error(
@@ -603,28 +650,38 @@ export class Theme {
       }
       occupiedPaths.add(normalizedDestPath);
       Deno.mkdirSync(dirname(destPath), { recursive: true });
-      writeJobs.push({ relPath, destPath, source });
+      manifest[relPath] = destRelPath;
+      writeJobs.push({ destPath, content });
     }
 
     await mapWithConcurrency(
       writeJobs,
       ASSET_COPY_CONCURRENCY,
-      async ({ destPath, source }) => {
-        if (typeof source === "string") {
-          await Deno.writeTextFile(destPath, source);
-        } else if (source instanceof Uint8Array) {
-          await Deno.writeFile(destPath, source);
-        } else if (source instanceof URL) {
-          const response = await fetch(source);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch theme asset: ${source.href}`);
-          }
-          await Deno.writeFile(
-            destPath,
-            new Uint8Array(await response.arrayBuffer()),
-          );
+      async ({ destPath, content }) => {
+        if (typeof content === "string") {
+          await Deno.writeTextFile(destPath, content);
+        } else {
+          await Deno.writeFile(destPath, content);
         }
       },
     );
+
+    return manifest;
+  }
+
+  private static async resolveAssetContent(
+    relPath: string,
+    source: string | Uint8Array | URL,
+  ): Promise<string | Uint8Array> {
+    if (typeof source === "string" || source instanceof Uint8Array) {
+      return source;
+    }
+    const response = await fetch(source);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch theme asset "${relPath}": ${source.href}`,
+      );
+    }
+    return new Uint8Array(await response.arrayBuffer());
   }
 }

@@ -201,6 +201,13 @@ export interface SiteConfig {
   redirects?: Record<string, string>;
   /** Whether directory URLs omit `index.html`. */
   shortUrls?: boolean;
+  /**
+   * Whether theme CSS/JS assets get a content hash baked into their output
+   * filename (e.g. `style.css` -> `style.a1b2c3d4.css`), so redeploys don't
+   * need a manual CDN cache purge. Defaults to `true`; set to `false` to
+   * keep source filenames as-is.
+   */
+  hashAssets?: boolean;
   /** Development server port. */
   devPort?: number;
   /** Theme module specifier or local path. */
