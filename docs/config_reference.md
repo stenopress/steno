@@ -99,9 +99,9 @@ server port (default 5735). If it is unavailable, Steno scans forward one port
 at a time up to 65535 and binds the first free one.
 
 `hashAssets` defaults to `true`: theme CSS/JS get a content hash baked into
-their output filename (`style.css` -> `style.a1b2c3d4.css`), so a redeploy
-with changed styles or scripts is served under a new URL without a manual CDN
-cache purge. Set it to `false` to keep source filenames as-is.
+their output filename (`style.css` -> `style.a1b2c3d4.css`), so a redeploy with
+changed styles or scripts is served under a new URL without a manual CDN cache
+purge. Set it to `false` to keep source filenames as-is.
 
 These fields, along with `pluginSourcePolicy` (below), used to live nested under
 a `custom` object. That nesting is deprecated: set them at the top level of the

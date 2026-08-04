@@ -81,7 +81,8 @@ export function registerThemeTests(): void {
   });
 
   Deno.test({
-    name: "theme: copyAssets hashes CSS/JS deterministically and leaves other assets untouched",
+    name:
+      "theme: copyAssets hashes CSS/JS deterministically and leaves other assets untouched",
     permissions: { read: true, write: true },
     fn: async () => {
       const tempDir = Deno.makeTempDirSync();
