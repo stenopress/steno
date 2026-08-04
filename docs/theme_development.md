@@ -10,6 +10,8 @@ theme/
 │   └── layout.tau
 ├── components/
 │   └── Header.tau
+├── scripts/
+│   └── site.ts
 └── assets/
     └── site.css
 ```
@@ -36,6 +38,16 @@ page without `layout` uses `layout`, so it needs `layouts/layout.tau`.
 Components must be declared in `theme.yaml`; their declared key is capitalized
 when loaded (`header` becomes `<Header />`). Assets are copied to
 `<output>/assets/`.
+
+## Scripts
+
+`scripts/*.ts`/`*.tsx` are transpiled to JavaScript and merged into the theme's
+assets, so `scripts/site.ts` is reachable at `/assets/site.js` -
+`scripts/foo/bar.ts` is flattened the same way, to `/assets/bar.js`. Existing
+`scripts/*.js`/`*.jsx` are copied through unchanged. This only applies to
+directory-based themes (`theme.yaml`); a theme authored as a `mod.ts` module
+already has full control over how it builds its own `assets` map. Omit
+`scripts/` entirely if a theme has no need for it - there's no cost either way.
 
 ## Layout context
 
@@ -77,6 +89,51 @@ be literals, expressions (`title={title}`), or shorthand (`{title}`).
 
 `{@include "name"}` in a theme resolves a registered component name through the
 theme renderer. For Markdown source-file includes, see [Content](content.md).
+
+## Sharing boilerplate across layouts
+
+Tau has no `extends`/layout-inheritance syntax, but `{@include}` already covers
+the common case that would motivate one: a `<head>` block (charset, viewport,
+favicons, stylesheet links, and similar) repeated identically across every
+layout in a theme.
+
+The key difference from a `<Component />` invocation is context: a component
+only receives its explicit props plus `site`/`theme`/`globals` (see
+[Layout context](#layout-context) above), but `{@include "name"}` inherits the
+**full** context of the template that includes it - the same `title`,
+`description`, and other page frontmatter a layout itself sees. Register the
+shared block as an ordinary component and pull it in with `{@include}` instead
+of `<Head />`, and every value it needs is already in scope:
+
+```yaml
+# theme.yaml
+components:
+  head: components/head.tau
+```
+
+```html
+<!-- components/head.tau -->
+<head>
+  <meta charset="utf-8" />
+  <title>{title} · {site.title}</title>
+  <meta name="description" content="{description}" />
+  <link rel="stylesheet" href="/assets/site.css" />
+</head>
+```
+
+```html
+<!-- layouts/article.tau -->
+<html>
+  {@include "Head"}
+  <meta property="og:type" content="article" />
+  <body>{@html content}</body>
+</html>
+```
+
+A layout can still add a few tags of its own directly after the include -
+`{@include}` only replaces the parts that are actually identical everywhere; it
+isn't a slot system and doesn't let a child layout override part of what it
+includes.
 
 ## Safety limits
 
