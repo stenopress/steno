@@ -115,12 +115,10 @@ async function replacePlugins(
   plugins: StenoPlugin[],
 ): Promise<void> {
   const internals = steno as unknown as {
-    themeLoadingPromise: Promise<void>;
-    pluginsLoadingPromise: Promise<void>;
+    runtimeLoadingPromise: Promise<unknown>;
     plugins: StenoPlugin[];
   };
-  await internals.themeLoadingPromise;
-  await internals.pluginsLoadingPromise;
+  await internals.runtimeLoadingPromise;
   internals.plugins = plugins;
 }
 
@@ -1305,6 +1303,38 @@ Body.`,
         Error,
         "Output collision",
       );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: dev-mode builds reload the config file on every rebuild",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+
+      const steno = new Steno(f.configPath, false);
+      const internals = steno as unknown as {
+        executeBuild: (dev: boolean) => Promise<void>;
+        config: SiteConfig;
+      };
+
+      await internals.executeBuild(true);
+      assertEquals(internals.config.title, "Test");
+
+      Deno.writeTextFileSync(
+        f.configPath,
+        `title: "Updated"\ndescription: ""\nauthor: ""\ncontentDir: "${f.contentDir}"\noutput: "${f.outputDir}"\n`,
+      );
+
+      await internals.executeBuild(true);
+      assertEquals(internals.config.title, "Updated");
+
+      const indexHtml = Deno.readTextFileSync(join(f.outputDir, "index.html"));
+      assertStringIncludes(indexHtml, "Hello.");
+
       f.cleanup();
     },
   });

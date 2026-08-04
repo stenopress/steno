@@ -9,9 +9,9 @@ import {
   resolvePluginSourcePolicy,
 } from "./config.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
+import { resolveCachePath } from "./build/cache.ts";
 import { loadTheme } from "./steno_theme.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
-import { join } from "@std/path";
 import {
   getEnvironmentFilePaths,
   loadEnvironmentFiles,
@@ -21,11 +21,10 @@ import {
 export class Steno {
   private config!: SiteConfig;
   private theme?: Theme;
-  private readonly themeLoadingPromise: Promise<void>;
   private readonly autoBuildOnInit: boolean;
   private plugins: StenoPlugin[] = [];
-  private readonly pluginsLoadingPromise: Promise<void>;
-  private readonly projectPromise: Promise<ResolvedProject>;
+  private readonly configPath: string;
+  private readonly runtimeLoadingPromise: Promise<ResolvedProject>;
   private readonly buildState: BuildState = {
     signature: null,
     pages: new Map(),
@@ -44,13 +43,9 @@ export class Steno {
     autoBuildOnInit = true,
     private hooks: StenoHooks = {},
   ) {
+    this.configPath = configPath;
     this.autoBuildOnInit = autoBuildOnInit;
-    this.projectPromise = resolveProject(configPath);
-    this.themeLoadingPromise = this.projectPromise.then(async (project) => {
-      this.config = project.config;
-      this.theme = await loadTheme(project.config);
-    });
-    this.pluginsLoadingPromise = this.loadPlugins();
+    this.runtimeLoadingPromise = this.loadRuntime();
     this.initPromise = this.init();
   }
 
@@ -64,10 +59,17 @@ export class Steno {
     return this.initPromise;
   }
 
-  /** Resolves and loads the configured plugins. */
-  private async loadPlugins(): Promise<void> {
-    const project = await this.projectPromise;
-    await this.themeLoadingPromise;
+  /**
+   * Re-reads the config file, reloads the theme it points at, and resolves
+   * plugins, updating `config`/`theme`/`plugins` in place. Called once at
+   * construction and again before every dev-server rebuild, so editing the
+   * config or switching a theme takes effect without restarting `dev`.
+   */
+  private async loadRuntime(): Promise<ResolvedProject> {
+    const project = await resolveProject(this.configPath);
+    this.config = project.config;
+    this.theme = await loadTheme(project.config);
+
     const sitePlugins = await loadPlugins(project.config);
     const allowThemePlugins =
       resolvePluginSourcePolicy(project.config).allowThemePlugins;
@@ -91,17 +93,18 @@ export class Steno {
     }
 
     this.plugins = [...themePlugins, ...sitePlugins];
+    return project;
   }
 
   /** Core execution method for triggering a site build orchestration. */
   private async executeBuild(dev: boolean): Promise<void> {
-    const project = await this.projectPromise;
-    await this.themeLoadingPromise;
-    await this.pluginsLoadingPromise;
+    const project = dev
+      ? await this.loadRuntime()
+      : await this.runtimeLoadingPromise;
 
     try {
       await buildSite({
-        config: project.config,
+        config: this.config,
         theme: this.theme,
         plugins: this.plugins,
         hooks: this.hooks,
@@ -130,7 +133,7 @@ export class Steno {
 
   /** Starts the development server with live reload. */
   public async dev(): Promise<void> {
-    const project = await this.projectPromise;
+    const project = await this.runtimeLoadingPromise;
     const contentDir = project.config.contentDir || "content";
     const outputDir = project.config.output || "dist";
     const devPort = resolveDevPort(project.config);
@@ -146,15 +149,15 @@ export class Steno {
     await startDevServer(
       outputDir,
       () => this.executeBuild(true),
-      [contentDir, ...envFiles],
-      [join(contentDir, ".steno"), outputDir],
+      [contentDir, this.configPath, ...envFiles],
+      [resolveCachePath(contentDir), outputDir],
       devPort,
     );
   }
 
   /** Builds the site and serves the production output without file watching. */
   public async preview(port?: number): Promise<void> {
-    const project = await this.projectPromise;
+    const project = await this.runtimeLoadingPromise;
     const outputDir = project.config.output ?? "dist";
 
     await startPreviewServer(outputDir, port);
