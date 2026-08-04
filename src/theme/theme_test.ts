@@ -5,7 +5,8 @@ import {
   assertThrows,
 } from "@std/assert";
 import { join } from "@std/path";
-import { Theme } from "./theme.ts";
+import { mergeTheme, Theme } from "./theme.ts";
+import type { StenoTheme } from "../types.ts";
 
 export function registerThemeTests(): void {
   Deno.test("theme: merges defaultConfig with userConfig", () => {
@@ -101,7 +102,9 @@ export function registerThemeTests(): void {
       );
       Deno.writeTextFileSync(join(themeDir, "assets", "style.css"), `body {}`);
 
-      const theme = Theme.loadFromDirectory(themeDir, { author: "override" });
+      const theme = await Theme.loadFromDirectory(themeDir, {
+        author: "override",
+      });
       const rendered = await theme.renderLayout("layout", "<p>x</p>", {
         site: { title: "My Site" },
         theme: { author: theme.config.author },
@@ -121,6 +124,86 @@ export function registerThemeTests(): void {
       );
       assertEquals(copied, "body {}");
       assertEquals(theme.config.author, "override");
+    },
+  });
+
+  Deno.test({
+    name: "theme: loadFromDirectory compiles scripts/*.ts into assets",
+    permissions: { read: true, write: true, net: true, env: true, run: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const themeDir = join(tempDir, "theme");
+      Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
+      Deno.mkdirSync(join(themeDir, "scripts", "sub"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        join(themeDir, "theme.yaml"),
+        `name: Demo\nversion: 1.0.0\n`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "layouts", "layout.tau"),
+        `{@html content}`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "scripts", "foo.ts"),
+        `const label: string = "hi";\nconsole.log(label);\n`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "scripts", "sub", "bar.ts"),
+        `const count: number = 1;\nconsole.log(count);\n`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "scripts", "plain.js"),
+        `console.log("plain");\n`,
+      );
+
+      const theme = await Theme.loadFromDirectory(themeDir);
+      const outputDir = join(tempDir, "dist");
+      await theme.copyAssets(outputDir);
+
+      const fooJs = Deno.readTextFileSync(
+        join(outputDir, "assets", "foo.js"),
+      );
+      assertStringIncludes(fooJs, "hi");
+      assertEquals(fooJs.includes(": string"), false);
+
+      const barJs = Deno.readTextFileSync(
+        join(outputDir, "assets", "bar.js"),
+      );
+      assertStringIncludes(barJs, "1");
+      assertEquals(barJs.includes(": number"), false);
+
+      const plainJs = Deno.readTextFileSync(
+        join(outputDir, "assets", "plain.js"),
+      );
+      assertStringIncludes(plainJs, "plain");
+    },
+  });
+
+  Deno.test({
+    name: "theme: loadFromDirectory is a no-op when scripts/ is absent",
+    permissions: { read: true, write: true, net: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const themeDir = join(tempDir, "theme");
+      Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
+      Deno.writeTextFileSync(
+        join(themeDir, "theme.yaml"),
+        `name: Demo\nversion: 1.0.0\n`,
+      );
+      Deno.writeTextFileSync(
+        join(themeDir, "layouts", "layout.tau"),
+        `{@html content}`,
+      );
+
+      const theme = await Theme.loadFromDirectory(themeDir);
+      const outputDir = join(tempDir, "dist");
+      await theme.copyAssets(outputDir);
+
+      const assetsExist = await Deno.stat(join(outputDir, "assets")).then(
+        () => true,
+      ).catch(() => false);
+      assertEquals(assetsExist, false);
     },
   });
 
@@ -294,5 +377,82 @@ export function registerThemeTests(): void {
     );
 
     assertEquals(theme.config.customExtension, { enabled: true });
+  });
+
+  const baseTheme: StenoTheme = {
+    name: "base",
+    version: "1.0.0",
+    layouts: { layout: "<main/>", docs: "<docs/>" },
+    components: { Header: "<h1/>" },
+    assets: { "site.css": "body{}" },
+    configSchema: { accent: { type: "string" } },
+    defaultConfig: { accent: "blue" },
+    plugins: [{ name: "base-plugin" }],
+  };
+
+  Deno.test("mergeTheme: keeps base layouts not re-declared by overrides", () => {
+    const merged = mergeTheme(baseTheme, {
+      layouts: { landing: "<landing/>" },
+    });
+    assertEquals(merged.layouts, {
+      layout: "<main/>",
+      docs: "<docs/>",
+      landing: "<landing/>",
+    });
+  });
+
+  Deno.test("mergeTheme: override layout replaces same-key base layout", () => {
+    const merged = mergeTheme(baseTheme, {
+      layouts: { layout: "<overridden/>" },
+    });
+    assertEquals(merged.layouts.layout, "<overridden/>");
+    assertEquals(merged.layouts.docs, "<docs/>");
+  });
+
+  Deno.test("mergeTheme: merges assets, components, configSchema, defaultConfig by key", () => {
+    const merged = mergeTheme(baseTheme, {
+      assets: { "extra.js": "console.log(1)" },
+      components: { Footer: "<footer/>" },
+      configSchema: { title: { type: "string" } },
+      defaultConfig: { title: "Untitled" },
+    });
+    assertEquals(merged.assets, {
+      "site.css": "body{}",
+      "extra.js": "console.log(1)",
+    });
+    assertEquals(merged.components, { Header: "<h1/>", Footer: "<footer/>" });
+    assertEquals(Object.keys(merged.configSchema ?? {}).sort(), [
+      "accent",
+      "title",
+    ]);
+    assertEquals(merged.defaultConfig, { accent: "blue", title: "Untitled" });
+  });
+
+  Deno.test("mergeTheme: overrides name/version when provided, else keeps base", () => {
+    const merged = mergeTheme(baseTheme, { name: "extended" });
+    assertEquals(merged.name, "extended");
+    assertEquals(merged.version, "1.0.0");
+  });
+
+  Deno.test("mergeTheme: plugins replace wholesale, not concat", () => {
+    const merged = mergeTheme(baseTheme, {
+      plugins: [{ name: "override-plugin" }],
+    });
+    assertEquals(merged.plugins, [{ name: "override-plugin" }]);
+
+    const keepsBase = mergeTheme(baseTheme, {});
+    assertEquals(keepsBase.plugins, [{ name: "base-plugin" }]);
+  });
+
+  Deno.test("mergeTheme: does not throw when base or overrides omit optional fields", () => {
+    const minimalBase: StenoTheme = {
+      name: "bare",
+      version: "1.0.0",
+      layouts: { layout: "<main/>" },
+    };
+    const merged = mergeTheme(minimalBase, {});
+    assertEquals(merged.layouts, { layout: "<main/>" });
+    assertEquals(merged.assets, {});
+    assertEquals(merged.components, {});
   });
 }
