@@ -12,7 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{#if title}{ title }{:else}{ site.title }{/if}</title>
     {#if description}<meta name="description" content={description} />{/if}
-    <link rel="stylesheet" href="/assets/style.css" />
+    <link rel="stylesheet" href="/assets/{ assets?.['style.css'] }" />
   </head>
   <body>
     <header class="site-header">
