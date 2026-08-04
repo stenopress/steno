@@ -62,15 +62,41 @@ export function registerThemeTests(): void {
         },
       });
 
-      await theme.copyAssets(tempDir);
+      const manifest = await theme.copyAssets(tempDir);
 
-      const css = Deno.readTextFileSync(join(tempDir, "assets", "style.css"));
+      assertEquals(manifest["images/pixel.bin"], "images/pixel.bin");
+      assertStringIncludes(manifest["style.css"], "style.");
+      assertStringIncludes(manifest["style.css"], ".css");
+
+      const css = Deno.readTextFileSync(
+        join(tempDir, "assets", manifest["style.css"]),
+      );
       const bin = Deno.readFileSync(
         join(tempDir, "assets", "images", "pixel.bin"),
       );
 
       assertStringIncludes(css, "color: red");
       assertEquals(Array.from(bin), [1, 2, 3]);
+    },
+  });
+
+  Deno.test({
+    name: "theme: copyAssets hashes CSS/JS deterministically and leaves other assets untouched",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const theme = new Theme({
+        name: "assets",
+        version: "1.0.0",
+        layouts: { layout: `{ title }` },
+        assets: { "style.css": "body { color: blue; }" },
+      });
+
+      const first = await theme.copyAssets(join(tempDir, "a"));
+      const second = await theme.copyAssets(join(tempDir, "b"));
+
+      assertEquals(first["style.css"], second["style.css"]);
+      assertEquals(/^style\.[0-9a-f]{8}\.css$/.test(first["style.css"]), true);
     },
   });
 
@@ -118,9 +144,9 @@ export function registerThemeTests(): void {
       );
 
       const outputDir = join(tempDir, "dist");
-      await theme.copyAssets(outputDir);
+      const manifest = await theme.copyAssets(outputDir);
       const copied = Deno.readTextFileSync(
-        join(outputDir, "assets", "style.css"),
+        join(outputDir, "assets", manifest["style.css"]),
       );
       assertEquals(copied, "body {}");
       assertEquals(theme.config.author, "override");
@@ -159,22 +185,22 @@ export function registerThemeTests(): void {
 
       const theme = await Theme.loadFromDirectory(themeDir);
       const outputDir = join(tempDir, "dist");
-      await theme.copyAssets(outputDir);
+      const manifest = await theme.copyAssets(outputDir);
 
       const fooJs = Deno.readTextFileSync(
-        join(outputDir, "assets", "foo.js"),
+        join(outputDir, "assets", manifest["foo.js"]),
       );
       assertStringIncludes(fooJs, "hi");
       assertEquals(fooJs.includes(": string"), false);
 
       const barJs = Deno.readTextFileSync(
-        join(outputDir, "assets", "bar.js"),
+        join(outputDir, "assets", manifest["bar.js"]),
       );
       assertStringIncludes(barJs, "1");
       assertEquals(barJs.includes(": number"), false);
 
       const plainJs = Deno.readTextFileSync(
-        join(outputDir, "assets", "plain.js"),
+        join(outputDir, "assets", manifest["plain.js"]),
       );
       assertStringIncludes(plainJs, "plain");
     },

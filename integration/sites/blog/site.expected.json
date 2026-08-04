@@ -3,8 +3,7 @@
     "index.html": ["Field Notes", "Recent posts"],
     "about/index.html": ["About this site"],
     "posts/first/index.html": ["First Field Note"],
-    "posts/second/index.html": ["Second Field Note"],
-    "assets/style.css": []
+    "posts/second/index.html": ["Second Field Note"]
   },
   "mutableSource": "content/posts/first.md",
   "mutableOutput": "posts/first/index.html",
