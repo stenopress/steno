@@ -1,7 +1,8 @@
 import { render } from "../utils/tau.ts";
 import type { StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
-import { dirname, join, resolve, toFileUrl } from "@std/path";
+import { basename, dirname, join, resolve, toFileUrl } from "@std/path";
 import { parse as parseYaml } from "@std/yaml";
+import { transpile } from "@deno/emit";
 
 /** Resolved configuration values passed to a theme. */
 export type ThemeConfig = Record<string, unknown>;
@@ -216,6 +217,32 @@ interface ThemeDirectoryMetadata {
 }
 
 /**
+ * Merges a base theme with overrides, producing a new `StenoTheme`.
+ *
+ * `layouts`, `components`, `assets`, `configSchema`, and `defaultConfig` are
+ * merged shallowly by key (override wins per key, unset base keys survive).
+ * `name`, `version`, and `plugins` are replaced wholesale when present in
+ * `overrides`. Use this instead of a raw object spread when extending a
+ * bundled theme - a plain `{ ...base, layouts: { ...only-the-new-ones } }`
+ * silently drops any base layout not re-listed.
+ */
+export function mergeTheme(
+  base: StenoTheme,
+  overrides: Partial<StenoTheme>,
+): StenoTheme {
+  return {
+    name: overrides.name ?? base.name,
+    version: overrides.version ?? base.version,
+    layouts: { ...base.layouts, ...overrides.layouts },
+    components: { ...base.components, ...overrides.components },
+    assets: { ...base.assets, ...overrides.assets },
+    configSchema: { ...base.configSchema, ...overrides.configSchema },
+    defaultConfig: { ...base.defaultConfig, ...overrides.defaultConfig },
+    plugins: overrides.plugins ?? base.plugins,
+  };
+}
+
+/**
  * Represents a Steno Theme, providing methods to load, render layouts and components,
  * and copy static assets.
  */
@@ -275,10 +302,10 @@ export class Theme {
    * @param userConfig - Optional overrides for the theme configuration.
    * @returns A new {@link Theme} instance.
    */
-  public static loadFromDirectory(
+  public static async loadFromDirectory(
     dir: string,
     userConfig: ThemeConfig = {},
-  ): Theme {
+  ): Promise<Theme> {
     const metadata = Theme.loadMetadata(dir);
     const name = metadata.name || "unnamed";
     const version = metadata.version || "1.0.0";
@@ -288,7 +315,10 @@ export class Theme {
       dir,
       metadata.components,
     );
-    const assets = Theme.loadAssets(dir);
+    const assets = {
+      ...Theme.loadAssets(dir),
+      ...(await Theme.loadScripts(dir)),
+    };
 
     const themeInstance = new Theme({
       name,
@@ -407,6 +437,56 @@ export class Theme {
     } catch { /* Assets missing is fine */ }
 
     return assets;
+  }
+
+  /**
+   * Recursively compiles `scripts/*.ts`/`*.tsx` into JS text, and passes
+   * `*.js`/`*.jsx` through unchanged. Output is flattened to a single
+   * directory level (`scripts/sub/foo.ts` -> `foo.js`) so themes can
+   * reference compiled scripts the same way they reference `assets/*.js`.
+   */
+  private static async loadScripts(
+    dir: string,
+  ): Promise<Record<string, string>> {
+    const scripts: Record<string, string> = {};
+    const scriptsDir = join(dir, "scripts");
+
+    const sourcePaths: string[] = [];
+    try {
+      if (Deno.statSync(scriptsDir).isDirectory) {
+        const walk = (currentDir: string) => {
+          for (const entry of Deno.readDirSync(currentDir)) {
+            const fullPath = join(currentDir, entry.name);
+            if (entry.isDirectory) walk(fullPath);
+            else if (
+              entry.isFile &&
+              /\.(ts|tsx|js|jsx)$/.test(entry.name)
+            ) {
+              sourcePaths.push(fullPath);
+            }
+          }
+        };
+        walk(scriptsDir);
+      }
+    } catch { /* Scripts directory missing is fine */ }
+
+    for (const fullPath of sourcePaths) {
+      const outName = basename(fullPath).replace(/\.(ts|tsx)$/, ".js");
+      if (/\.(js|jsx)$/.test(fullPath)) {
+        scripts[outName] = Deno.readTextFileSync(fullPath);
+        continue;
+      }
+
+      const sourceUrl = toFileUrl(fullPath);
+      const result = await transpile(sourceUrl);
+      const code = result.get(sourceUrl.href);
+      if (!code) {
+        throw new Error(`Failed to transpile theme script "${fullPath}".`);
+      }
+      scripts[outName] = code;
+    }
+
+    return scripts;
   }
 
   /**

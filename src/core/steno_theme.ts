@@ -32,7 +32,7 @@ async function loadBundledTheme(
       for (const themeFile of ["theme.yaml", "theme.yml"]) {
         try {
           if ((await Deno.stat(join(localPath, themeFile))).isFile) {
-            return Theme.loadFromDirectory(localPath, themeConfig);
+            return await Theme.loadFromDirectory(localPath, themeConfig);
           }
         } catch {
           // continue
@@ -88,7 +88,7 @@ export async function loadTheme(
       }
 
       if (hasThemeYaml) {
-        return Theme.loadFromDirectory(themeDir, themeConfig);
+        return await Theme.loadFromDirectory(themeDir, themeConfig);
       }
 
       let resolvedPath = themeName.startsWith("file://")
