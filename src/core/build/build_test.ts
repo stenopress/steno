@@ -190,10 +190,46 @@ export function registerBuildTests(): void {
       );
       assertStringIncludes(postHtml, "Welcome to my blog.");
 
+      const assetFiles = [...Deno.readDirSync(join(f.outputDir, "assets"))]
+        .map((entry) => entry.name);
+      const cssFileName = assetFiles.find((name) =>
+        /^global\.[0-9a-f]{8}\.css$/.test(name)
+      );
+      if (!cssFileName) {
+        throw new Error(
+          `Expected a hashed global.css asset, found: ${assetFiles.join(", ")}`,
+        );
+      }
       const css = Deno.readTextFileSync(
-        join(f.outputDir, "assets", "global.css"),
+        join(f.outputDir, "assets", cssFileName),
       );
       assertEquals(css, "body { margin: 0; }");
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: hashAssets: false keeps theme asset filenames as-is",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme(
+        undefined,
+        undefined,
+        { "style.css": "body { color: green; }" },
+      );
+      f.writeConfig(
+        `custom:\n  theme: "${themeDir}"\nhashAssets: false\n`,
+      );
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+
+      await new Steno(f.configPath, false).build();
+
+      const css = Deno.readTextFileSync(
+        join(f.outputDir, "assets", "style.css"),
+      );
+      assertEquals(css, "body { color: green; }");
 
       f.cleanup();
     },

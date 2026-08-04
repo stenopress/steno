@@ -5,8 +5,7 @@
       "Installation",
       "Configuration reference"
     ],
-    "reference/configuration/index.html": ["Configuration reference"],
-    "assets/style.css": []
+    "reference/configuration/index.html": ["Configuration reference"]
   },
   "mutableSource": "content/guide/installation.md",
   "mutableOutput": "guide/installation/index.html",

@@ -232,10 +232,26 @@ for (
         await build(root);
         const html = await Deno.readTextFile(join(root, "dist", "index.html"));
         assertStringIncludes(html, "Compatibility");
+        const outputFiles = [...Deno.readDirSync(join(root, "dist", "assets"))]
+          .map((entry) => entry.name);
         for (const asset of assets) {
+          const isHashable = /\.m?js$|\.css$/i.test(asset);
+          if (!isHashable) {
+            assert(
+              (await Deno.stat(join(root, "dist", "assets", asset))).isFile,
+              `${name} did not copy ${asset}`,
+            );
+            continue;
+          }
+          const dotIndex = asset.lastIndexOf(".");
+          const pattern = new RegExp(
+            `^${asset.slice(0, dotIndex)}\\.[0-9a-f]{8}${
+              asset.slice(dotIndex).replace(".", "\\.")
+            }$`,
+          );
           assert(
-            (await Deno.stat(join(root, "dist", "assets", asset))).isFile,
-            `${name} did not copy ${asset}`,
+            outputFiles.some((fileName) => pattern.test(fileName)),
+            `${name} did not copy a hashed ${asset}`,
           );
         }
       } finally {
