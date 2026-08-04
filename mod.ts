@@ -61,7 +61,7 @@ export type {
   ThemeConfigField,
 } from "./src/types.ts";
 /** Loads and renders theme instances. */
-export { Theme } from "./src/theme/theme.ts";
+export { mergeTheme, Theme } from "./src/theme/theme.ts";
 export type { ThemeConfig } from "./src/theme/theme.ts";
 
 if (import.meta.main) {
