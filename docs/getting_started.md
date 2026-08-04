@@ -90,6 +90,12 @@ you see precisely what your visitors will see.
 - [Doctor](doctor.md): a command that checks your project for common mistakes.
 - [Deploying](deploying.md): hosting your site on GitHub Pages, Vercel, Netlify,
   Cloudflare Pages, or your own server.
+- [Recipes](recipes.md): copy-pasteable answers for common tasks, an RSS feed, a
+  blog listing, dark mode, and more.
+- [Troubleshooting](troubleshooting.md): what a given error message means and
+  how to fix it.
+- [Glossary](glossary.md): plain definitions for terms used throughout these
+  docs.
 
 ## Going further
 

@@ -9,31 +9,45 @@ when you need them.
 
 ## Using an official plugin
 
-Steno publishes two official plugins. Add them by name when you scaffold a
-project:
+Steno publishes four official plugins under the `@steno/` scope:
+
+- `jsr:@steno/plugin-tailwind` compiles Tailwind CSS as part of the build.
+- `jsr:@steno/plugin-shiki` adds syntax highlighting to fenced code blocks in
+  your Markdown.
+- `jsr:@steno/plugin-seo` generates `sitemap.xml`, an RSS feed (`feed.xml`), and
+  an Atom feed (`atom.xml`) from your pages.
+- `jsr:@steno/plugin-image` optimizes and resizes images referenced by your
+  theme.
+
+`plugin-tailwind` and `plugin-shiki` are the two the scaffolder knows about
+directly, add them by name when you create a project:
 
 ```sh
 deno create jsr:@steno/init --plugins tailwind,shiki
 ```
 
-or list them in an existing project's config:
+Any of the four can also be added manually to an existing project's config, each
+with its own `options`:
 
 ```yaml
 plugins:
   - jsr:@steno/plugin-tailwind
   - jsr:@steno/plugin-shiki
+  - package: jsr:@steno/plugin-seo
+    options:
+      siteUrl: https://example.com
+      title: My Site
+      description: A concise description
+      authorName: Ada Lovelace
 ```
 
-- `jsr:@steno/plugin-tailwind` compiles Tailwind CSS as part of the build.
-- `jsr:@steno/plugin-shiki` adds syntax highlighting to fenced code blocks in
-  your Markdown.
-
-The scaffolder pins an exact version and runs both in-process (`mode: trusted`);
-that's a deliberate choice for these two, since they are maintained alongside
-Steno itself and reviewed the same way. If you add them manually, pin an exact
-version too, rather than a version range. See
+See each plugin's own JSR page for its full option list. The scaffolder pins an
+exact version and runs `tailwind`/`shiki` in-process (`mode: trusted`); that's a
+deliberate choice for those two, since they are maintained alongside Steno
+itself and reviewed the same way. If you add any of the four manually, pin an
+exact version too, rather than a version range. See
 [Trust and permissions](#trust-and-permissions) below if you would rather run
-them in the stricter sandboxed mode instead;
+one in the stricter sandboxed mode instead;
 [Isolated plugin entries](config_reference.md#isolated-plugin-entries) lists the
 exact permission fields to grant (each plugin's own docs list what filesystem
 and network access it actually needs).
