@@ -266,8 +266,13 @@ export async function buildSite({
       stagingPath: string,
       html: string,
     ) => {
+      // `path` is kept for backward compatibility and means something
+      // different for each hook (final vs. staging) — `finalPath`/
+      // `stagingPath` are always both populated so callers can sidestep
+      // that ambiguity entirely.
       await hooks.afterPage?.({
         path: finalPath,
+        finalPath,
         stagingPath,
         html,
       });
@@ -275,6 +280,7 @@ export async function buildSite({
         await plugin.afterPage?.({
           path: stagingPath,
           finalPath,
+          stagingPath,
           html,
         });
       }

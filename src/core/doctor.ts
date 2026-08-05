@@ -3,6 +3,8 @@ import { resolveProject } from "./project.ts";
 import { join } from "@std/path";
 import { c, fail, info, ok, success, warn } from "../utils/output.ts";
 import { STENO_DIR } from "./path_utils.ts";
+import { parseFrontmatter } from "../utils/frontmatter.ts";
+import { errorMessage } from "../utils/text.ts";
 
 function pathIs(path: string, type: "isDirectory" | "isFile"): boolean {
   try {
@@ -27,6 +29,40 @@ function countMarkdownFiles(dir: string): number {
     // ignore
   }
   return count;
+}
+
+/**
+ * Parses every markdown file's frontmatter so a malformed page (bad YAML/
+ * TOML indentation, a stray colon) surfaces here instead of deep inside a
+ * real build. Returns one message per file that failed to parse.
+ */
+function checkFrontmatter(dir: string): string[] {
+  const errors: string[] = [];
+
+  const walk = (currentDir: string) => {
+    let entries: Deno.DirEntry[];
+    try {
+      entries = [...Deno.readDirSync(currentDir)];
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const fullPath = join(currentDir, entry.name);
+      if (entry.isDirectory) {
+        if (entry.name !== STENO_DIR) walk(fullPath);
+      } else if (entry.isFile && entry.name.endsWith(".md")) {
+        try {
+          parseFrontmatter(Deno.readTextFileSync(fullPath), fullPath);
+        } catch (error) {
+          errors.push(errorMessage(error));
+        }
+      }
+    }
+  };
+
+  walk(dir);
+  return errors;
 }
 
 /**
@@ -88,6 +124,16 @@ export async function runDoctor(configPath: string): Promise<void> {
   const pageCount = countMarkdownFiles(contentDir);
   if (pageCount > 0) {
     ok(`${pageCount} page${pageCount === 1 ? "" : "s"} found`);
+
+    const frontmatterErrors = checkFrontmatter(contentDir);
+    if (frontmatterErrors.length === 0) {
+      ok(`Frontmatter parses cleanly in all ${pageCount} page${
+        pageCount === 1 ? "" : "s"
+      }`);
+    } else {
+      for (const message of frontmatterErrors) fail(message);
+      hasErrors = true;
+    }
   } else {
     warn(`No .md files found in "${contentDir}"`);
   }

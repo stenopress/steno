@@ -362,13 +362,18 @@ export interface StenoPlugin {
 
 /** A generated page passed to build and plugin lifecycle hooks. */
 export interface GeneratedPage {
-  /** Writable staging path for plugins; final path for caller hooks. */
+  /**
+   * Kept for backward compatibility only — means the staging path in
+   * `StenoPlugin.afterPage`, but the final published path in
+   * `StenoHooks.afterPage`. Prefer `finalPath`/`stagingPath` below, which
+   * are always both populated regardless of which hook you're in.
+   */
   path: string;
   /** Generated HTML for the page. */
   html: string;
-  /** Final published path when `path` points into staging. */
+  /** Final published path. Always populated by steno's own build pipeline. */
   finalPath?: string;
-  /** Writable staging path when `path` is the final published path. */
+  /** Writable staging path. Always populated by steno's own build pipeline. */
   stagingPath?: string;
 }
 
