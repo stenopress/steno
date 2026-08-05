@@ -24,7 +24,7 @@
     "jsr:@std/path@1.1.6": "1.1.6",
     "jsr:@std/path@^1.1.5": "1.1.6",
     "jsr:@std/toml@1.0.11": "1.0.11",
-    "jsr:@std/yaml@1.1.2": "1.1.2",
+    "jsr:@std/yaml@1.2.0": "1.2.0",
     "jsr:@steno/plugin-image@1.0.0": "1.0.0",
     "jsr:@steno/plugin-seo@0.7.0": "0.7.0",
     "jsr:@steno/plugin-shiki@1.0.0": "1.0.0",
@@ -129,8 +129,8 @@
         "jsr:@std/collections"
       ]
     },
-    "@std/yaml@1.1.2": {
-      "integrity": "de612653c036749ba2044165e316f52412b0f0698afffb7ee80b5331d6d2abae"
+    "@std/yaml@1.2.0": {
+      "integrity": "20beb41e4983ba3437dbefac62b14061ab058e8a187596f19d28ff9035f6e6cf"
     },
     "@steno/plugin-image@1.0.0": {
       "integrity": "35e72ef6d532cf154256aa4c876b536be668bed643e2dd70309f67894c3fe943",
@@ -638,7 +638,7 @@
       "jsr:@std/media-types@1.1.0",
       "jsr:@std/path@1.1.6",
       "jsr:@std/toml@1.0.11",
-      "jsr:@std/yaml@1.1.2",
+      "jsr:@std/yaml@1.2.0",
       "npm:marked@18.0.7"
     ]
   }
