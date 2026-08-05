@@ -1,11 +1,4 @@
-import {
-  basename,
-  dirname,
-  extname,
-  join,
-  relative,
-  resolve,
-} from "@std/path";
+import { basename, dirname, extname, join, relative, resolve } from "@std/path";
 import { contentType } from "@std/media-types";
 import { isPathInsideOrEqual } from "../core/path_utils.ts";
 import { changeDetected, devServerReady } from "./output.ts";
