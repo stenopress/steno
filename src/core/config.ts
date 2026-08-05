@@ -378,7 +378,9 @@ function warnOnUnknownConfigKeys(
   if (unknownKeys.length === 0) return;
 
   console.warn(
-    `[config] Unrecognized key${unknownKeys.length === 1 ? "" : "s"} in "${configPath}": ${
+    `[config] Unrecognized key${
+      unknownKeys.length === 1 ? "" : "s"
+    } in "${configPath}": ${
       unknownKeys.map((key) => `"${key}"`).join(", ")
     }. Ignored — check for a typo, or nest project-specific fields under "custom".`,
   );
