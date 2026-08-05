@@ -2,24 +2,23 @@ import { assertEquals, assertRejects } from "@std/assert";
 import { errorResponse, handleRequest } from "./isolated_worker.ts";
 import { ISOLATED_PLUGIN_PROTOCOL_VERSION } from "./isolated_protocol.ts";
 
-const VALID_PLUGIN_URL =
-  "data:application/javascript," + encodeURIComponent(
-    `export default (options) => ({
+const VALID_PLUGIN_URL = "data:application/javascript," + encodeURIComponent(
+  `export default (options) => ({
       name: "test-plugin",
       afterBuild: () => options,
     });`,
-  );
+);
 
-const INVALID_PLUGIN_URL =
-  "data:application/javascript," + encodeURIComponent(
-    `export default () => ({ notAPlugin: true });`,
-  );
+const INVALID_PLUGIN_URL = "data:application/javascript," + encodeURIComponent(
+  `export default () => ({ notAPlugin: true });`,
+);
 
-const NON_FUNCTION_URL =
-  "data:application/javascript," + encodeURIComponent(`export default 42;`);
+const NON_FUNCTION_URL = "data:application/javascript," +
+  encodeURIComponent(`export default 42;`);
 
 Deno.test({
-  name: "isolated_worker: rejects a request with an unsupported protocol version",
+  name:
+    "isolated_worker: rejects a request with an unsupported protocol version",
   fn: async () => {
     await assertRejects(
       () =>
@@ -69,7 +68,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "isolated_worker: init rejects a factory result that isn't a valid plugin",
+  name:
+    "isolated_worker: init rejects a factory result that isn't a valid plugin",
   fn: async () => {
     await assertRejects(
       () =>
@@ -86,7 +86,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "isolated_worker: init succeeds and reports the plugin's declared hooks",
+  name:
+    "isolated_worker: init succeeds and reports the plugin's declared hooks",
   fn: async () => {
     const response = await handleRequest({
       id: 1,

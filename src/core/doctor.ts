@@ -127,9 +127,11 @@ export async function runDoctor(configPath: string): Promise<void> {
 
     const frontmatterErrors = checkFrontmatter(contentDir);
     if (frontmatterErrors.length === 0) {
-      ok(`Frontmatter parses cleanly in all ${pageCount} page${
-        pageCount === 1 ? "" : "s"
-      }`);
+      ok(
+        `Frontmatter parses cleanly in all ${pageCount} page${
+          pageCount === 1 ? "" : "s"
+        }`,
+      );
     } else {
       for (const message of frontmatterErrors) fail(message);
       hasErrors = true;

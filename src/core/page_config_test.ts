@@ -24,7 +24,11 @@ Deno.test({
   name: "page_config: reads string overrides",
   fn: () => {
     const overrides = resolvePageConfigOverrides({
-      steno: { title: "Custom Title", description: "Custom Desc", author: "Dev" },
+      steno: {
+        title: "Custom Title",
+        description: "Custom Desc",
+        author: "Dev",
+      },
     }, "post.md");
     assertEquals(overrides.title, "Custom Title");
     assertEquals(overrides.description, "Custom Desc");
@@ -36,8 +40,7 @@ Deno.test({
   name: "page_config: throws when a string override has the wrong type",
   fn: () => {
     assertThrows(
-      () =>
-        resolvePageConfigOverrides({ steno: { title: 123 } }, "post.md"),
+      () => resolvePageConfigOverrides({ steno: { title: 123 } }, "post.md"),
       Error,
       `at "steno.title": expected a string`,
     );
@@ -60,7 +63,10 @@ Deno.test({
   fn: () => {
     assertThrows(
       () =>
-        resolvePageConfigOverrides({ steno: { themeConfig: "nope" } }, "post.md"),
+        resolvePageConfigOverrides(
+          { steno: { themeConfig: "nope" } },
+          "post.md",
+        ),
       Error,
       `at "steno.themeConfig": expected an object`,
     );
@@ -96,7 +102,10 @@ Deno.test({
       },
     }, "post.md");
     assertEquals(overrides.navigation?.length, 2);
-    assertEquals(overrides.navigation?.[1].children?.[0].title, "Getting Started");
+    assertEquals(
+      overrides.navigation?.[1].children?.[0].title,
+      "Getting Started",
+    );
   },
 });
 
@@ -105,7 +114,10 @@ Deno.test({
   fn: () => {
     assertThrows(
       () =>
-        resolvePageConfigOverrides({ steno: { navigation: "nope" } }, "post.md"),
+        resolvePageConfigOverrides(
+          { steno: { navigation: "nope" } },
+          "post.md",
+        ),
       Error,
       `at "steno.navigation": expected an array`,
     );
