@@ -460,7 +460,9 @@ export async function buildSite({
       STAGING_COPY_CONCURRENCY,
       (job) => Deno.writeTextFile(job.path, job.content),
     );
-    for (const { outputFilePath, stagedOutputFilePath, html } of afterPageQueue) {
+    for (
+      const { outputFilePath, stagedOutputFilePath, html } of afterPageQueue
+    ) {
       await fireAfterPage(outputFilePath, stagedOutputFilePath, html);
     }
     await copyFilesToStaging(unchangedFiles);
