@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import {
   loadConfig,
@@ -26,6 +26,57 @@ export function registerConfigTests(): void {
       const config = loadConfig(configPath);
       assertEquals(config.title, "Test Site");
       assertEquals(config.custom?.shortUrls, true);
+    },
+  });
+
+  Deno.test({
+    name: "config: warns about unrecognized top-level keys",
+    permissions: { read: true, write: true },
+    fn: () => {
+      const tempDir = Deno.makeTempDirSync();
+      const configPath = join(tempDir, "config.yml");
+
+      Deno.writeTextFileSync(
+        configPath,
+        `title: Test Site\ndescription: Test Desc\nauthor: Dev\ncolllections:\n  posts: {}\n`,
+      );
+
+      const warnings: string[] = [];
+      const originalWarn = console.warn;
+      console.warn = (...args) => warnings.push(args.join(" "));
+      try {
+        loadConfig(configPath);
+      } finally {
+        console.warn = originalWarn;
+      }
+
+      assertEquals(warnings.length, 1);
+      assertStringIncludes(warnings[0], "colllections");
+    },
+  });
+
+  Deno.test({
+    name: "config: does not warn for known or custom keys",
+    permissions: { read: true, write: true },
+    fn: () => {
+      const tempDir = Deno.makeTempDirSync();
+      const configPath = join(tempDir, "config.yml");
+
+      Deno.writeTextFileSync(
+        configPath,
+        `title: Test Site\ndescription: Test Desc\nauthor: Dev\ncustom:\n  anything: true\n`,
+      );
+
+      const warnings: string[] = [];
+      const originalWarn = console.warn;
+      console.warn = (...args) => warnings.push(args.join(" "));
+      try {
+        loadConfig(configPath);
+      } finally {
+        console.warn = originalWarn;
+      }
+
+      assertEquals(warnings.length, 0);
     },
   });
 

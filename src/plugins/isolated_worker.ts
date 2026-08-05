@@ -17,19 +17,25 @@ const hookNames: IsolatedPluginHook[] = [
   "afterBuild",
 ];
 
-// Keep plugin logging out of the protocol stream.
-for (const method of ["log", "info", "warn", "error", "debug"] as const) {
-  console[method] = (...args: unknown[]) => {
-    const text = args.map((value) =>
-      typeof value === "string" ? value : JSON.stringify(value)
-    ).join(" ");
-    Deno.stderr.writeSync(encoder.encode(`${text}\n`));
-  };
+// Keep plugin logging out of the protocol stream. Guarded the same as the
+// stdin loop below: only patch the real console when this file is actually
+// running as the subprocess entry point, not when a test imports it to
+// exercise handleRequest() directly (that would clobber console for the
+// entire test process, since all test files share one Deno process).
+if (import.meta.main) {
+  for (const method of ["log", "info", "warn", "error", "debug"] as const) {
+    console[method] = (...args: unknown[]) => {
+      const text = args.map((value) =>
+        typeof value === "string" ? value : JSON.stringify(value)
+      ).join(" ");
+      Deno.stderr.writeSync(encoder.encode(`${text}\n`));
+    };
+  }
 }
 
 let plugin: StenoPlugin | undefined;
 
-function errorResponse(
+export function errorResponse(
   id: number,
   error: unknown,
 ): IsolatedPluginResponse {
@@ -45,7 +51,7 @@ function errorResponse(
   };
 }
 
-async function handleRequest(
+export async function handleRequest(
   request: IsolatedPluginRequest,
 ): Promise<IsolatedPluginResponse> {
   if (request.version !== ISOLATED_PLUGIN_PROTOCOL_VERSION) {
@@ -94,15 +100,21 @@ async function handleRequest(
   };
 }
 
-for await (const line of readProtocolLines(Deno.stdin.readable)) {
-  let response: IsolatedPluginResponse;
-  let id = -1;
-  try {
-    const request = JSON.parse(line) as IsolatedPluginRequest;
-    id = request.id;
-    response = await handleRequest(request);
-  } catch (error) {
-    response = errorResponse(id, error);
+// This file is only ever launched as `deno run <perms> isolated_worker.ts`
+// (see workerUrl in isolated_plugin.ts) — it's always the main module there,
+// so this guard only skips the stdin loop when the file is imported
+// directly, e.g. to unit test `handleRequest` without a real subprocess.
+if (import.meta.main) {
+  for await (const line of readProtocolLines(Deno.stdin.readable)) {
+    let response: IsolatedPluginResponse;
+    let id = -1;
+    try {
+      const request = JSON.parse(line) as IsolatedPluginRequest;
+      id = request.id;
+      response = await handleRequest(request);
+    } catch (error) {
+      response = errorResponse(id, error);
+    }
+    await Deno.stdout.write(encoder.encode(`${JSON.stringify(response)}\n`));
   }
-  await Deno.stdout.write(encoder.encode(`${JSON.stringify(response)}\n`));
 }
