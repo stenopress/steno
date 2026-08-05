@@ -1,4 +1,5 @@
 import { join } from "@std/path";
+import { errorMessage } from "../utils/text.ts";
 
 export type StenoEnvironment = "development" | "production";
 
@@ -60,7 +61,7 @@ export function parseEnvironmentFile(
       throw new Error(
         `Invalid dotenv value for "${key}" in "${filePath}" at line ${
           index + 1
-        }: ${error instanceof Error ? error.message : String(error)}.`,
+        }: ${errorMessage(error)}.`,
       );
     }
   }

@@ -1,4 +1,4 @@
-import { dirname, join, resolve } from "@std/path";
+import { join, resolve } from "@std/path";
 import { marked } from "marked";
 import type { CollectionMap } from "../collections.ts";
 import { buildCollections, collectMarkdownPages } from "../collections.ts";
@@ -29,32 +29,17 @@ import {
 } from "./output_transaction.ts";
 import { resolvePageConfigOverrides } from "../page_config.ts";
 import { injectHeadTags, mergeHeadTags, validateHeadTags } from "../head.ts";
-import { fileExistsSync as fileExists } from "../../utils/fs.ts";
+import {
+  ensureParentDirSync,
+  fileExistsSync as fileExists,
+} from "../../utils/fs.ts";
 import { resolveShortUrls } from "../config.ts";
+import { mapWithConcurrency } from "../../utils/concurrency.ts";
+import { errorMessage } from "../../utils/text.ts";
 
 export type { BuildContext, BuildState, BuildStateEntry } from "./context.ts";
 const STAGING_COPY_CONCURRENCY = 128;
 const PAGE_RENDER_CONCURRENCY = 16;
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  concurrency: number,
-  mapFn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-  const workerCount = Math.min(concurrency, items.length);
-  await Promise.all(
-    Array.from({ length: workerCount }, async () => {
-      while (true) {
-        const index = nextIndex++;
-        if (index >= items.length) return;
-        results[index] = await mapFn(items[index]);
-      }
-    }),
-  );
-  return results;
-}
 
 async function copyFilesToStaging(
   files: Array<{ source: string; destination: string }>,
@@ -110,7 +95,7 @@ async function copyPublicDir(
       );
     }
     occupiedPaths.add(normalizedDestPath);
-    Deno.mkdirSync(dirname(destPath), { recursive: true });
+    ensureParentDirSync(destPath);
     jobs.push({ source: join(publicDir, relPath), destination: destPath });
   }
 
@@ -430,7 +415,7 @@ export async function buildSite({
       occupiedPaths.add(normalizedStagedPath);
 
       if (needsRender) {
-        Deno.mkdirSync(dirname(stagedOutputFilePath), { recursive: true });
+        ensureParentDirSync(stagedOutputFilePath);
         Deno.writeTextFileSync(stagedOutputFilePath, renderedContent!);
         await fireAfterPage(
           outputFilePath,
@@ -438,7 +423,7 @@ export async function buildSite({
           renderedContent!,
         );
       } else {
-        Deno.mkdirSync(dirname(stagedOutputFilePath), { recursive: true });
+        ensureParentDirSync(stagedOutputFilePath);
         unchangedFiles.push({
           source: outputFilePath,
           destination: stagedOutputFilePath,
@@ -489,9 +474,7 @@ export async function buildSite({
       savePersistentBuildCache(cachePath, buildSignature, nextPages);
     } catch (error) {
       console.warn(
-        `Build committed, but failed to save cache: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Build committed, but failed to save cache: ${errorMessage(error)}`,
       );
     }
 

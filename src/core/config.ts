@@ -9,6 +9,7 @@ import type {
 import { isStenoPlugin } from "../plugins/plugins.ts";
 import { loadIsolatedPlugin } from "../plugins/isolated_plugin.ts";
 import { DEFAULT_DEV_PORT } from "../utils/server.ts";
+import { errorMessage } from "../utils/text.ts";
 
 type PluginFactory = (
   options: Record<string, unknown>,
@@ -327,7 +328,7 @@ export async function loadPlugins(
       if (entry.mode === "isolated") {
         throw new Error(
           `Failed to load isolated plugin "${packageName}": ${
-            err instanceof Error ? err.message : String(err)
+            errorMessage(err)
           }`,
           { cause: err },
         );
@@ -361,7 +362,7 @@ export function loadConfig(configPath: string): SiteConfig {
     }
     return config as SiteConfig;
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+    const detail = errorMessage(error);
     throw new Error(
       `Failed to parse config "${configPath}": ${detail}. Check the file syntax near the reported location.`,
       { cause: error },

@@ -1,6 +1,6 @@
 import { type Node, TauParser } from "./tau_parser.ts";
 import { TauError } from "./tau_error.ts";
-import { utf8ByteLength } from "./text.ts";
+import { errorMessage, utf8ByteLength } from "./text.ts";
 import { BLOCKED_EXPRESSION_NAMES, compileExpression } from "./tau_expr.ts";
 
 /** Options accepted by the Tau template renderer. */
@@ -512,9 +512,7 @@ async function renderWithCompiledTemplate(
       if (error instanceof TauError) throw error;
       throw new TauError(
         "TAU_RENDER_FAILED",
-        `Tau rendering failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Tau rendering failed: ${errorMessage(error)}`,
         { filePath: options.filePath },
         { cause: error },
       );

@@ -8,6 +8,7 @@ import {
   isPathInsideOrEqual,
   resolveMarkdownScanIgnorePaths,
   resolvePageRoute,
+  STENO_DIR,
 } from "./path_utils.ts";
 import { resolveShortUrls } from "./config.ts";
 
@@ -92,7 +93,7 @@ export async function collectMarkdownPages(
       }
 
       if (entry.isDirectory) {
-        if (entry.name !== ".steno") {
+        if (entry.name !== STENO_DIR) {
           await scanDirectory(fullPath, entryRelPath);
         }
       } else if (entry.isFile && entry.name.endsWith(".md")) {

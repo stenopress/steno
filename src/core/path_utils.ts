@@ -2,6 +2,9 @@ import { basename, dirname, isAbsolute, join, relative } from "@std/path";
 import { marked } from "marked";
 import type { MarkdownPage } from "./collections.ts";
 
+/** Name of Steno's reserved metadata directory within a content directory. */
+export const STENO_DIR = ".steno";
+
 export function humanizeSegment(input: string): string {
   const value = input
     .replace(/[-_.]+/g, " ")
@@ -193,7 +196,7 @@ export function resolveMarkdownScanIgnorePaths(
   outputDir?: string,
   publicDir?: string | null,
 ): string[] {
-  const ignorePaths = [join(contentDir, ".steno")];
+  const ignorePaths = [join(contentDir, STENO_DIR)];
   if (outputDir) ignorePaths.push(outputDir);
   if (publicDir) ignorePaths.push(publicDir);
   return ignorePaths;
