@@ -1,10 +1,21 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { buildSite } from "./build/build.ts";
-import { loadTheme } from "./steno_theme.ts";
+import { bundledThemeLocalPath, loadTheme } from "./steno_theme.ts";
 import { resolveProject } from "./project.ts";
 
 export function registerProjectTests(): void {
+  Deno.test("themes: remote bundled-theme candidates use JSR fallback", () => {
+    assertEquals(
+      bundledThemeLocalPath(
+        new URL(
+          "https://jsr.io/@steno/steno/0.11.1/packages/theme-docs-minimal",
+        ),
+      ),
+      undefined,
+    );
+  });
+
   Deno.test({
     name: "themes: bundled marketing theme exposes landing-page defaults",
     permissions: { read: true },
