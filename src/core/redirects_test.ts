@@ -107,3 +107,53 @@ Deno.test({
     Deno.removeSync(tempDir, { recursive: true });
   },
 });
+
+Deno.test({
+  name: "redirects: skips a from-path that escapes the output directory",
+  permissions: { read: true, write: true },
+  fn: () => {
+    const tempDir = Deno.makeTempDirSync();
+    const outputDir = join(tempDir, "dist");
+    Deno.mkdirSync(outputDir, { recursive: true });
+
+    buildRedirects(outputDir, { "/../../escape": "/new" }, false);
+
+    // Nothing should exist outside outputDir.
+    assertEquals(fileExists(join(tempDir, "escape.html")), false);
+    assertEquals(fileExists(join(tempDir, "..", "escape.html")), false);
+
+    Deno.removeSync(tempDir, { recursive: true });
+  },
+});
+
+Deno.test({
+  name: "redirects: skips a from-path that escapes with shortUrls",
+  permissions: { read: true, write: true },
+  fn: () => {
+    const tempDir = Deno.makeTempDirSync();
+    const outputDir = join(tempDir, "dist");
+    Deno.mkdirSync(outputDir, { recursive: true });
+
+    buildRedirects(outputDir, { "/../../escape": "/new" }, true);
+
+    assertEquals(fileExists(join(tempDir, "escape", "index.html")), false);
+
+    Deno.removeSync(tempDir, { recursive: true });
+  },
+});
+
+Deno.test({
+  name: "redirects: escapes html-unsafe characters in the target url",
+  permissions: { read: true, write: true },
+  fn: () => {
+    const tempDir = Deno.makeTempDirSync();
+    buildRedirects(tempDir, { "/old": `"><script>alert(1)</script>` }, false);
+
+    const html = Deno.readTextFileSync(join(tempDir, "old.html"));
+    assertEquals(html.includes("<script>alert(1)</script>"), false);
+    assertStringIncludes(html, "&lt;script&gt;");
+    assertStringIncludes(html, "&quot;&gt;");
+
+    Deno.removeSync(tempDir, { recursive: true });
+  },
+});
