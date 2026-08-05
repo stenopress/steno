@@ -1,15 +1,7 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { buildRedirects } from "./redirects.ts";
-
-function fileExists(path: string): boolean {
-  try {
-    Deno.statSync(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { fileExistsSync as fileExists } from "../utils/fs.ts";
 
 Deno.test({
   name: "redirects: writes meta-refresh html file",
