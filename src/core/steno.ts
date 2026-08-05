@@ -28,6 +28,7 @@ export class Steno {
   private readonly buildState: BuildState = {
     signature: null,
     pages: new Map(),
+    pageCache: new Map(),
   };
   private readonly initPromise: Promise<void>;
 
@@ -66,7 +67,11 @@ export class Steno {
    * config or switching a theme takes effect without restarting `dev`.
    */
   private async loadRuntime(): Promise<ResolvedProject> {
-    const project = await resolveProject(this.configPath);
+    const project = await resolveProject(
+      this.configPath,
+      undefined,
+      this.buildState.pageCache,
+    );
     this.config = project.config;
     this.theme = await loadTheme(project.config);
 

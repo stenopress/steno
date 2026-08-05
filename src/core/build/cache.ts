@@ -24,12 +24,12 @@ function resolveRelPath(page: { fullPath: string; relPath?: unknown }): string {
   return typeof page.relPath === "string" ? page.relPath : page.fullPath;
 }
 
-export function loadPersistentBuildCache(
+export async function loadPersistentBuildCache(
   cachePath: string,
-): PersistentBuildCache | null {
+): Promise<PersistentBuildCache | null> {
   let raw: string;
   try {
-    raw = Deno.readTextFileSync(cachePath);
+    raw = await Deno.readTextFile(cachePath);
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) return null;
     throw error;
@@ -111,11 +111,11 @@ export function toBuildStatePageMap(
   return pageMap;
 }
 
-export function savePersistentBuildCache(
+export async function savePersistentBuildCache(
   cachePath: string,
   signature: string,
   pages: Map<string, BuildStateEntry>,
-): void {
+): Promise<void> {
   ensureParentDirSync(cachePath);
   const payload: PersistentBuildCache = {
     version: 1,
@@ -129,5 +129,5 @@ export function savePersistentBuildCache(
       htmlContent: page.htmlContent,
     })),
   };
-  Deno.writeTextFileSync(cachePath, JSON.stringify(payload));
+  await Deno.writeTextFile(cachePath, JSON.stringify(payload));
 }

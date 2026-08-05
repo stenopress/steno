@@ -32,6 +32,17 @@ export interface MarkdownPage {
   title?: string;
 }
 
+/**
+ * Caches parsed pages across scans, keyed by full path, so an unchanged
+ * file (same mtime) can skip a re-read and re-parse of its frontmatter.
+ * Callers own the map's lifetime — e.g. the dev server keeps one alive
+ * across rebuilds so only edited files pay the read+parse cost.
+ */
+export type MarkdownPageCache = Map<
+  string,
+  { mtimeMs: number; page: MarkdownPage }
+>;
+
 /** A named collection of content items. */
 export interface Collection {
   /** Collection key from the site configuration. */
@@ -71,7 +82,7 @@ async function mapWithConcurrency<T, R>(
  */
 export async function collectMarkdownPages(
   contentDir: string,
-  options: { ignorePaths?: string[] } = {},
+  options: { ignorePaths?: string[]; pageCache?: MarkdownPageCache } = {},
 ): Promise<MarkdownPage[]> {
   const markdownFiles: Array<{ fullPath: string; relPath: string }> = [];
   const ignorePaths = [
@@ -106,28 +117,54 @@ export async function collectMarkdownPages(
   markdownFiles.sort((left, right) =>
     left.relPath.localeCompare(right.relPath)
   );
-  return await mapWithConcurrency(
+
+  const pageCache = options.pageCache;
+  const pages = await mapWithConcurrency(
     markdownFiles,
     FILE_READ_CONCURRENCY,
     async ({ fullPath, relPath }) => {
-      const sourceText = await Deno.readTextFile(fullPath);
-      const { frontmatter, body } = parseFrontmatter(sourceText, fullPath);
-      return {
-        fullPath,
-        relPath,
-        sourceText,
-        frontmatter,
-        body,
-        title: inferPageTitle({
-          fullPath,
-          relPath,
-          sourceText,
-          frontmatter,
-          body,
-        }),
-      };
+      if (pageCache) {
+        const mtimeMs = (await Deno.stat(fullPath)).mtime?.getTime();
+        // A null mtime means the platform doesn't report one; skip caching
+        // rather than risk every scan looking like a hit against the last.
+        if (mtimeMs !== undefined) {
+          const cached = pageCache.get(fullPath);
+          if (cached && cached.mtimeMs === mtimeMs) return cached.page;
+
+          const page = await readMarkdownPage(fullPath, relPath);
+          pageCache.set(fullPath, { mtimeMs, page });
+          return page;
+        }
+      }
+
+      return await readMarkdownPage(fullPath, relPath);
     },
   );
+
+  if (pageCache) {
+    const currentPaths = new Set(markdownFiles.map((file) => file.fullPath));
+    for (const cachedPath of pageCache.keys()) {
+      if (!currentPaths.has(cachedPath)) pageCache.delete(cachedPath);
+    }
+  }
+
+  return pages;
+}
+
+async function readMarkdownPage(
+  fullPath: string,
+  relPath: string,
+): Promise<MarkdownPage> {
+  const sourceText = await Deno.readTextFile(fullPath);
+  const { frontmatter, body } = parseFrontmatter(sourceText, fullPath);
+  return {
+    fullPath,
+    relPath,
+    sourceText,
+    frontmatter,
+    body,
+    title: inferPageTitle({ fullPath, relPath, sourceText, frontmatter, body }),
+  };
 }
 
 function sortItems(

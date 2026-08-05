@@ -1,6 +1,6 @@
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../../types.ts";
 import type { Theme } from "../../theme/theme.ts";
-import type { MarkdownPage } from "../collections.ts";
+import type { MarkdownPage, MarkdownPageCache } from "../collections.ts";
 
 export type BuildContext = {
   config: SiteConfig;
@@ -16,6 +16,11 @@ export type BuildContext = {
 export interface BuildState {
   signature: string | null;
   pages: Map<string, BuildStateEntry>;
+  /**
+   * Reused across rebuilds (e.g. by the dev server) so `collectMarkdownPages`
+   * can skip re-reading and re-parsing files whose mtime hasn't changed.
+   */
+  pageCache?: MarkdownPageCache;
 }
 
 export interface BuildStateEntry {

@@ -244,7 +244,15 @@ export function createPreviewHandler(
   return createStaticHandler(outputDir, false);
 }
 
-/** Processes filesystem events as serialized development rebuilds. */
+/**
+ * Default quiet period after the last relevant fs event before a rebuild
+ * fires. A single save often emits several raw events (content write,
+ * rename, metadata touch); without this, each would trigger its own full
+ * rebuild back-to-back.
+ */
+export const DEFAULT_WATCH_DEBOUNCE_MS = 75;
+
+/** Processes filesystem events as serialized, debounced development rebuilds. */
 export async function processWatchEvents(
   events: AsyncIterable<Deno.FsEvent>,
   options: {
@@ -252,9 +260,36 @@ export async function processWatchEvents(
     ignoredPaths?: string[];
     buildFn: () => void | Promise<void>;
     broadcastReload?: () => void;
+    debounceMs?: number;
   },
 ): Promise<void> {
   const ignoredPaths = options.ignoredPaths ?? [];
+  const debounceMs = options.debounceMs ?? DEFAULT_WATCH_DEBOUNCE_MS;
+
+  let pending = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // Chains rebuilds one after another so they never overlap, even when a
+  // debounce timer fires while a previous rebuild is still in flight.
+  let rebuildChain: Promise<void> = Promise.resolve();
+
+  const runRebuild = () => {
+    pending = false;
+    rebuildChain = rebuildChain.then(async () => {
+      changeDetected();
+      await options.buildFn();
+      options.broadcastReload?.();
+    });
+  };
+
+  const scheduleRebuild = () => {
+    pending = true;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = undefined;
+      if (pending) runRebuild();
+    }, debounceMs);
+  };
+
   for await (const event of events) {
     if (
       event.kind !== "modify" && event.kind !== "create" &&
@@ -274,10 +309,12 @@ export async function processWatchEvents(
       continue;
     }
 
-    changeDetected();
-    await options.buildFn();
-    options.broadcastReload?.();
+    scheduleRebuild();
   }
+
+  if (timer !== undefined) clearTimeout(timer);
+  if (pending) runRebuild();
+  await rebuildChain;
 }
 
 /** Serves the built site and rebuilds on filesystem changes. */
