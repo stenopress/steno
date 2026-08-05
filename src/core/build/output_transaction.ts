@@ -1,4 +1,5 @@
 import { basename, dirname, join, resolve } from "@std/path";
+import { errorMessage } from "../../utils/text.ts";
 
 export interface OutputTransaction {
   outputDir: string;
@@ -130,7 +131,7 @@ export function commitOutputTransaction(
     } catch (error) {
       console.warn(
         `Build committed, but failed to remove retired backup "${previousBackup}": ${
-          error instanceof Error ? error.message : String(error)
+          errorMessage(error)
         }`,
       );
     }

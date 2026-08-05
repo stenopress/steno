@@ -12,17 +12,7 @@ import {
   beginOutputTransaction,
   rollbackOutputTransaction,
 } from "./output_transaction.ts";
-
-// help
-
-function fileExists(path: string): boolean {
-  try {
-    Deno.statSync(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { fileExistsSync as fileExists } from "../../utils/fs.ts";
 
 interface TestFixture {
   tempDir: string;
