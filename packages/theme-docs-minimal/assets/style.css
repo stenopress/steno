@@ -13,7 +13,7 @@
   --font-sans: Arial, Helvetica, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --sidebar-width: 18rem;
-  --content-width: 68ch;
+  --content-width: 36rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -238,7 +238,6 @@ summary:focus-visible {
 }
 
 .content-wrapper h1 {
-  max-width: 14ch;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--line);
   font-size: clamp(2.8rem, 6vw, 5.5rem);
