@@ -20,51 +20,124 @@ export interface ProjectOptions {
   author?: string;
   /** Official plugins added to the generated configuration. */
   plugins?: PluginChoice[];
+  /** Community plugin package specifiers (e.g. `jsr:@user/plugin-name`)
+   * added to the generated configuration in isolated mode. */
+  communityPlugins?: string[];
   /** Official theme used by the generated project. */
   theme?: ThemeChoice;
+  /** Community theme package specifier (e.g. `jsr:@user/theme-name`),
+   * used instead of an official theme when set. */
+  communityTheme?: string;
+  /** Local theme path (e.g. `./theme`), used instead of an official or
+   * community theme when set. */
+  localTheme?: string;
+  /** Version range applied to the selected official theme's package
+   * (default: the theme's default pinned version). Ignored for community
+   * and local themes. */
+  themeVersion?: string;
+  /** Version range applied to `@steno/steno` in the generated `deno.json`
+   * (default: `^0.10.0`). */
+  stenoVersion?: string;
+  /** Content directory written to configuration and scaffolded into
+   * (default: `content`). */
+  contentDir?: string;
+  /** Build output directory written to configuration (default: `dist`). */
+  outputDir?: string;
+  /** Whether generated redirects/pages use short URLs (default: `true`). */
+  shortUrls?: boolean;
+  /** Dev server port written to configuration (default: `5735`). */
+  devPort?: number;
   /** Whether existing generated files may be overwritten. */
   force?: boolean;
+  /** Prompts for extra project settings (content/output dirs, short URLs,
+   * dev port, version pinning, local themes) instead of using defaults. */
+  advanced?: boolean;
 }
 
 /** Official theme choices supported by the onboarding CLI. */
 export type ThemeChoice = "minimal" | "docs-minimal" | "marketing-minimal";
 
+const DEFAULT_STENO_VERSION = "^0.10.0";
+
 const AVAILABLE_THEMES: Record<ThemeChoice, {
   label: string;
   description: string;
-  package: string;
+  packageBase: string;
+  version: string;
 }> = {
   "minimal": {
     label: "Minimal",
     description: "A clean, simple theme for personal sites and blogs",
-    package: "jsr:@steno/theme-minimal@^0.10.0",
+    packageBase: "jsr:@steno/theme-minimal",
+    version: DEFAULT_STENO_VERSION,
   },
   "docs-minimal": {
     label: "Docs Minimal",
     description: "A minimal theme optimised for documentation sites",
-    package: "jsr:@steno/theme-docs-minimal@^0.10.0",
+    packageBase: "jsr:@steno/theme-docs-minimal",
+    version: DEFAULT_STENO_VERSION,
   },
   "marketing-minimal": {
     label: "Marketing Minimal",
     description: "A polished landing-page theme for products and campaigns",
-    package: "jsr:@steno/theme-marketing-minimal@^0.10.0",
+    packageBase: "jsr:@steno/theme-marketing-minimal",
+    version: DEFAULT_STENO_VERSION,
   },
 };
 
+function themePackage(choice: ThemeChoice, version?: string): string {
+  const theme = AVAILABLE_THEMES[choice];
+  return `${theme.packageBase}@${version ?? theme.version}`;
+}
+
 /** Official plugin choices supported by the onboarding CLI. */
-export type PluginChoice = "tailwind" | "shiki";
+export type PluginChoice =
+  | "tailwind"
+  | "shiki"
+  | "seo"
+  | "docs"
+  | "search"
+  | "og";
 
 const OFFICIAL_PLUGINS: Record<PluginChoice, {
   label: string;
+  description: string;
   package: string;
 }> = {
   tailwind: {
     label: "Tailwind CSS",
+    description:
+      "Compiles Tailwind utility classes used in your content and templates during the build",
     package: "jsr:@steno/plugin-tailwind",
   },
   shiki: {
     label: "Shiki syntax highlighting",
+    description:
+      "Highlights fenced code blocks with the same grammars and themes as VS Code",
     package: "jsr:@steno/plugin-shiki",
+  },
+  seo: {
+    label: "SEO",
+    description:
+      "Generates a sitemap, RSS and Atom feeds, and robots.txt from your site's pages",
+    package: "jsr:@steno/plugin-seo",
+  },
+  docs: {
+    label: "Docs sync",
+    description:
+      "Mirrors markdown from an external directory into contentDir before each build",
+    package: "jsr:@steno/plugin-docs",
+  },
+  search: {
+    label: "Search index",
+    description: "Generates a JSON search index from your site's rendered HTML",
+    package: "jsr:@steno/plugin-search",
+  },
+  og: {
+    label: "OG image generation",
+    description:
+      "Auto-generates an SVG Open Graph preview image per page and injects og:image tags",
+    package: "jsr:@steno/plugin-og",
   },
 };
 
@@ -188,7 +261,14 @@ function promptYesNo(label: string, defaultValue = false): boolean {
   }
 }
 
-function selectTheme(): ThemeChoice {
+const COMMUNITY_THEME_LABEL = "Community theme";
+const LOCAL_THEME_LABEL = "Local theme";
+
+/** Prompts for a theme and returns its resolved value, either an official
+ * theme's package specifier, a community package, or a local path. In
+ * `advanced` mode also offers a local-theme row and lets the pinned
+ * version of an official theme be overridden. */
+function selectTheme(advanced: boolean): string {
   heading("Choose a Theme");
   console.log();
 
@@ -197,7 +277,7 @@ function selectTheme(): ThemeChoice {
     typeof AVAILABLE_THEMES[ThemeChoice],
   ][];
 
-  entries.forEach(([, theme], i) => {
+  entries.forEach(([choice, theme], i) => {
     console.log(
       `  ${paint(c.purple, `${i + 1})`)} ${paint(c.whiteBold, theme.label)}`,
     );
@@ -205,10 +285,43 @@ function selectTheme(): ThemeChoice {
       `     ${paint(c.gray, theme.description)}`,
     );
     console.log(
-      `     ${paint(c.gray, theme.package)}`,
+      `     ${paint(c.gray, themePackage(choice))}`,
     );
     console.log();
   });
+
+  type ExtraRow = {
+    label: string;
+    hint: string;
+    handle: () => string | undefined;
+  };
+  const extraRows: ExtraRow[] = [];
+
+  if (advanced) {
+    extraRows.push({
+      label: LOCAL_THEME_LABEL,
+      hint: "Use a theme path inside this project (e.g. ./theme)",
+      handle: () => promptWithDefault("Local theme path", "./theme"),
+    });
+  }
+
+  extraRows.push({
+    label: COMMUNITY_THEME_LABEL,
+    hint: "Use your own theme package specifier",
+    handle: () => promptPackageSpecifier(),
+  });
+
+  extraRows.forEach((row, i) => {
+    console.log(
+      `  ${paint(c.purple, `${entries.length + i + 1})`)} ${
+        paint(c.whiteBold, row.label)
+      }`,
+    );
+    console.log(`     ${paint(c.gray, row.hint)}`);
+    console.log();
+  });
+
+  const maxIndex = entries.length + extraRows.length;
 
   while (true) {
     const arrow = paint(c.purple, "›");
@@ -217,54 +330,327 @@ function selectTheme(): ThemeChoice {
 
     const index = parseInt(selection) - 1;
     if (index >= 0 && index < entries.length) {
-      return entries[index][0];
+      const [choice, theme] = entries[index];
+      if (!advanced) return themePackage(choice);
+      const version = promptWithDefault(
+        `${theme.label} version`,
+        theme.version,
+      );
+      return themePackage(choice, version);
+    }
+
+    if (index >= entries.length && index < maxIndex) {
+      const row = extraRows[index - entries.length];
+      const value = row.handle();
+      if (value) return value;
+      console.log(paint(c.yellow, "\n  ⚠  A value is required.\n"));
+      continue;
     }
 
     console.log(
       paint(
         c.yellow,
-        `\n  ⚠  Invalid choice. Enter a number between 1 and ${entries.length}.\n`,
+        `\n  ⚠  Invalid choice. Enter a number between 1 and ${maxIndex}.\n`,
       ),
     );
   }
 }
 
-function selectPlugins(): PluginChoice[] {
-  heading("Choose Plugins");
-  console.log();
-  console.log(
-    `  ${paint(c.gray, "Official plugins available in this starter:")}`,
-  );
-  console.log(
-    `  ${paint(c.purple, "•")} ${OFFICIAL_PLUGINS.tailwind.label}  ${
-      paint(c.gray, `(${OFFICIAL_PLUGINS.tailwind.package})`)
-    }`,
-  );
-  console.log(
-    `  ${paint(c.purple, "•")} ${OFFICIAL_PLUGINS.shiki.label}  ${
-      paint(c.gray, `(${OFFICIAL_PLUGINS.shiki.package})`)
-    }`,
-  );
-  console.log();
+function isInteractiveTerminal(): boolean {
+  try {
+    return Deno.stdin.isTerminal() && Deno.stdout.isTerminal();
+  } catch {
+    return false;
+  }
+}
 
-  const selected: PluginChoice[] = [];
-  for (const choice of ["tailwind", "shiki"] as const) {
-    if (promptYesNo(`Add ${OFFICIAL_PLUGINS[choice].label}?`, false)) {
-      selected.push(choice);
+function setRawMode(enabled: boolean): void {
+  try {
+    Deno.stdin.setRaw(enabled);
+  } catch {
+    // stdin is not a tty; caller should have already checked isInteractiveTerminal.
+  }
+}
+
+const encoder = new TextEncoder();
+const write = (text: string): void => {
+  Deno.stdout.writeSync(encoder.encode(text));
+};
+
+type Key =
+  | "up"
+  | "down"
+  | "space"
+  | "enter"
+  | "cancel"
+  | "unknown";
+
+function readKey(): Key {
+  const buf = new Uint8Array(8);
+  const n = Deno.stdin.readSync(buf);
+  if (n === null || n === 0) return "unknown";
+  const bytes = buf.subarray(0, n);
+
+  if (bytes.length === 1) {
+    switch (bytes[0]) {
+      case 3: // Ctrl+C
+        return "cancel";
+      case 13: // Enter
+      case 10:
+        return "enter";
+      case 32: // Space
+        return "space";
     }
   }
 
-  return selected;
+  if (bytes.length >= 3 && bytes[0] === 27 && bytes[1] === 91) {
+    if (bytes[2] === 65) return "up"; // ESC [ A
+    if (bytes[2] === 66) return "down"; // ESC [ B
+  }
+
+  if (bytes[0] === 27) return "cancel"; // plain Escape
+
+  return "unknown";
 }
 
-function toPluginList(plugins: PluginChoice[]): string {
-  if (plugins.length === 0) return "";
+function truncate(text: string, maxLength: number): string {
+  if (maxLength <= 1 || text.length <= maxLength) return text;
+  return text.slice(0, Math.max(0, maxLength - 1)).trimEnd() + "…";
+}
+
+function promptPackageSpecifier(): string | undefined {
+  const arrow = paint(c.purple, "›");
+  const value = prompt(
+    `  ${arrow} Package specifier ${
+      paint(c.gray, "(e.g. jsr:@user/plugin-name)")
+    }`,
+  )?.trim();
+  return value && value.length > 0 ? value : undefined;
+}
+
+type PluginSelection = { plugins: PluginChoice[]; community: string[] };
+
+const ADD_COMMUNITY_LABEL = "Add a community plugin";
+
+/** Interactive arrow-key/space checkbox list of official plugins, plus a
+ * row that opens a text prompt for a custom community package specifier. */
+function selectPluginsInteractive(): PluginSelection {
+  const officialItems = (Object.keys(OFFICIAL_PLUGINS) as PluginChoice[]).map(
+    (key) => ({
+      key,
+      label: OFFICIAL_PLUGINS[key].label,
+      description: OFFICIAL_PLUGINS[key].description,
+    }),
+  );
+
+  const selectedOfficial = new Set<number>();
+  const communityPackages: string[] = [];
+  const selectedCommunity = new Set<number>();
+  let cursor = 0;
+
+  type Row =
+    | { type: "official"; index: number }
+    | { type: "add-community" }
+    | { type: "community"; index: number };
+
+  const buildRows = (): Row[] => [
+    ...officialItems.map((_, index): Row => ({ type: "official", index })),
+    { type: "add-community" },
+    ...communityPackages.map((_, index): Row => ({ type: "community", index })),
+  ];
+
+  const maxLabelWidth = Math.max(
+    ...officialItems.map((item) => item.label.length),
+    ADD_COMMUNITY_LABEL.length,
+  );
+
+  const descWidth = (): number => {
+    const termWidth = (() => {
+      try {
+        return Deno.consoleSize().columns;
+      } catch {
+        return 80;
+      }
+    })();
+    const prefixLen = 2 + 1 + 1 + 3 + 1 + maxLabelWidth + 2;
+    return Math.max(20, termWidth - prefixLen);
+  };
+
+  const renderRow = (row: Row, active: boolean): string => {
+    const pointer = active ? paint(c.purple, "❯") : " ";
+    const paintLabel = (label: string) =>
+      paint(active ? c.whiteBold : c.white, label.padEnd(maxLabelWidth));
+
+    if (row.type === "official") {
+      const item = officialItems[row.index];
+      const box = selectedOfficial.has(row.index)
+        ? paint(c.green, "[x]")
+        : paint(c.gray, "[ ]");
+      const desc = truncate(item.description, descWidth());
+      return `  ${pointer} ${box} ${paintLabel(item.label)}  ${
+        paint(c.gray, desc)
+      }`;
+    }
+
+    if (row.type === "add-community") {
+      const desc = truncate(
+        "type a package specifier of your own",
+        descWidth(),
+      );
+      return `  ${pointer} ${paint(c.cyan, "[+]")} ${
+        paintLabel(ADD_COMMUNITY_LABEL)
+      }  ${paint(c.gray, desc)}`;
+    }
+
+    const pkg = communityPackages[row.index];
+    const box = selectedCommunity.has(row.index)
+      ? paint(c.green, "[x]")
+      : paint(c.gray, "[ ]");
+    return `  ${pointer} ${box} ${
+      paint(active ? c.whiteBold : c.white, pkg)
+    }  ${paint(c.gray, "community plugin")}`;
+  };
+
+  let lastRowCount = 0;
+  const render = (first: boolean): void => {
+    const rows = buildRows();
+    if (!first) write(`${ESC}${lastRowCount}A`);
+    for (let i = 0; i < rows.length; i++) {
+      write(`\r${ESC}2K${renderRow(rows[i], i === cursor)}\n`);
+    }
+    lastRowCount = rows.length;
+  };
+
+  write(`${ESC}?25l`); // hide cursor
+  setRawMode(true);
+
+  try {
+    let first = true;
+    while (true) {
+      render(first);
+      first = false;
+
+      const rows = buildRows();
+      const key = readKey();
+
+      if (key === "up") {
+        cursor = (cursor - 1 + rows.length) % rows.length;
+      } else if (key === "down") {
+        cursor = (cursor + 1) % rows.length;
+      } else if (key === "space") {
+        const row = rows[cursor];
+        if (row.type === "official") {
+          selectedOfficial.has(row.index)
+            ? selectedOfficial.delete(row.index)
+            : selectedOfficial.add(row.index);
+        } else if (row.type === "community") {
+          selectedCommunity.has(row.index)
+            ? selectedCommunity.delete(row.index)
+            : selectedCommunity.add(row.index);
+        }
+      } else if (key === "enter") {
+        const row = rows[cursor];
+        if (row.type === "add-community") {
+          setRawMode(false);
+          write(`${ESC}?25h`);
+          const pkg = promptPackageSpecifier();
+          setRawMode(true);
+          write(`${ESC}?25l`);
+          if (pkg) {
+            communityPackages.push(pkg);
+            selectedCommunity.add(communityPackages.length - 1);
+            cursor = officialItems.length + 1 + (communityPackages.length - 1);
+          }
+          first = true;
+        } else {
+          break;
+        }
+      } else if (key === "cancel") {
+        setRawMode(false);
+        write(`${ESC}?25h`);
+        console.log();
+        Deno.exit(130);
+      }
+    }
+  } finally {
+    setRawMode(false);
+    write(`${ESC}?25h`);
+  }
+
+  console.log();
+
+  return {
+    plugins: officialItems
+      .filter((_, i) => selectedOfficial.has(i))
+      .map((item) => item.key),
+    community: communityPackages.filter((_, i) => selectedCommunity.has(i)),
+  };
+}
+
+function selectPlugins(): PluginSelection {
+  heading("Choose Plugins");
+  console.log();
+
+  const items = (Object.keys(OFFICIAL_PLUGINS) as PluginChoice[]).map(
+    (key) => ({
+      key,
+      label: OFFICIAL_PLUGINS[key].label,
+      description: OFFICIAL_PLUGINS[key].description,
+    }),
+  );
+
+  if (!isInteractiveTerminal()) {
+    console.log(
+      `  ${paint(c.gray, "Official plugins available in this starter:")}`,
+    );
+    for (const item of items) {
+      console.log(
+        `  ${paint(c.purple, "•")} ${item.label}  ${
+          paint(c.gray, `(${OFFICIAL_PLUGINS[item.key].package})`)
+        }`,
+      );
+    }
+    console.log();
+
+    const plugins: PluginChoice[] = [];
+    for (const item of items) {
+      if (promptYesNo(`Add ${item.label}?`, false)) {
+        plugins.push(item.key);
+      }
+    }
+
+    const community: string[] = [];
+    while (promptYesNo("Add a community plugin?", false)) {
+      const pkg = promptPackageSpecifier();
+      if (pkg) community.push(pkg);
+    }
+
+    return { plugins, community };
+  }
+
+  console.log(
+    paint(
+      c.gray,
+      "  ↑/↓ move   space toggle   enter select/confirm",
+    ),
+  );
+  console.log();
+
+  return selectPluginsInteractive();
+}
+
+function toPluginList(plugins: PluginChoice[], community: string[]): string {
+  if (plugins.length === 0 && community.length === 0) return "";
 
   return [
     "plugins:",
     ...plugins.flatMap((plugin) => [
       `  - package: ${toYamlString(OFFICIAL_PLUGINS[plugin].package)}`,
       "    mode: trusted",
+    ]),
+    ...community.flatMap((pkg) => [
+      `  - package: ${toYamlString(pkg)}`,
+      "    mode: isolated",
     ]),
     "",
   ].join("\n");
@@ -277,12 +663,14 @@ export function parsePluginChoices(value?: string): PluginChoice[] {
   for (const rawChoice of value.split(",")) {
     const choice = rawChoice.trim().toLowerCase();
     if (!choice) continue;
-    if (choice === "tailwind" || choice === "shiki") {
-      choices.add(choice);
+    if (Object.hasOwn(OFFICIAL_PLUGINS, choice)) {
+      choices.add(choice as PluginChoice);
       continue;
     }
     throw new OnboardingError(
-      `Unknown plugin "${rawChoice.trim()}". Available plugins: tailwind, shiki.`,
+      `Unknown plugin "${rawChoice.trim()}". Available plugins: ${
+        Object.keys(OFFICIAL_PLUGINS).join(", ")
+      }.`,
     );
   }
 
@@ -344,12 +732,41 @@ export async function runOnboarding(
   const description = options?.description ??
     promptWithDefault("Site description", "A site built with Steno");
   const author = options?.author ?? promptWithDefault("Author", "Your Name");
-  const plugins = options?.plugins ?? selectPlugins();
+  let plugins = options?.plugins;
+  let communityPlugins = options?.communityPlugins;
+  if (plugins === undefined && communityPlugins === undefined) {
+    const selection = selectPlugins();
+    plugins = selection.plugins;
+    communityPlugins = selection.community;
+  }
+  plugins ??= [];
+  communityPlugins ??= [];
 
-  const contentDir = join(projectRoot, "content");
-  const stenoConfigDir = join(contentDir, ".steno");
+  const advanced = options?.advanced ?? false;
+  if (advanced) {
+    heading("Advanced Options");
+    console.log(paint(c.gray, "  Press Enter to accept the defaults.\n"));
+  }
+
+  const contentDirName = options?.contentDir ??
+    (advanced ? promptWithDefault("Content directory", "content") : "content");
+  const outputDirName = options?.outputDir ??
+    (advanced ? promptWithDefault("Output directory", "dist") : "dist");
+  const shortUrls = options?.shortUrls ??
+    (advanced ? promptYesNo("Enable short URLs?", true) : true);
+  const devPort = options?.devPort ??
+    (advanced
+      ? parseInt(promptWithDefault("Dev server port", "5735"), 10) || 5735
+      : 5735);
+  const stenoVersion = options?.stenoVersion ??
+    (advanced
+      ? promptWithDefault("@steno/steno version", DEFAULT_STENO_VERSION)
+      : DEFAULT_STENO_VERSION);
+
+  const contentDirPath = join(projectRoot, contentDirName);
+  const stenoConfigDir = join(contentDirPath, ".steno");
   const configPath = join(stenoConfigDir, "config.yml");
-  const homePagePath = join(contentDir, "index.md");
+  const homePagePath = join(contentDirPath, "index.md");
   const denoJsonPath = join(projectRoot, "deno.json");
 
   if (!options?.force) {
@@ -371,20 +788,24 @@ export async function runOnboarding(
   }
 
   // config.yml
-  const selectedTheme = options?.theme ?? selectTheme();
-  const themePackage = AVAILABLE_THEMES[selectedTheme].package;
+  const resolvedTheme = options?.theme
+    ? themePackage(options.theme, options.themeVersion)
+    : options?.communityTheme ?? options?.localTheme ?? selectTheme(advanced);
 
   Deno.writeTextFileSync(
     configPath,
     `title: ${toYamlString(title)}
 description: ${toYamlString(description)}
 author: ${toYamlString(author)}
-${toPluginList(plugins)}contentDir: "content"
-output: "dist"
+${toPluginList(plugins, communityPlugins)}contentDir: ${
+      toYamlString(contentDirName)
+    }
+output: ${toYamlString(outputDirName)}
+devPort: ${devPort}
 
 custom:
-  shortUrls: true
-  theme: ${toYamlString(themePackage)}
+  shortUrls: ${shortUrls}
+  theme: ${toYamlString(resolvedTheme)}
   themeConfig:
     author: ${toYamlString(author)}
 `,
@@ -400,7 +821,7 @@ layout: layout
 
 # Welcome to ${title}
 
-Your Steno site is ready. Edit this page at \`content/index.md\`.
+Your Steno site is ready. Edit this page at \`${contentDirName}/index.md\`.
 `,
   );
 
@@ -416,7 +837,7 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
     "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0,jsr.io --allow-env @steno/steno dev"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@^0.10.0"
+    "@steno/steno": "jsr:@steno/steno@${stenoVersion}"
   }
 }
 `,
@@ -432,7 +853,7 @@ Your Steno site is ready. Edit this page at \`content/index.md\`.
     `  ${paint(c.green, "✔")} Content  → ${paint(c.gray, homePagePath)}`,
   );
   console.log(
-    `  ${paint(c.green, "✔")} Theme    → ${paint(c.gray, themePackage)}`,
+    `  ${paint(c.green, "✔")} Theme    → ${paint(c.gray, resolvedTheme)}`,
   );
 
   console.log();
