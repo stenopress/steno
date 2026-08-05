@@ -1,5 +1,7 @@
-import { dirname, join } from "@std/path";
+import { join } from "@std/path";
 import type { BuildStateEntry } from "./context.ts";
+import { ensureParentDirSync } from "../../utils/fs.ts";
+import { STENO_DIR } from "../path_utils.ts";
 
 export interface PersistentBuildCache {
   version: 1;
@@ -15,7 +17,7 @@ export interface PersistentBuildCache {
 }
 
 export function resolveCachePath(contentDir: string): string {
-  return join(contentDir, ".steno", "build-cache.json");
+  return join(contentDir, STENO_DIR, "build-cache.json");
 }
 
 function resolveRelPath(page: { fullPath: string; relPath?: unknown }): string {
@@ -114,7 +116,7 @@ export function savePersistentBuildCache(
   signature: string,
   pages: Map<string, BuildStateEntry>,
 ): void {
-  Deno.mkdirSync(dirname(cachePath), { recursive: true });
+  ensureParentDirSync(cachePath);
   const payload: PersistentBuildCache = {
     version: 1,
     signature,

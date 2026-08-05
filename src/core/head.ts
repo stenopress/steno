@@ -4,10 +4,7 @@ import type {
   MetaHeadTag,
   ScriptHeadTag,
 } from "../types.ts";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
+import { isRecord } from "../utils/text.ts";
 
 function isMetaTag(tag: HeadTag): tag is MetaHeadTag {
   return tag.tag === undefined || tag.tag === "meta";

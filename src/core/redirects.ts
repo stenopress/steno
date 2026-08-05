@@ -1,4 +1,5 @@
-import { dirname, join, resolve } from "@std/path";
+import { join, resolve } from "@std/path";
+import { ensureParentDirSync } from "../utils/fs.ts";
 
 function buildRedirectHtml(to: string): string {
   return `<!doctype html>
@@ -30,7 +31,7 @@ function resolveRedirectOutputPath(
   }
 
   const filePath = join(outputDir, `${clean}.html`);
-  Deno.mkdirSync(dirname(filePath), { recursive: true });
+  ensureParentDirSync(filePath);
   return filePath;
 }
 

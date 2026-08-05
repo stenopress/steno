@@ -1,8 +1,11 @@
 import { render } from "../utils/tau.ts";
 import type { StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
-import { basename, dirname, join, resolve, toFileUrl } from "@std/path";
+import { basename, join, resolve, toFileUrl } from "@std/path";
 import { parse as parseYaml } from "@std/yaml";
 import { transpile } from "@deno/emit";
+import { mapWithConcurrency } from "../utils/concurrency.ts";
+import { isRecord } from "../utils/text.ts";
+import { ensureParentDirSync } from "../utils/fs.ts";
 
 /** Resolved configuration values passed to a theme. */
 export type ThemeConfig = Record<string, unknown>;
@@ -31,28 +34,6 @@ function insertAssetHash(relPath: string, hash: string): string {
   return dotIndex === -1
     ? `${dir}${fileName}.${hash}`
     : `${dir}${fileName.slice(0, dotIndex)}.${hash}${fileName.slice(dotIndex)}`;
-}
-
-async function mapWithConcurrency<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<void>,
-): Promise<void> {
-  let nextIndex = 0;
-  const workerCount = Math.min(concurrency, items.length);
-  await Promise.all(
-    Array.from({ length: workerCount }, async () => {
-      while (true) {
-        const index = nextIndex++;
-        if (index >= items.length) return;
-        await fn(items[index]);
-      }
-    }),
-  );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function valuesEqual(left: unknown, right: unknown): boolean {
@@ -649,7 +630,7 @@ export class Theme {
         );
       }
       occupiedPaths.add(normalizedDestPath);
-      Deno.mkdirSync(dirname(destPath), { recursive: true });
+      ensureParentDirSync(destPath);
       manifest[relPath] = destRelPath;
       writeJobs.push({ destPath, content });
     }

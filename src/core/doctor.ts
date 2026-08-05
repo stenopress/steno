@@ -2,6 +2,7 @@ import { resolvePluginSourcePolicy, resolveTheme } from "./config.ts";
 import { resolveProject } from "./project.ts";
 import { join } from "@std/path";
 import { c, fail, info, ok, success, warn } from "../utils/output.ts";
+import { STENO_DIR } from "./path_utils.ts";
 
 function pathIs(path: string, type: "isDirectory" | "isFile"): boolean {
   try {
@@ -16,7 +17,7 @@ function countMarkdownFiles(dir: string): number {
   try {
     for (const entry of Deno.readDirSync(dir)) {
       const fullPath = join(dir, entry.name);
-      if (entry.isDirectory && entry.name !== ".steno") {
+      if (entry.isDirectory && entry.name !== STENO_DIR) {
         count += countMarkdownFiles(fullPath);
       } else if (entry.isFile && entry.name.endsWith(".md")) {
         count++;

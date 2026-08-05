@@ -1,10 +1,7 @@
 import type { PageConfigOverrides } from "../types.ts";
 import type { NavigationNode } from "../types.ts";
 import { validateHeadTags } from "./head.ts";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
+import { errorMessage, isRecord } from "../utils/text.ts";
 
 function invalidPageOverride(
   pagePath: string,
@@ -70,7 +67,7 @@ export function resolvePageConfigOverrides(
     } catch (error) {
       throw new Error(
         `Invalid per-page configuration in "${pagePath}": ${
-          error instanceof Error ? error.message : String(error)
+          errorMessage(error)
         }`,
       );
     }

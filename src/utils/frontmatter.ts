@@ -1,5 +1,6 @@
 import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
+import { errorMessage } from "./text.ts";
 
 /** Extracts frontmatter metadata and the remaining document body. */
 export function parseFrontmatter(
@@ -32,7 +33,7 @@ export function parseFrontmatter(
       frontmatter = parseYaml(frontmatterContent);
     } catch (error) {
       const fileStr = filePath ? ` in "${filePath}"` : "";
-      const errMsg = error instanceof Error ? error.message : String(error);
+      const errMsg = errorMessage(error);
       throw new Error(
         `Failed to parse YAML frontmatter${fileStr}: ${errMsg}`,
       );
@@ -42,7 +43,7 @@ export function parseFrontmatter(
       frontmatter = parseToml(frontmatterContent);
     } catch (error) {
       const fileStr = filePath ? ` in "${filePath}"` : "";
-      const errMsg = error instanceof Error ? error.message : String(error);
+      const errMsg = errorMessage(error);
       throw new Error(
         `Failed to parse TOML frontmatter${fileStr}: ${errMsg}`,
       );

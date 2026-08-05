@@ -1,3 +1,13 @@
+/** Returns `error`'s message, coercing non-`Error` values to a string. */
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Returns whether `value` is a plain object (not `null`, not an array). */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 /**
  * Computes the UTF-8 byte length of a string without allocating an encoded
  * byte array, unlike `TextEncoder#encode(value).byteLength`.
