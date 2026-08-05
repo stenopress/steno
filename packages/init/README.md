@@ -14,10 +14,24 @@ The wizard asks for:
 - **Site title**
 - **Site description**
 - **Author name**
-- **Theme** - choose between _Minimal_, _Docs Minimal_, and _Marketing Minimal_
-- **Plugins** - optionally add _Tailwind CSS_ and/or _Shiki_
+- **Plugins** - toggle any official plugin with an arrow-key checkbox list, or
+  add your own community plugin package
+- **Theme** - choose an official theme, or a community/local theme
 
-You can also skip the plugin prompts with `--plugins tailwind,shiki`.
+Run with `--advanced` (or `-a`) to also be asked for the content/output
+directories, short URLs, dev server port, a local theme path, and version
+pinning for `@steno/steno` and the selected official theme:
+
+```sh
+deno create jsr:@steno/init --advanced
+```
+
+Every prompt can be skipped with a flag - run
+`deno create jsr:@steno/init
+--help` for the full list, including `--plugins`,
+`--community-plugins`, `--theme`, `--community-theme`, `--local-theme`,
+`--content-dir`, `--output-dir`, `--dev-port`, `--short-urls`,
+`--steno-version`, and `--theme-version`.
 
 It then generates the following structure in your current directory:
 
@@ -30,27 +44,39 @@ my-site/
     └── index.md
 ```
 
-Themes are loaded directly from JSR - no local theme files are created. The
-generated project pins Steno and themes to the compatible v0.9 release line.
-Selected plugins use their latest compatible JSR release.
+Themes and plugins are loaded directly from JSR (or wherever the community
+package specifier points) - no local theme or plugin files are created unless
+you choose a local theme path. The generated project pins `@steno/steno` and
+official themes to `^0.10.0` by default; override with `--advanced` or the
+`--steno-version`/`--theme-version` flags.
 
 ## Themes
 
-| Key                 | Package                                      | Description                                             |
-| ------------------- | -------------------------------------------- | ------------------------------------------------------- |
-| `minimal`           | `jsr:@steno/theme-minimal@^0.10.0`           | Clean, simple theme for personal sites and blogs        |
-| `docs-minimal`      | `jsr:@steno/theme-docs-minimal@^0.10.0`      | Minimal theme optimised for documentation sites         |
-| `marketing-minimal` | `jsr:@steno/theme-marketing-minimal@^0.10.0` | Editorial landing-page theme for products and campaigns |
+| Key                 | Package                              | Description                                             |
+| ------------------- | ------------------------------------ | ------------------------------------------------------- |
+| `minimal`           | `jsr:@steno/theme-minimal`           | Clean, simple theme for personal sites and blogs        |
+| `docs-minimal`      | `jsr:@steno/theme-docs-minimal`      | Minimal theme optimised for documentation sites         |
+| `marketing-minimal` | `jsr:@steno/theme-marketing-minimal` | Editorial landing-page theme for products and campaigns |
+
+Each is pinned to `^0.10.0` unless overridden. You can also pass any
+`jsr:`/`npm:`/HTTPS package as a **community theme**, or a path inside your
+project as a **local theme**.
 
 ## Plugins
 
-| Key        | Package                             |
-| ---------- | ----------------------------------- |
-| `tailwind` | `jsr:@steno/plugin-tailwind@^0.8.0` |
-| `shiki`    | `jsr:@steno/plugin-shiki@^0.8.0`    |
+| Key        | Package                      | Description                                                    |
+| ---------- | ---------------------------- | -------------------------------------------------------------- |
+| `tailwind` | `jsr:@steno/plugin-tailwind` | Compiles Tailwind utility classes during the build             |
+| `shiki`    | `jsr:@steno/plugin-shiki`    | Highlights fenced code blocks with VS Code grammars and themes |
+| `seo`      | `jsr:@steno/plugin-seo`      | Generates a sitemap, RSS/Atom feeds, and robots.txt            |
+| `docs`     | `jsr:@steno/plugin-docs`     | Mirrors markdown from an external directory into `contentDir`  |
+| `search`   | `jsr:@steno/plugin-search`   | Generates a JSON search index from rendered HTML               |
+| `og`       | `jsr:@steno/plugin-og`       | Auto-generates Open Graph preview images and `og:image` tags   |
 
-Official plugins selected by the wizard are declared explicitly as
-`mode: trusted`. They run in-process with the permissions granted to Steno.
+Official plugins are declared as `mode: trusted` and run in-process with the
+permissions granted to Steno. **Community plugins** (any package specifier you
+type in) are declared as `mode: isolated` and run in a separate Deno process
+instead - see [plugin sandbox](../../docs/plugin_sandbox.md).
 
 ## Next steps after scaffolding
 
