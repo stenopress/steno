@@ -308,6 +308,21 @@ export async function processWatchEvents(
 }
 
 /** Serves the built site and rebuilds on filesystem changes. */
+export async function filterExistingWatchPaths(
+  paths: string[],
+): Promise<string[]> {
+  const existing: string[] = [];
+  for (const path of paths) {
+    try {
+      await Deno.stat(path);
+      existing.push(path);
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+    }
+  }
+  return existing;
+}
+
 export async function startDevServer(
   outputDir: string,
   buildFn: () => void | Promise<void>,
@@ -319,7 +334,13 @@ export async function startDevServer(
 
   await buildFn();
 
-  const dirsToWatch = Array.isArray(watchDirs) ? watchDirs : [watchDirs];
+  const requestedWatchDirs = Array.isArray(watchDirs) ? watchDirs : [watchDirs];
+  const dirsToWatch = await filterExistingWatchPaths(requestedWatchDirs);
+  if (!dirsToWatch.length) {
+    throw new Error(
+      "No existing paths are available for the dev server to watch.",
+    );
+  }
   const watcher = Deno.watchFs(dirsToWatch);
   const port = await findAvailablePort(preferredPort);
 

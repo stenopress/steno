@@ -8,6 +8,7 @@ import { join } from "@std/path";
 import {
   createDevServerHandler,
   createPreviewHandler,
+  filterExistingWatchPaths,
   findAvailablePort,
   injectReloadScript,
   isTransactionalOutputPath,
@@ -179,6 +180,25 @@ export function registerServerTests(): void {
       ),
       false,
     );
+  });
+
+  Deno.test({
+    name: "server: ignores nonexistent optional watch paths",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const root = await Deno.makeTempDir();
+      try {
+        assertEquals(
+          await filterExistingWatchPaths([
+            root,
+            join(root, "content", ".steno", "config.yml"),
+          ]),
+          [root],
+        );
+      } finally {
+        await Deno.remove(root, { recursive: true });
+      }
+    },
   });
 
   Deno.test({
