@@ -1,6 +1,10 @@
 import { basename, dirname, isAbsolute, join, relative } from "@std/path";
 import { loadConfig } from "./config.ts";
-import { collectMarkdownPages, type MarkdownPage } from "./collections.ts";
+import {
+  collectMarkdownPages,
+  type MarkdownPage,
+  type MarkdownPageCache,
+} from "./collections.ts";
 import type { NavigationNode, SiteConfig } from "../types.ts";
 import {
   commonAncestorDir,
@@ -180,6 +184,7 @@ function extractStenoNamespaceConfig(
 async function discoverZeroConfigProject(
   rootDir: string,
   rootScan: RootScanResult,
+  pageCache?: MarkdownPageCache,
 ): Promise<ZeroConfigDiscovery | null> {
   const scanRootDir = rootScan.docsDir ?? rootDir;
   const ignorePaths = resolveMarkdownScanIgnorePaths(
@@ -187,7 +192,10 @@ async function discoverZeroConfigProject(
     join(rootDir, "dist"),
     join(scanRootDir, "public"),
   ).concat(join(scanRootDir, "dist"));
-  const pages = await collectMarkdownPages(scanRootDir, { ignorePaths });
+  const pages = await collectMarkdownPages(scanRootDir, {
+    ignorePaths,
+    pageCache,
+  });
   if (!pages.length) return null;
 
   if (rootScan.docsDir) {
@@ -290,6 +298,7 @@ function buildZeroConfigSiteConfig(
 export async function resolveProject(
   configPath: string,
   rootDir: string = Deno.cwd(),
+  pageCache?: MarkdownPageCache,
 ): Promise<ResolvedProject> {
   if (await pathExists(configPath)) {
     return {
@@ -304,7 +313,11 @@ export async function resolveProject(
     throw new Error(`Configuration file not found at "${configPath}".`);
   }
 
-  const discovery = await discoverZeroConfigProject(rootDir, rootScan);
+  const discovery = await discoverZeroConfigProject(
+    rootDir,
+    rootScan,
+    pageCache,
+  );
   if (!discovery) {
     throw new Error(
       `No markdown files found for zero-config fallback in "${rootDir}".`,

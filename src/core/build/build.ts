@@ -29,10 +29,7 @@ import {
 } from "./output_transaction.ts";
 import { resolvePageConfigOverrides } from "../page_config.ts";
 import { injectHeadTags, mergeHeadTags, validateHeadTags } from "../head.ts";
-import {
-  ensureParentDirSync,
-  fileExistsSync as fileExists,
-} from "../../utils/fs.ts";
+import { ensureParentDirSync, fileExists } from "../../utils/fs.ts";
 import { resolveShortUrls } from "../config.ts";
 import { mapWithConcurrency } from "../../utils/concurrency.ts";
 import { errorMessage } from "../../utils/text.ts";
@@ -140,6 +137,7 @@ export async function buildSite({
         outputDir,
         publicDirPath,
       ),
+      pageCache: state?.pageCache,
     });
 
     const buildSignature = createBuildSignature(
@@ -154,7 +152,7 @@ export async function buildSite({
     if (state?.signature === buildSignature) {
       for (const [k, v] of state.pages) previousPages.set(k, v);
     } else {
-      const diskCache = loadPersistentBuildCache(cachePath);
+      const diskCache = await loadPersistentBuildCache(cachePath);
       if (diskCache?.signature === buildSignature) {
         for (const [k, v] of toBuildStatePageMap(diskCache.pages)) {
           previousPages.set(k, v);
@@ -178,7 +176,7 @@ export async function buildSite({
         ? page.frontmatter.date
         : undefined,
     }));
-    const canSkipUnchangedBuild = theme === undefined &&
+    let canSkipUnchangedBuild = theme === undefined &&
       plugins.length === 0 &&
       hooks.beforeBuild === undefined &&
       hooks.afterPage === undefined &&
@@ -188,17 +186,25 @@ export async function buildSite({
       publicFiles.length === 0 &&
       !config.redirects &&
       activePages.every((page) => !page.body.includes("{@include")) &&
-      previousPages.size === activePages.length &&
-      activePages.every((page) => {
-        const cached = previousPages.get(page.fullPath);
-        const expectedOutput = join(
-          outputDir,
-          resolvePageRoute(page, shortUrls).outputPath,
-        );
-        return cached?.sourceText === page.sourceText &&
-          cached.outputPath === expectedOutput &&
-          fileExists(expectedOutput);
-      });
+      previousPages.size === activePages.length;
+
+    if (canSkipUnchangedBuild) {
+      const unchangedChecks = await mapWithConcurrency(
+        activePages,
+        PAGE_RENDER_CONCURRENCY,
+        async (page) => {
+          const cached = previousPages.get(page.fullPath);
+          const expectedOutput = join(
+            outputDir,
+            resolvePageRoute(page, shortUrls).outputPath,
+          );
+          return cached?.sourceText === page.sourceText &&
+            cached.outputPath === expectedOutput &&
+            await fileExists(expectedOutput);
+        },
+      );
+      canSkipUnchangedBuild = unchangedChecks.every(Boolean);
+    }
 
     if (canSkipUnchangedBuild) {
       rollbackOutputTransaction(transaction);
@@ -302,7 +308,7 @@ export async function buildSite({
         const needsRender = !cachedPage ||
           cachedPage.sourceText !== page.sourceText ||
           cachedPage.outputPath !== outputFilePath ||
-          !fileExists(outputFilePath);
+          !(await fileExists(outputFilePath));
 
         if (!needsRender) {
           return {
@@ -395,6 +401,11 @@ export async function buildSite({
       },
     );
 
+    const renderedWrites: Array<{ path: string; content: string }> = [];
+    const afterPageQueue: Array<
+      { outputFilePath: string; stagedOutputFilePath: string; html: string }
+    > = [];
+
     for (const result of pageResults) {
       const {
         page,
@@ -414,16 +425,18 @@ export async function buildSite({
       }
       occupiedPaths.add(normalizedStagedPath);
 
+      ensureParentDirSync(stagedOutputFilePath);
       if (needsRender) {
-        ensureParentDirSync(stagedOutputFilePath);
-        Deno.writeTextFileSync(stagedOutputFilePath, renderedContent!);
-        await fireAfterPage(
+        renderedWrites.push({
+          path: stagedOutputFilePath,
+          content: renderedContent!,
+        });
+        afterPageQueue.push({
           outputFilePath,
           stagedOutputFilePath,
-          renderedContent!,
-        );
+          html: renderedContent!,
+        });
       } else {
-        ensureParentDirSync(stagedOutputFilePath);
         unchangedFiles.push({
           source: outputFilePath,
           destination: stagedOutputFilePath,
@@ -437,6 +450,18 @@ export async function buildSite({
         body: processedBody,
         htmlContent,
       });
+    }
+
+    // Writes run concurrently (pure I/O, no shared state); hooks fire
+    // afterward in original page order so their side effects and error
+    // behavior match a plain sequential loop.
+    await mapWithConcurrency(
+      renderedWrites,
+      STAGING_COPY_CONCURRENCY,
+      (job) => Deno.writeTextFile(job.path, job.content),
+    );
+    for (const { outputFilePath, stagedOutputFilePath, html } of afterPageQueue) {
+      await fireAfterPage(outputFilePath, stagedOutputFilePath, html);
     }
     await copyFilesToStaging(unchangedFiles);
 
@@ -471,7 +496,7 @@ export async function buildSite({
     }
 
     try {
-      savePersistentBuildCache(cachePath, buildSignature, nextPages);
+      await savePersistentBuildCache(cachePath, buildSignature, nextPages);
     } catch (error) {
       console.warn(
         `Build committed, but failed to save cache: ${errorMessage(error)}`,
