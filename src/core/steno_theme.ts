@@ -18,13 +18,19 @@ const bundledThemeSources: Record<string, URL> = {
   ),
 };
 
+/** Returns a local bundled-theme path when Steno itself is running from disk. */
+export function bundledThemeLocalPath(source: URL): string | undefined {
+  return source.protocol === "file:" ? fromFileUrl(source) : undefined;
+}
+
 async function loadBundledTheme(
   themeName: string,
   themeConfig: Record<string, unknown> | undefined,
 ): Promise<Theme | undefined> {
   const localUrl = bundledThemeSources[themeName];
   if (!localUrl) return;
-  const localPath = fromFileUrl(localUrl);
+  const localPath = bundledThemeLocalPath(localUrl);
+  if (!localPath) return;
 
   try {
     const stat = await Deno.stat(localPath);
