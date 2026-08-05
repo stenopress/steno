@@ -82,7 +82,11 @@ export function changeDetected(): void {
   );
 }
 
-export function devServerReady(port: number, preferredPort: number): void {
+export function devServerReady(
+  port: number,
+  preferredPort: number,
+  hostname: string = "127.0.0.1",
+): void {
   if (port !== preferredPort) {
     warn(`port ${preferredPort} is in use, switched to ${port}`);
   }
@@ -92,8 +96,10 @@ export function devServerReady(port: number, preferredPort: number): void {
   console.log(
     `  ${c.gray}➜${c.reset}  ${c.bold}Local${c.reset}:   ${c.cyan}http://localhost:${port}/${c.reset}`,
   );
-  console.log(
-    `  ${c.gray}➜${c.reset}  ${c.bold}Network${c.reset}: ${c.cyan}http://0.0.0.0:${port}/${c.reset}`,
-  );
+  if (hostname === "0.0.0.0") {
+    console.log(
+      `  ${c.gray}➜${c.reset}  ${c.bold}Network${c.reset}: ${c.cyan}http://0.0.0.0:${port}/${c.reset}`,
+    );
+  }
   console.log();
 }

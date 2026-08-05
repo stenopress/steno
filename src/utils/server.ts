@@ -339,6 +339,10 @@ export async function startDevServer(
   watchDirs: string | string[] = "content",
   ignoredPaths: string[] = [],
   preferredPort: number = DEFAULT_DEV_PORT,
+  // Loopback-only by default: the dev server serves unpublished, possibly
+  // sensitive site content, so it shouldn't be reachable by anyone else on
+  // the same network/VPN unless a caller opts in with "0.0.0.0".
+  hostname: string = "127.0.0.1",
 ): Promise<void> {
   const { handler, broadcastReload } = createDevServerHandler(outputDir);
 
@@ -352,11 +356,11 @@ export async function startDevServer(
     );
   }
   const watcher = Deno.watchFs(dirsToWatch);
-  const port = await findAvailablePort(preferredPort);
+  const port = await findAvailablePort(preferredPort, { hostname });
 
-  Deno.serve({ port, handler });
+  Deno.serve({ port, hostname, handler });
 
-  devServerReady(port, preferredPort);
+  devServerReady(port, preferredPort, hostname);
 
   await processWatchEvents(watcher, {
     outputDir,

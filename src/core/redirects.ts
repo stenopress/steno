@@ -1,21 +1,30 @@
 import { join, resolve } from "@std/path";
 import { ensureParentDirSync } from "../utils/fs.ts";
+import { isPathInsideOrEqual } from "./path_utils.ts";
+import { escapeHtml } from "../utils/tau.ts";
 
 function buildRedirectHtml(to: string): string {
+  const safeTo = escapeHtml(to);
   return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=${to}" />
-    <link rel="canonical" href="${to}" />
+    <meta http-equiv="refresh" content="0; url=${safeTo}" />
+    <link rel="canonical" href="${safeTo}" />
     <title>Redirecting...</title>
   </head>
   <body>
-    <p>Redirecting to <a href="${to}">${to}</a>...</p>
+    <p>Redirecting to <a href="${safeTo}">${safeTo}</a>...</p>
   </body>
 </html>`;
 }
 
+/**
+ * Computes the on-disk path a redirect's HTML file would be written to,
+ * without touching the filesystem — callers must verify the result stays
+ * inside `outputDir` (via `isPathInsideOrEqual`) before creating anything,
+ * since `from` may contain `..` segments.
+ */
 function resolveRedirectOutputPath(
   outputDir: string,
   from: string,
@@ -24,15 +33,9 @@ function resolveRedirectOutputPath(
   // normalise leading slash
   const clean = from.replace(/^\//, "");
 
-  if (shortUrls) {
-    const dir = join(outputDir, clean);
-    Deno.mkdirSync(dir, { recursive: true });
-    return join(dir, "index.html");
-  }
-
-  const filePath = join(outputDir, `${clean}.html`);
-  ensureParentDirSync(filePath);
-  return filePath;
+  return shortUrls
+    ? join(outputDir, clean, "index.html")
+    : join(outputDir, `${clean}.html`);
 }
 
 /**
@@ -65,12 +68,19 @@ export function buildRedirects(
 
     const outputPath = resolveRedirectOutputPath(outputDir, from, shortUrls);
     const normalizedOutputPath = resolve(outputPath);
+    if (!isPathInsideOrEqual(normalizedOutputPath, resolve(outputDir))) {
+      console.warn(
+        `[redirects] Skipping "${from}" - resolves outside the output directory.`,
+      );
+      continue;
+    }
     if (occupiedPaths.has(normalizedOutputPath)) {
       throw new Error(
         `Output collision: redirect "${from}" would overwrite "${outputPath}".`,
       );
     }
     occupiedPaths.add(normalizedOutputPath);
+    ensureParentDirSync(outputPath);
     Deno.writeTextFileSync(outputPath, buildRedirectHtml(to));
     console.log(`[redirects] ${from} → ${to}`);
   }
