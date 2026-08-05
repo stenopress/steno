@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
 import {
   loadPersistentBuildCache,
@@ -18,8 +18,10 @@ Deno.test({
 Deno.test({
   name: "cache: returns null when cache file does not exist",
   permissions: { read: true },
-  fn: () => {
-    const result = loadPersistentBuildCache("/nonexistent/path/cache.json");
+  fn: async () => {
+    const result = await loadPersistentBuildCache(
+      "/nonexistent/path/cache.json",
+    );
     assertEquals(result, null);
   },
 });
@@ -27,12 +29,12 @@ Deno.test({
 Deno.test({
   name: "cache: throws on invalid JSON",
   permissions: { read: true, write: true },
-  fn: () => {
+  fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, "cache.json");
     Deno.writeTextFileSync(cachePath, "not json");
 
-    assertThrows(() => loadPersistentBuildCache(cachePath));
+    await assertRejects(() => loadPersistentBuildCache(cachePath));
     Deno.removeSync(tempDir, { recursive: true });
   },
 });
@@ -40,7 +42,7 @@ Deno.test({
 Deno.test({
   name: "cache: throws on wrong version",
   permissions: { read: true, write: true },
-  fn: () => {
+  fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, "cache.json");
     Deno.writeTextFileSync(
@@ -48,7 +50,7 @@ Deno.test({
       JSON.stringify({ version: 2, signature: "abc", pages: [] }),
     );
 
-    assertThrows(
+    await assertRejects(
       () => loadPersistentBuildCache(cachePath),
       Error,
       "Invalid build cache metadata",
@@ -60,7 +62,7 @@ Deno.test({
 Deno.test({
   name: "cache: throws on missing signature",
   permissions: { read: true, write: true },
-  fn: () => {
+  fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, "cache.json");
     Deno.writeTextFileSync(
@@ -68,7 +70,7 @@ Deno.test({
       JSON.stringify({ version: 1, pages: [] }),
     );
 
-    assertThrows(
+    await assertRejects(
       () => loadPersistentBuildCache(cachePath),
       Error,
       "Invalid build cache metadata",
@@ -80,7 +82,7 @@ Deno.test({
 Deno.test({
   name: "cache: throws on invalid pages array",
   permissions: { read: true, write: true },
-  fn: () => {
+  fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, "cache.json");
     Deno.writeTextFileSync(
@@ -88,7 +90,7 @@ Deno.test({
       JSON.stringify({ version: 1, signature: "abc", pages: "not-an-array" }),
     );
 
-    assertThrows(
+    await assertRejects(
       () => loadPersistentBuildCache(cachePath),
       Error,
       "Invalid build cache pages",
@@ -100,7 +102,7 @@ Deno.test({
 Deno.test({
   name: "cache: throws on invalid page entry",
   permissions: { read: true, write: true },
-  fn: () => {
+  fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, "cache.json");
     Deno.writeTextFileSync(
@@ -112,7 +114,7 @@ Deno.test({
       }),
     );
 
-    assertThrows(
+    await assertRejects(
       () => loadPersistentBuildCache(cachePath),
       Error,
       "Invalid build cache page fields",
@@ -124,7 +126,7 @@ Deno.test({
 Deno.test({
   name: "cache: save and load roundtrip",
   permissions: { read: true, write: true },
-  fn: () => {
+  fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, ".steno", "build-cache.json");
     const pages = new Map([
@@ -138,8 +140,8 @@ Deno.test({
       ],
     ]);
 
-    savePersistentBuildCache(cachePath, "sig-123", pages);
-    const loaded = loadPersistentBuildCache(cachePath);
+    await savePersistentBuildCache(cachePath, "sig-123", pages);
+    const loaded = await loadPersistentBuildCache(cachePath);
 
     assertEquals(loaded?.signature, "sig-123");
     assertEquals(loaded?.pages.length, 1);
@@ -153,7 +155,7 @@ Deno.test({
 Deno.test({
   name: "cache: persists body and htmlContent across save/load",
   permissions: { read: true, write: true },
-  fn: () => {
+  fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, ".steno", "build-cache.json");
     const pages = new Map([
@@ -169,8 +171,8 @@ Deno.test({
       ],
     ]);
 
-    savePersistentBuildCache(cachePath, "sig-123", pages);
-    const loaded = loadPersistentBuildCache(cachePath);
+    await savePersistentBuildCache(cachePath, "sig-123", pages);
+    const loaded = await loadPersistentBuildCache(cachePath);
 
     assertEquals(loaded?.pages[0].body, "# Hello");
     assertEquals(loaded?.pages[0].htmlContent, "<h1>Hello</h1>");
