@@ -219,4 +219,93 @@ shortUrls: true
       assertEquals(output.includes("is deprecated"), false);
     },
   });
+
+  Deno.test({
+    name:
+      "doctor: does not flag malformed frontmatter in public/ (real build never parses it)",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = await Deno.makeTempDir();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const configPath = join(tempDir, "config.yml");
+      await Deno.mkdir(contentDir);
+      await Deno.writeTextFile(join(contentDir, "index.md"), "# Home");
+
+      // A raw markdown file meant to be served as-is, not parsed as a page.
+      const publicDir = join(contentDir, "public");
+      await Deno.mkdir(publicDir);
+      await Deno.writeTextFile(
+        join(publicDir, "raw.md"),
+        "---\nnot: [valid\n---\nbroken frontmatter on purpose\n",
+      );
+
+      await Deno.writeTextFile(
+        configPath,
+        `contentDir: ${JSON.stringify(contentDir)}
+output: ${JSON.stringify(outputDir)}
+`,
+      );
+
+      const messages: string[] = [];
+      const original = {
+        log: console.log,
+        warn: console.warn,
+        error: console.error,
+      };
+      console.log = (...args) => messages.push(args.join(" "));
+      console.warn = (...args) => messages.push(args.join(" "));
+      console.error = (...args) => messages.push(args.join(" "));
+      try {
+        await runDoctor(configPath);
+      } finally {
+        Object.assign(console, original);
+      }
+
+      const output = messages.join("\n");
+      assertStringIncludes(output, "Frontmatter parses cleanly");
+      assertEquals(output.includes("raw.md"), false);
+    },
+  });
+
+  Deno.test({
+    name: "doctor: flags malformed frontmatter in an actual content page",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = await Deno.makeTempDir();
+      const contentDir = join(tempDir, "content");
+      const outputDir = join(tempDir, "dist");
+      const configPath = join(tempDir, "config.yml");
+      await Deno.mkdir(contentDir);
+      await Deno.writeTextFile(
+        join(contentDir, "broken.md"),
+        "---\nnot: [valid\n---\nbroken frontmatter on purpose\n",
+      );
+      await Deno.writeTextFile(
+        configPath,
+        `contentDir: ${JSON.stringify(contentDir)}
+output: ${JSON.stringify(outputDir)}
+`,
+      );
+
+      const messages: string[] = [];
+      const original = {
+        log: console.log,
+        warn: console.warn,
+        error: console.error,
+      };
+      console.log = (...args) => messages.push(args.join(" "));
+      console.warn = (...args) => messages.push(args.join(" "));
+      console.error = (...args) => messages.push(args.join(" "));
+      try {
+        await runDoctor(configPath);
+      } finally {
+        Object.assign(console, original);
+      }
+
+      const output = messages.join("\n");
+      assertStringIncludes(output, "broken.md");
+      assertStringIncludes(output, "Doctor found errors");
+    },
+  });
 }
