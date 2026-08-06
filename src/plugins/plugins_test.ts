@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
 import { runAstTransforms, runHtmlTransforms } from "./plugins.ts";
 import { loadPlugins } from "../core/config.ts";
@@ -47,6 +47,33 @@ export function registerPluginTests(): void {
     assertEquals(result, tokens);
   });
 
+  Deno.test("plugins: runAstTransforms names the plugin when it returns the wrong shape", async () => {
+    const plugins: StenoPlugin[] = [{
+      name: "broken-ast-plugin",
+      // deno-lint-ignore no-explicit-any
+      transformAst: (() => undefined) as any,
+    }];
+    await assertRejects(
+      () => runAstTransforms(marked.lexer("hello"), plugins),
+      Error,
+      'Plugin "broken-ast-plugin"\'s transformAst must return an array of markdown tokens, got undefined.',
+    );
+  });
+
+  Deno.test("plugins: runAstTransforms names the plugin when its hook throws", async () => {
+    const plugins: StenoPlugin[] = [{
+      name: "throwing-ast-plugin",
+      transformAst: () => {
+        throw new Error("boom");
+      },
+    }];
+    await assertRejects(
+      () => runAstTransforms(marked.lexer("hello"), plugins),
+      Error,
+      'Plugin "throwing-ast-plugin"\'s transformAst threw: boom',
+    );
+  });
+
   // runHtmlTransforms
 
   Deno.test("plugins: runHtmlTransforms passes through with no plugins", async () => {
@@ -82,6 +109,53 @@ export function registerPluginTests(): void {
     }];
     const result = await runHtmlTransforms("<p>hi</p>", plugins);
     assertEquals(result, "<p>hi</p><!-- async -->");
+  });
+
+  Deno.test("plugins: runHtmlTransforms names the plugin when it returns the wrong shape", async () => {
+    const plugins: StenoPlugin[] = [{
+      name: "broken-html-plugin",
+      // deno-lint-ignore no-explicit-any
+      transformHtml: ((h: string) => ({ notHtml: h })) as any,
+    }];
+    await assertRejects(
+      () => runHtmlTransforms("<p>hi</p>", plugins),
+      Error,
+      'Plugin "broken-html-plugin"\'s transformHtml must return a string, got object.',
+    );
+  });
+
+  Deno.test("plugins: runHtmlTransforms names the plugin when its hook throws", async () => {
+    const plugins: StenoPlugin[] = [{
+      name: "throwing-html-plugin",
+      transformHtml: () => {
+        throw new Error("boom");
+      },
+    }];
+    await assertRejects(
+      () => runHtmlTransforms("<p>hi</p>", plugins),
+      Error,
+      'Plugin "throwing-html-plugin"\'s transformHtml threw: boom',
+    );
+  });
+
+  Deno.test("plugins: runHtmlTransforms stops at the offending plugin, doesn't run later ones", async () => {
+    const ran: string[] = [];
+    const plugins: StenoPlugin[] = [
+      {
+        name: "broken",
+        // deno-lint-ignore no-explicit-any
+        transformHtml: (() => undefined) as any,
+      },
+      {
+        name: "never-runs",
+        transformHtml: (h) => {
+          ran.push("never-runs");
+          return h;
+        },
+      },
+    ];
+    await assertRejects(() => runHtmlTransforms("<p>hi</p>", plugins));
+    assertEquals(ran, []);
   });
 
   // loadPlugins
