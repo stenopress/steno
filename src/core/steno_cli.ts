@@ -16,7 +16,7 @@ export async function runStenoCli(args: string[]): Promise<void> {
     return;
   }
 
-  const steno = new Steno(options.configPath, false);
+  const steno = new Steno(options.configPath, false, {}, options.verbose);
 
   if (options.command === "preview") {
     await steno.preview(options.port);

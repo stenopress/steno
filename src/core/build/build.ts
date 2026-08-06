@@ -6,7 +6,11 @@ import { runAstTransforms, runHtmlTransforms } from "../../plugins/plugins.ts";
 import { processIncludes } from "../includes.ts";
 import { buildRedirects } from "../redirects.ts";
 import { loadDataFiles } from "../data.ts";
-import { buildComplete } from "../../utils/output.ts";
+import {
+  buildComplete,
+  debugBuildStart,
+  debugPageContext,
+} from "../../utils/output.ts";
 import {
   resolveMarkdownScanIgnorePaths,
   resolvePageRoute,
@@ -108,6 +112,7 @@ export async function buildSite({
   pages,
   dev = false,
   environment = {},
+  verbose = false,
 }: BuildContext): Promise<void> {
   const contentDir = config.contentDir || "content";
   const transaction = beginOutputTransaction(config.output || "dist");
@@ -115,6 +120,13 @@ export async function buildSite({
   const stagingDir = transaction.stagingDir;
   const stagedConfig: SiteConfig = { ...config, output: stagingDir };
   let committed = false;
+
+  if (verbose) {
+    debugBuildStart(
+      theme && { name: theme.name, version: theme.version },
+      plugins,
+    );
+  }
 
   try {
     for (const plugin of plugins) await plugin.beforeBuild?.(stagedConfig);
@@ -389,6 +401,10 @@ export async function buildSite({
           title: page.frontmatter.title || page.title || config.title,
           assets: themeAssets,
         };
+
+        if (verbose) {
+          debugPageContext(outputPath, theme && layoutName, pageContext);
+        }
 
         const layoutContent = theme
           ? await theme.renderLayout(layoutName, htmlContent, pageContext)

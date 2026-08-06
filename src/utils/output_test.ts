@@ -1,5 +1,22 @@
-import { assertEquals } from "@std/assert";
-import { createColors, createSymbols } from "./output.ts";
+import { assertEquals, assertStringIncludes } from "@std/assert";
+import {
+  createColors,
+  createSymbols,
+  debugBuildStart,
+  debugPageContext,
+} from "./output.ts";
+
+function captureLogs(fn: () => void): string[] {
+  const messages: string[] = [];
+  const original = console.log;
+  console.log = (...args) => messages.push(args.join(" "));
+  try {
+    fn();
+  } finally {
+    console.log = original;
+  }
+  return messages;
+}
 
 export function registerOutputTests(): void {
   Deno.test("output: colors are enabled by default", () => {
@@ -77,5 +94,49 @@ export function registerOutputTests(): void {
       assertEquals(output.includes("INFO  plain detail"), true);
       assertEquals(output.includes("OK  Build complete"), true);
     },
+  });
+
+  Deno.test("output: debugBuildStart prints the resolved theme and plugins", () => {
+    const messages = captureLogs(() => {
+      debugBuildStart({ name: "my-theme", version: "1.2.3" }, [
+        { name: "seo" },
+        { name: "shiki" },
+      ]);
+    });
+    const output = messages.join("\n");
+    assertStringIncludes(output, "theme: my-theme@1.2.3");
+    assertStringIncludes(output, "plugins: seo, shiki");
+  });
+
+  Deno.test("output: debugBuildStart reports (none) for no theme/plugins", () => {
+    const messages = captureLogs(() => {
+      debugBuildStart(undefined, []);
+    });
+    const output = messages.join("\n");
+    assertStringIncludes(output, "theme: ");
+    assertStringIncludes(output, "(none)");
+    assertStringIncludes(output, "plugins: ");
+  });
+
+  Deno.test("output: debugPageContext prints the route, layout, and full context", () => {
+    const messages = captureLogs(() => {
+      debugPageContext("blog/post.html", "layout", {
+        title: "Hello",
+        site: { title: "My Site" },
+      });
+    });
+    const output = messages.join("\n");
+    assertStringIncludes(output, "blog/post.html");
+    assertStringIncludes(output, "(layout: layout)");
+    assertStringIncludes(output, "title:");
+    assertStringIncludes(output, "Hello");
+    assertStringIncludes(output, "My Site");
+  });
+
+  Deno.test("output: debugPageContext reports layout: none when there's no theme", () => {
+    const messages = captureLogs(() => {
+      debugPageContext("index.html", undefined, { title: "Home" });
+    });
+    assertStringIncludes(messages.join("\n"), "(layout: none)");
   });
 }
