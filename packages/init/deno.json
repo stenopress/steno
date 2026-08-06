@@ -4,14 +4,16 @@
   "description": "Interactive scaffolder for new Steno static-site projects.",
   "exports": {
     ".": "./mod.ts",
-    "./create": "./src/create.ts"
+    "./create": "./src/create.ts",
+    "./create-theme": "./src/create_theme.ts",
+    "./create-plugin": "./src/create_plugin.ts"
   },
   "publish": {
     "exclude": ["**/*_test.ts", "test.ts"]
   },
   "license": "MIT",
   "tasks": {
-    "test": "deno test -A ./test.ts",
+    "test": "deno test -A ./test.ts ./scaffold_test.ts",
     "test:smoke": "deno test -A ./smoke_test.ts"
   },
   "imports": {

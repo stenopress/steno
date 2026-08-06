@@ -78,6 +78,29 @@ permissions granted to Steno. **Community plugins** (any package specifier you
 type in) are declared as `mode: isolated` and run in a separate Deno process
 instead - see [plugin sandbox](../../docs/plugin_sandbox.md).
 
+## Building a theme or plugin
+
+`deno create jsr:@steno/init` scaffolds a whole site. To start a standalone
+theme or plugin package instead — a real, working starting point, not a toy
+example — use:
+
+```sh
+deno run -A jsr:@steno/init/create-theme my-theme
+deno run -A jsr:@steno/init/create-plugin my-plugin
+```
+
+`create-theme` generates `mod.ts` (a `StenoTheme` export), a Tau layout, and a
+stylesheet — the same shape as the bundled themes above. `create-plugin`
+generates `mod.ts` (a factory returning a `StenoPlugin`) plus a starter test.
+Both accept `--dir <path>` to change where they scaffold, and `--force` to
+overwrite existing files.
+
+Point a site's `config.yml` at a local theme with a relative path
+(`theme: ./my-theme`) — `steno dev` watches it and reloads on change. A local
+plugin is stricter: steno blocks bare relative plugin paths by default, so it
+needs an absolute `file://` URL plus an explicit opt-in (see the scaffolded
+plugin's own README for the exact config).
+
 ## Next steps after scaffolding
 
 ```sh

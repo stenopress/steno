@@ -164,7 +164,8 @@ function noColorRequested(): boolean {
 const useColor = !noColorRequested();
 const color = (code: string): string => useColor ? `${ESC}${code}m` : "";
 
-const c = {
+/** Shared color codes, exported so other scaffolders (theme/plugin) match this CLI's look. */
+export const c = {
   reset: color("0"),
   bold: color("1"),
   dim: color("2"),
@@ -179,7 +180,8 @@ const c = {
   cyanBold: color("1;38;5;159"),
 };
 
-function paint(color: string, text: string): string {
+/** Wraps `text` in `color`, resetting afterward. */
+export function paint(color: string, text: string): string {
   return `${color}${text}${c.reset}`;
 }
 
@@ -232,7 +234,8 @@ function printBanner(): void {
   console.log();
 }
 
-function heading(text: string): void {
+/** Prints a section header matching this CLI's onboarding output. */
+export function heading(text: string): void {
   console.log(`\n${paint(c.purpleBold, "◆")} ${paint(c.whiteBold, text)}`);
   console.log(paint(c.gray, "  " + "─".repeat(text.length + 2)));
 }
@@ -691,7 +694,12 @@ export function parseThemeChoice(value?: string): ThemeChoice | undefined {
   );
 }
 
-function checkOverwrite(paths: string[]): void {
+/**
+ * Throws {@link OnboardingError} naming any of `paths` that already exist,
+ * so a scaffolder can fail loudly instead of silently overwriting a file —
+ * unless the caller already checked its own `force` flag.
+ */
+export function checkOverwrite(paths: string[]): void {
   const existing = paths.filter((p) => {
     try {
       Deno.statSync(p);
