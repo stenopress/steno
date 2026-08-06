@@ -23,6 +23,50 @@ export function bundledThemeLocalPath(source: URL): string | undefined {
   return source.protocol === "file:" ? fromFileUrl(source) : undefined;
 }
 
+/** Whether `themeName` refers to a local filesystem path, not a package specifier. */
+function isLocalThemePath(themeName: string): boolean {
+  return themeName.startsWith(".") || themeName.startsWith("/") ||
+    themeName.startsWith("file://");
+}
+
+function resolveLocalThemeDir(themeName: string): string {
+  return themeName.startsWith("file://")
+    ? fromFileUrl(new URL(themeName))
+    : (isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName));
+}
+
+/**
+ * Returns the local theme's directory to watch during `steno dev`, or
+ * `undefined` when the configured theme isn't a local path — bundled/jsr/npm
+ * themes aren't edited during a normal dev session, so there's nothing to
+ * watch for them.
+ */
+export function resolveThemeWatchDir(config: SiteConfig): string | undefined {
+  const themeName = resolveTheme(config);
+  if (!themeName || !isLocalThemePath(themeName)) return undefined;
+  return resolveLocalThemeDir(themeName);
+}
+
+/**
+ * Imports `specifierUrl` bypassing Deno's module cache, by appending the
+ * file's mtime as a query string. Dynamic `import()` of the exact same URL
+ * always returns the previously cached module even after the file changes
+ * on disk — verified directly, this is not a rare edge case — so a plain
+ * `import()` of a local theme would silently keep serving stale code across
+ * dev-server rebuilds. Only meaningful for local file:// specifiers.
+ */
+async function importFresh(specifierUrl: string): Promise<unknown> {
+  let cacheBuster = "";
+  try {
+    const mtime = (await Deno.stat(fromFileUrl(specifierUrl))).mtime
+      ?.getTime();
+    if (mtime !== undefined) cacheBuster = `?mtime=${mtime}`;
+  } catch {
+    // Not a statable local file:// path — import without busting the cache.
+  }
+  return await import(`${specifierUrl}${cacheBuster}`);
+}
+
 async function loadBundledTheme(
   themeName: string,
   themeConfig: Record<string, unknown> | undefined,
@@ -71,14 +115,8 @@ export async function loadTheme(
       return bundledTheme;
     }
 
-    const isLocalPath = themeName.startsWith(".") ||
-      themeName.startsWith("/") ||
-      themeName.startsWith("file://");
-
-    if (isLocalPath) {
-      const themeDir = themeName.startsWith("file://")
-        ? fromFileUrl(new URL(themeName))
-        : (isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName));
+    if (isLocalThemePath(themeName)) {
+      const themeDir = resolveLocalThemeDir(themeName);
 
       let hasThemeYaml = false;
       try {
@@ -134,7 +172,9 @@ export async function loadTheme(
         }
       }
 
-      const themeModule = await import(resolvedPath);
+      const themeModule = await importFresh(resolvedPath) as {
+        default?: StenoTheme;
+      };
       const themeData = (themeModule.default || themeModule) as StenoTheme;
       return new Theme(themeData, themeConfig);
     }

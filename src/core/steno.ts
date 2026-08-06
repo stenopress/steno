@@ -10,7 +10,7 @@ import {
 } from "./config.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
 import { resolveCachePath } from "./build/cache.ts";
-import { loadTheme } from "./steno_theme.ts";
+import { loadTheme, resolveThemeWatchDir } from "./steno_theme.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
 import {
   getEnvironmentFilePaths,
@@ -151,10 +151,17 @@ export class Steno {
         }
       },
     );
+    // A theme loaded from a local path is under active development just
+    // like the content — watch it too, so editing a layout or the theme's
+    // own mod.ts triggers a rebuild instead of silently doing nothing.
+    const themeWatchDir = resolveThemeWatchDir(project.config);
+    const watchDirs = themeWatchDir
+      ? [contentDir, themeWatchDir, this.configPath, ...envFiles]
+      : [contentDir, this.configPath, ...envFiles];
     await startDevServer(
       outputDir,
       () => this.executeBuild(true),
-      [contentDir, this.configPath, ...envFiles],
+      watchDirs,
       [resolveCachePath(contentDir), outputDir],
       devPort,
     );
