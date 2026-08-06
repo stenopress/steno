@@ -2,7 +2,12 @@ import { resolvePluginSourcePolicy, resolveTheme } from "./config.ts";
 import { resolveProject } from "./project.ts";
 import { join } from "@std/path";
 import { c, fail, info, ok, success, warn } from "../utils/output.ts";
-import { STENO_DIR } from "./path_utils.ts";
+import {
+  isPathInsideOrEqual,
+  resolveMarkdownScanIgnorePaths,
+  resolvePublicDir,
+  STENO_DIR,
+} from "./path_utils.ts";
 import { parseFrontmatter } from "../utils/frontmatter.ts";
 import { errorMessage } from "../utils/text.ts";
 
@@ -14,13 +19,20 @@ function pathIs(path: string, type: "isDirectory" | "isFile"): boolean {
   }
 }
 
-function countMarkdownFiles(dir: string): number {
+function isIgnored(path: string, ignorePaths: string[]): boolean {
+  return ignorePaths.some((ignorePath) =>
+    isPathInsideOrEqual(path, ignorePath)
+  );
+}
+
+function countMarkdownFiles(dir: string, ignorePaths: string[]): number {
   let count = 0;
   try {
     for (const entry of Deno.readDirSync(dir)) {
       const fullPath = join(dir, entry.name);
+      if (isIgnored(fullPath, ignorePaths)) continue;
       if (entry.isDirectory && entry.name !== STENO_DIR) {
-        count += countMarkdownFiles(fullPath);
+        count += countMarkdownFiles(fullPath, ignorePaths);
       } else if (entry.isFile && entry.name.endsWith(".md")) {
         count++;
       }
@@ -34,9 +46,11 @@ function countMarkdownFiles(dir: string): number {
 /**
  * Parses every markdown file's frontmatter so a malformed page (bad YAML/
  * TOML indentation, a stray colon) surfaces here instead of deep inside a
- * real build. Returns one message per file that failed to parse.
+ * real build. Skips the same paths `collectMarkdownPages` would (public/,
+ * output/, `.steno/`) so this never flags a file the real build wouldn't
+ * even treat as a page. Returns one message per file that failed to parse.
  */
-function checkFrontmatter(dir: string): string[] {
+function checkFrontmatter(dir: string, ignorePaths: string[]): string[] {
   const errors: string[] = [];
 
   const walk = (currentDir: string) => {
@@ -49,6 +63,7 @@ function checkFrontmatter(dir: string): string[] {
 
     for (const entry of entries) {
       const fullPath = join(currentDir, entry.name);
+      if (isIgnored(fullPath, ignorePaths)) continue;
       if (entry.isDirectory) {
         if (entry.name !== STENO_DIR) walk(fullPath);
       } else if (entry.isFile && entry.name.endsWith(".md")) {
@@ -120,12 +135,20 @@ export async function runDoctor(configPath: string): Promise<void> {
     hasErrors = true;
   }
 
+  // Same paths collectMarkdownPages excludes during a real build, so these
+  // checks never flag a file the build wouldn't treat as a page either.
+  const scanIgnorePaths = resolveMarkdownScanIgnorePaths(
+    contentDir,
+    config.output,
+    resolvePublicDir(contentDir, config.publicDir),
+  );
+
   // Markdown pages
-  const pageCount = countMarkdownFiles(contentDir);
+  const pageCount = countMarkdownFiles(contentDir, scanIgnorePaths);
   if (pageCount > 0) {
     ok(`${pageCount} page${pageCount === 1 ? "" : "s"} found`);
 
-    const frontmatterErrors = checkFrontmatter(contentDir);
+    const frontmatterErrors = checkFrontmatter(contentDir, scanIgnorePaths);
     if (frontmatterErrors.length === 0) {
       ok(
         `Frontmatter parses cleanly in all ${pageCount} page${
