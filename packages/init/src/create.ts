@@ -71,6 +71,10 @@ Advanced options (also unlocked interactively with --advanced, -a):
   --output-dir <name>         Build output directory (default: dist)
   --dev-port <number>         Dev server port (default: 5735)
   --short-urls                Enable short URLs (default: true)
+
+Building a theme or plugin instead of a whole site:
+  deno run -A jsr:@steno/init/create-theme <name>
+  deno run -A jsr:@steno/init/create-plugin <name>
 `);
   Deno.exit(0);
 }
