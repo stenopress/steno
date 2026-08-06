@@ -1,6 +1,7 @@
 import { join, resolve } from "@std/path";
 import { marked } from "marked";
 import type { CollectionMap } from "../collections.ts";
+import type { PageRenderContext } from "../../theme/theme.ts";
 import { buildCollections, collectMarkdownPages } from "../collections.ts";
 import { runAstTransforms, runHtmlTransforms } from "../../plugins/plugins.ts";
 import { processIncludes } from "../includes.ts";
@@ -386,7 +387,7 @@ export async function buildSite({
           );
         }
 
-        const pageContext = {
+        const pageContext: PageRenderContext = {
           ...pageFrontmatter,
           ...pageGlobals,
           ...publicEnv,
@@ -398,7 +399,9 @@ export async function buildSite({
             : undefined,
           collections: await getCollections(),
           data,
-          title: page.frontmatter.title || page.title || config.title,
+          title: (typeof page.frontmatter.title === "string"
+            ? page.frontmatter.title
+            : undefined) || page.title || config.title,
           assets: themeAssets,
         };
 
@@ -480,7 +483,8 @@ export async function buildSite({
     await mapWithConcurrency(
       renderedWrites,
       STAGING_COPY_CONCURRENCY,
-      (job) => Deno.writeTextFile(job.path, job.content),
+      (job) =>
+        Deno.writeTextFile(job.path, job.content),
     );
     for (
       const { outputFilePath, stagedOutputFilePath, html } of afterPageQueue

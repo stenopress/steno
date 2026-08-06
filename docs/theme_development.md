@@ -66,6 +66,9 @@ already has full control over how it builds its own `assets` map. Omit
 Every layout receives `content` (compiled Markdown), `site`, `theme`, `data`,
 `collections`, `env`, `globals`, `assets`, public environment variables, and all
 page frontmatter. `theme` contains its name/version plus merged configuration.
+Writing a TypeScript helper that builds part of this context yourself (outside
+`.tau` templates, which aren't typed)? Import `PageRenderContext` from
+`@steno/steno` for the same shape, with autocomplete.
 
 `assets` maps each theme asset's source-relative path (as written in `assets/`
 or `scripts/`) to its output filename. CSS and JS assets are written under a

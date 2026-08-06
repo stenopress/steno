@@ -32,7 +32,12 @@ export function registerProjectTests(): void {
       assertEquals(theme?.config.primaryLabel, "Get started");
       const html = await theme?.renderLayout("layout", "<h2>Details</h2>", {
         title: "Launch",
-        site: { title: "Launch", navigation: [] },
+        site: {
+          title: "Launch",
+          description: "",
+          author: "",
+          navigation: [],
+        },
         theme: { name: theme.name, version: theme.version, ...theme.config },
       });
       assertStringIncludes(html ?? "", 'class="hero"');
