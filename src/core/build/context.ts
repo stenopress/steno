@@ -11,6 +11,8 @@ export type BuildContext = {
   pages?: MarkdownPage[];
   dev?: boolean;
   environment?: Record<string, string>;
+  /** Prints theme/plugin diagnostics and each rendered page's template context. */
+  verbose?: boolean;
 };
 
 export interface BuildState {

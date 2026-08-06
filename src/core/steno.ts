@@ -38,11 +38,14 @@ export class Steno {
    * @param configPath Path to the site configuration file.
    * @param autoBuildOnInit Whether initialization should start a build.
    * @param hooks Optional caller-provided build lifecycle hooks.
+   * @param verbose Prints theme/plugin diagnostics and each rendered page's
+   *   template context.
    */
   constructor(
     configPath: string = "content/.steno/config.yml",
     autoBuildOnInit = true,
     private hooks: StenoHooks = {},
+    private verbose = false,
   ) {
     this.configPath = configPath;
     this.autoBuildOnInit = autoBuildOnInit;
@@ -116,6 +119,7 @@ export class Steno {
         state: this.buildState,
         pages: project.pages,
         dev,
+        verbose: this.verbose,
         environment: loadEnvironmentFiles(
           Deno.cwd(),
           dev ? "development" : "production",

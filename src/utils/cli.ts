@@ -7,6 +7,8 @@ export interface CliOptions {
   /** The path to the configuration file. */
   configPath: string;
   port?: number;
+  /** Whether to print diagnostic build/render detail (theme, plugins, per-page template context). */
+  verbose: boolean;
 }
 
 const defaultConfigPath = "content/.steno/config.yml";
@@ -22,12 +24,18 @@ export function parseCliArgs(args: string[]): CliOptions {
   let command: CliOptions["command"] = "build";
   let configPath = defaultConfigPath;
   let port: number | undefined;
+  let verbose = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === "-h" || arg === "--help") {
-      return { command: "help", configPath };
+      return { command: "help", configPath, verbose };
+    }
+
+    if (arg === "-V" || arg === "--verbose") {
+      verbose = true;
+      continue;
     }
 
     if (arg === "-c" || arg === "--config") {
@@ -78,8 +86,8 @@ export function parseCliArgs(args: string[]): CliOptions {
   }
 
   return port === undefined
-    ? { command, configPath }
-    : { command, configPath, port };
+    ? { command, configPath, verbose }
+    : { command, configPath, port, verbose };
 }
 
 /** Writes the CLI usage summary to stdout. */
@@ -101,6 +109,8 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-c, --config${c.reset} ${c.gray}<path>${c.reset}  Path to config file ${c.gray}(default: content/.steno/config.yml)${c.reset}
   ${c.cyan}-h, --help${c.reset}           Show help
   ${c.cyan}-p, --port${c.reset} ${c.gray}<number>${c.reset} Port to run preview server on ${c.gray}(default: 4173)${c.reset}
+  ${c.cyan}-V, --verbose${c.reset}        Print theme/plugin diagnostics and each rendered
+                       page's template context ${c.gray}(build, dev)${c.reset}
 
 ${c.bold}Examples:${c.reset}
   ${c.gray}deno x jsr:@steno/steno${c.reset}
@@ -109,5 +119,6 @@ ${c.bold}Examples:${c.reset}
   ${c.gray}deno x jsr:@steno/steno doctor${c.reset}
   ${c.gray}deno x jsr:@steno/steno preview${c.reset}
   ${c.gray}deno x jsr:@steno/steno build --config content/.steno/config.yml${c.reset}
+  ${c.gray}deno x jsr:@steno/steno build --verbose${c.reset}
 `);
 }

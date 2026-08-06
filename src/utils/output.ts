@@ -82,6 +82,48 @@ export function changeDetected(): void {
   );
 }
 
+/**
+ * Prints the resolved theme and plugin list for a build. Only ever called
+ * behind `--verbose` — this is the "what did steno actually load" answer
+ * that was previously invisible short of reading source or stepping
+ * through a debugger.
+ */
+export function debugBuildStart(
+  theme: { name: string; version: string } | undefined,
+  plugins: Array<{ name: string }>,
+): void {
+  const themeLabel = theme
+    ? `${theme.name}@${theme.version}`
+    : `${c.gray}(none)${c.reset}`;
+  const pluginsLabel = plugins.length
+    ? plugins.map((p) => p.name).join(", ")
+    : `${c.gray}(none)${c.reset}`;
+  console.log(`  ${c.dim}verbose${c.reset}  theme: ${themeLabel}`);
+  console.log(`  ${c.dim}verbose${c.reset}  plugins: ${pluginsLabel}`);
+}
+
+/**
+ * Prints the exact object a page's layout template receives at render
+ * time. Only ever called behind `--verbose` — without this, inspecting
+ * template context meant temporarily dumping it inside the template
+ * itself, which can trip Tau's "unsafe expression" guard.
+ */
+export function debugPageContext(
+  route: string,
+  layout: string | undefined,
+  context: unknown,
+): void {
+  console.log(
+    `  ${c.dim}verbose${c.reset}  ${c.cyan}${route}${c.reset} ${c.gray}(layout: ${
+      layout ?? "none"
+    })${c.reset}`,
+  );
+  console.log(
+    Deno.inspect(context, { depth: 6, colors: !noColorRequested() }),
+  );
+  console.log();
+}
+
 export function devServerReady(
   port: number,
   preferredPort: number,
