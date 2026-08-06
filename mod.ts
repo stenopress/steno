@@ -62,7 +62,7 @@ export type {
 } from "./src/types.ts";
 /** Loads and renders theme instances. */
 export { mergeTheme, Theme } from "./src/theme/theme.ts";
-export type { ThemeConfig } from "./src/theme/theme.ts";
+export type { PageRenderContext, ThemeConfig } from "./src/theme/theme.ts";
 
 // Deliberately not `await`-ed at the top level: a top-level await here would
 // keep this module's own evaluation pending for as long as the build runs.

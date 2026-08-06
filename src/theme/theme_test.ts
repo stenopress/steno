@@ -39,8 +39,12 @@ export function registerThemeTests(): void {
 
     const out = await theme.renderLayout("layout", "<p>Body</p>", {
       title: "Post",
-      site: { title: "Site" },
-      theme: { author: "theme-author" },
+      site: { title: "Site", description: "", author: "" },
+      theme: {
+        name: theme.name,
+        version: theme.version,
+        author: "theme-author",
+      },
     });
 
     assertStringIncludes(out, "<h1>Post - Site</h1>");
@@ -133,8 +137,12 @@ export function registerThemeTests(): void {
         author: "override",
       });
       const rendered = await theme.renderLayout("layout", "<p>x</p>", {
-        site: { title: "My Site" },
-        theme: { author: theme.config.author },
+        site: { title: "My Site", description: "", author: "" },
+        theme: {
+          name: theme.name,
+          version: theme.version,
+          author: theme.config.author,
+        },
       });
 
       assertStringIncludes(rendered, "<h1>My Site</h1>");

@@ -1,5 +1,11 @@
 import { render } from "../utils/tau.ts";
-import type { StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
+import type {
+  SiteConfig,
+  StenoPlugin,
+  StenoTheme,
+  ThemeConfigField,
+} from "../types.ts";
+import type { CollectionMap } from "../core/collections.ts";
 import { basename, join, resolve, toFileUrl } from "@std/path";
 import { parse as parseYaml } from "@std/yaml";
 import { transpile } from "@deno/emit";
@@ -9,6 +15,43 @@ import { ensureParentDirSync } from "../utils/fs.ts";
 
 /** Resolved configuration values passed to a theme. */
 export type ThemeConfig = Record<string, unknown>;
+
+/**
+ * The context object a page's layout template renders against — every
+ * field here is reachable in a `.tau` template as `{ field }`. Steno's
+ * own build pipeline always sets these; they're typed optional here so a
+ * hand-built context (tests, a theme's own render helpers) isn't forced
+ * to fabricate every field — Tau templates already guard access with
+ * `{#if theme.accent}`-style checks, so treat these the same way. Page
+ * frontmatter and public env vars are additionally spread in at the top
+ * level, which the index signature covers, since their exact keys vary
+ * per project.
+ *
+ * `content` (the page's rendered HTML body) isn't included here — it's
+ * merged in separately by `Theme.renderLayout`, which is also why this
+ * type covers `renderLayout`'s `variables` parameter rather than the
+ * complete rendered context.
+ */
+export interface PageRenderContext {
+  /** The page's title — frontmatter, inferred from content, or the site title. */
+  title?: string;
+  /** Resolved site config, with any per-page `steno.*` overrides applied. */
+  site?: SiteConfig;
+  /** Values from top-level `globals` and any per-page `steno.globals` override, merged. */
+  globals?: Record<string, unknown>;
+  /** Public (non-secret) environment variables exposed to templates — also spread at the top level. */
+  env?: Record<string, string>;
+  /** Named collections available to templates — see `docs/content.md`. */
+  collections?: CollectionMap;
+  /** Parsed `_data/*` files, keyed by file name. */
+  data?: Record<string, unknown>;
+  /** This theme's name, version, and resolved configuration — `undefined` when the site has no theme. */
+  theme?: { name: string; version: string } & ThemeConfig;
+  /** Each theme asset's original relative path mapped to its (possibly content-hashed) output path. */
+  assets?: Record<string, string>;
+  /** Every other page frontmatter field and public env var, spread at the top level. */
+  [key: string]: unknown;
+}
 
 const ASSET_COPY_CONCURRENCY = 32;
 /** Assets matching this pattern get a content hash baked into their output filename. */
@@ -521,7 +564,7 @@ export class Theme {
   public async renderLayout(
     layoutName: string,
     content: string,
-    variables: Record<string, unknown>,
+    variables: PageRenderContext,
   ): Promise<string> {
     const template = this.themeData.layouts[layoutName];
     if (!template) {
