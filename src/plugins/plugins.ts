@@ -1,5 +1,6 @@
 import type { TokensList } from "marked";
 import type { StenoPlugin } from "../types.ts";
+import { errorMessage } from "../utils/text.ts";
 /** Shared plugin contract used throughout the build pipeline. */
 export type { StenoPlugin } from "../types.ts";
 
@@ -45,9 +46,27 @@ export async function runAstTransforms(
   plugins: StenoPlugin[],
 ): Promise<TokensList> {
   for (const plugin of plugins) {
-    if (plugin.transformAst) {
-      tokens = await plugin.transformAst(tokens);
+    if (!plugin.transformAst) continue;
+
+    let result: unknown;
+    try {
+      result = await plugin.transformAst(tokens);
+    } catch (error) {
+      throw new Error(
+        `Plugin "${plugin.name}"'s transformAst threw: ${errorMessage(error)}`,
+        { cause: error },
+      );
     }
+
+    // A plugin returning the wrong shape here (undefined, a single token,
+    // a Promise it forgot to await) would otherwise fail somewhere deep in
+    // markdown rendering with no indication which plugin caused it.
+    if (!Array.isArray(result)) {
+      throw new Error(
+        `Plugin "${plugin.name}"'s transformAst must return an array of markdown tokens, got ${typeof result}.`,
+      );
+    }
+    tokens = result as TokensList;
   }
   return tokens;
 }
@@ -64,9 +83,27 @@ export async function runHtmlTransforms(
   plugins: StenoPlugin[],
 ): Promise<string> {
   for (const plugin of plugins) {
-    if (plugin.transformHtml) {
-      html = await plugin.transformHtml(html);
+    if (!plugin.transformHtml) continue;
+
+    let result: unknown;
+    try {
+      result = await plugin.transformHtml(html);
+    } catch (error) {
+      throw new Error(
+        `Plugin "${plugin.name}"'s transformHtml threw: ${errorMessage(error)}`,
+        { cause: error },
+      );
     }
+
+    // Without this check a plugin returning undefined (a common mistake —
+    // forgetting a `return`) writes "undefined" into every page's HTML
+    // with no error at all until someone notices the output looks wrong.
+    if (typeof result !== "string") {
+      throw new Error(
+        `Plugin "${plugin.name}"'s transformHtml must return a string, got ${typeof result}.`,
+      );
+    }
+    html = result;
   }
   return html;
 }
