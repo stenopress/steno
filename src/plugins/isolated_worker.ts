@@ -17,11 +17,8 @@ const hookNames: IsolatedPluginHook[] = [
   "afterBuild",
 ];
 
-// Keep plugin logging out of the protocol stream. Guarded the same as the
-// stdin loop below: only patch the real console when this file is actually
-// running as the subprocess entry point, not when a test imports it to
-// exercise handleRequest() directly (that would clobber console for the
-// entire test process, since all test files share one Deno process).
+// Keep plugin logging out of protocol stream. Only patch console when
+// running as the actual subprocess, not when a test imports this file.
 if (import.meta.main) {
   for (const method of ["log", "info", "warn", "error", "debug"] as const) {
     console[method] = (...args: unknown[]) => {
@@ -100,10 +97,7 @@ export async function handleRequest(
   };
 }
 
-// This file is only ever launched as `deno run <perms> isolated_worker.ts`
-// (see workerUrl in isolated_plugin.ts) — it's always the main module there,
-// so this guard only skips the stdin loop when the file is imported
-// directly, e.g. to unit test `handleRequest` without a real subprocess.
+// Skip stdin loop when this file is imported (e.g. to unit test handleRequest).
 if (import.meta.main) {
   for await (const line of readProtocolLines(Deno.stdin.readable)) {
     let response: IsolatedPluginResponse;

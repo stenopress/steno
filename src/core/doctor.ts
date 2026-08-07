@@ -102,9 +102,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     warn(`Deno ${denoVersion} - v2.0.0 or later recommended`);
   }
 
-  // Config file, or zero-config fallback (single-file/docs discovery) - the
-  // same resolution Steno itself uses to build, so doctor never flags a
-  // project that would actually build fine.
+  // Same resolution Steno uses to build.
   let config;
   try {
     const project = await resolveProject(configPath);
@@ -135,8 +133,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     hasErrors = true;
   }
 
-  // Same paths collectMarkdownPages excludes during a real build, so these
-  // checks never flag a file the build wouldn't treat as a page either.
+  // Same paths collectMarkdownPages excludes during a real build.
   const scanIgnorePaths = resolveMarkdownScanIgnorePaths(
     contentDir,
     config.output,

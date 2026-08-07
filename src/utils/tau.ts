@@ -60,8 +60,7 @@ interface TauHelpers {
   ) => Promise<string>;
 }
 
-// `new Function` can't construct an async function directly; borrow the
-// AsyncFunction constructor the same way the language spec does.
+// `new Function` can't build an async function; borrow AsyncFunction's constructor.
 const AsyncFunction: FunctionConstructor =
   Object.getPrototypeOf(async function () {}).constructor;
 
@@ -178,8 +177,7 @@ function compileNodes(
   state: CompileState = { nextId: 0 },
 ): string {
   let code = "";
-  // Mutated in place by "let" nodes so a binding is visible to later
-  // siblings in this block without leaking to the caller's scope.
+  // Mutated by "let" nodes so bindings are visible to later siblings only.
   let currentLocals = locals;
   for (const node of nodes) {
     if (node.type === "text") {

@@ -236,8 +236,7 @@ function tokenize(source: string): Token[] {
       fail(`Unexpected character "${char}"`, source);
     }
     if (char === "=") {
-      // Only "==" / "===" are valid; bare "=" (assignment) is rejected, and
-      // this also structurally rejects "=>" (arrow functions).
+      // Rejects bare "=" (assignment) and "=>" (arrow functions).
       if (source[pos + 1] === "=") {
         tokens.push({
           type: "punct",
@@ -570,9 +569,7 @@ function emitExpr(node: TauExprNode, locals: ReadonlySet<string>): string {
     case "Call": {
       const calleeSrc = emitExpr(node.callee, locals);
       const argsSrc = node.args.map((arg) => emitExpr(arg, locals)).join(", ");
-      // Awaiting unconditionally lets a context-supplied function be either
-      // sync or async without special syntax; `await` on a non-promise
-      // value just resolves it on the next microtask.
+      // Unconditional await lets a context function be sync or async.
       return node.optional
         ? `(await ${calleeSrc}?.(${argsSrc}))`
         : `(await ${calleeSrc}(${argsSrc}))`;
