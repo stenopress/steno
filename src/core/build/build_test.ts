@@ -476,6 +476,58 @@ export function registerBuildTests(): void {
 
   Deno.test({
     name:
+      "build: a theme asset content change forces a rebuild of pages that embed its hashed path",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme(
+        {
+          layout:
+            `<html><head><link rel="stylesheet" href="/assets/{assets["style.css"]}"></head><body>{@html content}</body></html>`,
+        },
+        {},
+        { "style.css": "body { color: red; }" },
+      );
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writePage(
+        "index.md",
+        `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`,
+      );
+
+      const steno = new Steno(f.configPath, false);
+      await steno.build();
+      const firstHtml = Deno.readTextFileSync(
+        join(f.outputDir, "index.html"),
+      );
+      const firstHrefMatch = firstHtml.match(/href="([^"]+)"/);
+      assertEquals(firstHrefMatch !== null, true);
+      const firstHref = firstHrefMatch![1];
+
+      // Only the theme CSS changes - page source stays same.
+      Deno.writeTextFileSync(
+        join(themeDir, "assets", "style.css"),
+        "body { color: blue; }",
+      );
+      await steno.build();
+      const secondHtml = Deno.readTextFileSync(
+        join(f.outputDir, "index.html"),
+      );
+      const secondHrefMatch = secondHtml.match(/href="([^"]+)"/);
+      assertEquals(secondHrefMatch !== null, true);
+      const secondHref = secondHrefMatch![1];
+
+      assertEquals(secondHref === firstHref, false);
+      assertEquals(
+        fileExists(join(f.outputDir, secondHref.replace(/^\//, ""))),
+        true,
+      );
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name:
       "build: reuses cached HTML across processes when output is missing but content is unchanged",
     permissions: { read: true, write: true },
     fn: async () => {
