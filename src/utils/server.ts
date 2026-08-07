@@ -268,8 +268,7 @@ export async function processWatchEvents(
 
   let pending = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  // Chains rebuilds one after another so they never overlap, even when a
-  // debounce timer fires while a previous rebuild is still in flight.
+  // Chains rebuilds so they never overlap.
   let rebuildChain: Promise<void> = Promise.resolve();
 
   const runRebuild = () => {
@@ -339,9 +338,7 @@ export async function startDevServer(
   watchDirs: string | string[] = "content",
   ignoredPaths: string[] = [],
   preferredPort: number = DEFAULT_DEV_PORT,
-  // Loopback-only by default: the dev server serves unpublished, possibly
-  // sensitive site content, so it shouldn't be reachable by anyone else on
-  // the same network/VPN unless a caller opts in with "0.0.0.0".
+  // Loopback-only by default: dev server serves unpublished content.
   hostname: string = "127.0.0.1",
 ): Promise<void> {
   const { handler, broadcastReload } = createDevServerHandler(outputDir);

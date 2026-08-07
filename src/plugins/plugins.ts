@@ -58,9 +58,7 @@ export async function runAstTransforms(
       );
     }
 
-    // A plugin returning the wrong shape here (undefined, a single token,
-    // a Promise it forgot to await) would otherwise fail somewhere deep in
-    // markdown rendering with no indication which plugin caused it.
+    // Catches wrong-shape returns before they fail deep in markdown rendering.
     if (!Array.isArray(result)) {
       throw new Error(
         `Plugin "${plugin.name}"'s transformAst must return an array of markdown tokens, got ${typeof result}.`,
@@ -95,9 +93,7 @@ export async function runHtmlTransforms(
       );
     }
 
-    // Without this check a plugin returning undefined (a common mistake —
-    // forgetting a `return`) writes "undefined" into every page's HTML
-    // with no error at all until someone notices the output looks wrong.
+    // Catches a plugin forgetting `return`, which would write "undefined" into HTML.
     if (typeof result !== "string") {
       throw new Error(
         `Plugin "${plugin.name}"'s transformHtml must return a string, got ${typeof result}.`,

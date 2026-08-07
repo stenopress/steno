@@ -207,13 +207,8 @@ async function discoverZeroConfigProject(
   }
 
   if (pages.length === 1) {
-    // contentDir becomes the file's own parent directory, which may sit
-    // deeper than scanRootDir (e.g. a lone "content/index.md" at the
-    // project root). relPath was computed against scanRootDir during the
-    // scan above, so it must be recomputed against the reassigned
-    // contentDir or downstream output-path resolution nests an extra
-    // directory into the emitted file (dist/content/index.html instead of
-    // dist/index.html).
+    // contentDir reassigned to the file's own dir, so relPath must be
+    // recomputed or output nests an extra directory.
     const contentDir = dirname(pages[0].fullPath);
     const page = {
       ...pages[0],

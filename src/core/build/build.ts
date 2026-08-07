@@ -281,10 +281,7 @@ export async function buildSite({
       stagingPath: string,
       html: string,
     ) => {
-      // `path` is kept for backward compatibility and means something
-      // different for each hook (final vs. staging) — `finalPath`/
-      // `stagingPath` are always both populated so callers can sidestep
-      // that ambiguity entirely.
+      // `path` kept for backward compatibility, meaning differs per hook.
       await hooks.afterPage?.({
         path: finalPath,
         finalPath,
@@ -311,11 +308,8 @@ export async function buildSite({
       renderedContent?: string;
     }
 
-    // Rendering (markdown transforms + Tau) is the only part safe to run
-    // concurrently: it has no shared mutable state across pages besides
-    // caches that are idempotent to recompute. Collision detection, hook
-    // firing, and cache bookkeeping stay in a second, sequential pass below
-    // so their order and error behavior are unchanged from a plain for-loop.
+    // Only rendering is safe to run concurrently; collision detection, hooks,
+    // and cache bookkeeping stay sequential below.
     const pageResults = await mapWithConcurrency(
       activePages,
       PAGE_RENDER_CONCURRENCY,
@@ -481,9 +475,7 @@ export async function buildSite({
       });
     }
 
-    // Writes run concurrently (pure I/O, no shared state); hooks fire
-    // afterward in original page order so their side effects and error
-    // behavior match a plain sequential loop.
+    // Writes run concurrently; hooks fire after, in original page order.
     await mapWithConcurrency(
       renderedWrites,
       STAGING_COPY_CONCURRENCY,

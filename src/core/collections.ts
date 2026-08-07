@@ -125,8 +125,7 @@ export async function collectMarkdownPages(
     async ({ fullPath, relPath }) => {
       if (pageCache) {
         const mtimeMs = (await Deno.stat(fullPath)).mtime?.getTime();
-        // A null mtime means the platform doesn't report one; skip caching
-        // rather than risk every scan looking like a hit against the last.
+        // Null mtime: platform doesn't report one, skip caching.
         if (mtimeMs !== undefined) {
           const cached = pageCache.get(fullPath);
           if (cached && cached.mtimeMs === mtimeMs) return cached.page;
