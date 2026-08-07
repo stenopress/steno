@@ -18,6 +18,8 @@ jobs:
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.9.4"
 
       - name: Cache Deno dependencies
         uses: actions/cache@v4
