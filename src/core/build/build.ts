@@ -273,6 +273,8 @@ export async function buildSite({
         config.hashAssets ?? true,
       )
       : {};
+    // Detects stale baked-in asset hrefs on cache reuse.
+    const assetsSignature = JSON.stringify(themeAssets);
 
     const fireAfterPage = async (
       finalPath: string,
@@ -327,6 +329,7 @@ export async function buildSite({
         const needsRender = !cachedPage ||
           cachedPage.sourceText !== page.sourceText ||
           cachedPage.outputPath !== outputFilePath ||
+          cachedPage.assetsSignature !== assetsSignature ||
           !(await fileExists(outputFilePath));
 
         if (!needsRender) {
@@ -474,6 +477,7 @@ export async function buildSite({
         sourceText: page.sourceText,
         body: processedBody,
         htmlContent,
+        assetsSignature,
       });
     }
 

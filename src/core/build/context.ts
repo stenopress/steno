@@ -31,4 +31,6 @@ export interface BuildStateEntry {
   sourceText: string;
   body?: string;
   htmlContent?: string;
+  /** Theme assets manifest that was in effect when `htmlContent` was rendered. */
+  assetsSignature?: string;
 }
