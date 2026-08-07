@@ -13,6 +13,7 @@ export interface PersistentBuildCache {
     sourceText: string;
     body?: string;
     htmlContent?: string;
+    assetsSignature?: string;
   }>;
 }
 
@@ -67,6 +68,7 @@ export async function loadPersistentBuildCache(
       sourceText?: unknown;
       body?: unknown;
       htmlContent?: unknown;
+      assetsSignature?: unknown;
     };
 
     if (
@@ -89,6 +91,9 @@ export async function loadPersistentBuildCache(
       htmlContent: typeof typedEntry.htmlContent === "string"
         ? typedEntry.htmlContent
         : undefined,
+      assetsSignature: typeof typedEntry.assetsSignature === "string"
+        ? typedEntry.assetsSignature
+        : undefined,
     });
   }
 
@@ -106,6 +111,7 @@ export function toBuildStatePageMap(
       sourceText: page.sourceText,
       body: page.body,
       htmlContent: page.htmlContent,
+      assetsSignature: page.assetsSignature,
     });
   }
   return pageMap;
@@ -127,6 +133,7 @@ export async function savePersistentBuildCache(
       sourceText: page.sourceText,
       body: page.body,
       htmlContent: page.htmlContent,
+      assetsSignature: page.assetsSignature,
     })),
   };
   await Deno.writeTextFile(cachePath, JSON.stringify(payload));
