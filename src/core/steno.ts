@@ -23,6 +23,8 @@ export class Steno {
   private theme?: Theme;
   private readonly autoBuildOnInit: boolean;
   private plugins: StenoPlugin[] = [];
+  private sitePlugins: StenoPlugin[] = [];
+  private sitePluginsSignature: string | null = null;
   private readonly configPath: string;
   private readonly runtimeLoadingPromise: Promise<ResolvedProject>;
   private readonly buildState: BuildState = {
@@ -68,6 +70,17 @@ export class Steno {
    * plugins, updating `config`/`theme`/`plugins` in place. Called once at
    * construction and again before every dev-server rebuild, so editing the
    * config or switching a theme takes effect without restarting `dev`.
+   *
+   * Trusted site plugins are re-instantiated only when `config.plugins`
+   * actually changed since the last call - re-running every trusted
+   * plugin's factory (which can do real work, like Shiki loading its
+   * grammars) on every dev-server rebuild was pure waste when nothing
+   * about the plugin config changed. Isolated plugins are exempt: their
+   * worker is intentionally disposed at the end of every build (see
+   * `executeBuild`'s `finally`), so reusing a stale isolated plugin object
+   * would mean talking to an already-terminated subprocess. Any isolated
+   * entry in the config falls back to reloading every plugin, unchanged
+   * from prior behavior.
    */
   private async loadRuntime(): Promise<ResolvedProject> {
     const project = await resolveProject(
@@ -78,7 +91,24 @@ export class Steno {
     this.config = project.config;
     this.theme = await loadTheme(project.config);
 
-    const sitePlugins = await loadPlugins(project.config);
+    const configuredPlugins = project.config.plugins ?? [];
+    const hasIsolatedPlugin = configuredPlugins.some((entry) =>
+      typeof entry === "object" && entry !== null &&
+      (entry as { mode?: string }).mode === "isolated"
+    );
+    const pluginsSignature = JSON.stringify(configuredPlugins);
+
+    let sitePlugins: StenoPlugin[];
+    if (
+      !hasIsolatedPlugin && this.sitePluginsSignature === pluginsSignature
+    ) {
+      sitePlugins = this.sitePlugins;
+    } else {
+      sitePlugins = await loadPlugins(project.config);
+      this.sitePlugins = sitePlugins;
+      this.sitePluginsSignature = hasIsolatedPlugin ? null : pluginsSignature;
+    }
+
     const allowThemePlugins =
       resolvePluginSourcePolicy(project.config).allowThemePlugins;
 
