@@ -1,21 +1,14 @@
+import { disposeIsolatedPlugins } from "../plugins/isolated_plugin.ts";
+import { isStenoPlugin } from "../plugins/plugins.ts";
 import type { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
-import { isStenoPlugin } from "../plugins/plugins.ts";
-import { disposeIsolatedPlugins } from "../plugins/isolated_plugin.ts";
 import { startDevServer, startPreviewServer } from "../utils/server.ts";
-import {
-  loadPlugins,
-  resolveDevPort,
-  resolvePluginSourcePolicy,
-} from "./config.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
 import { resolveCachePath } from "./build/cache.ts";
-import { loadTheme, resolveThemeWatchDir } from "./steno_theme.ts";
+import { loadPlugins, resolveDevPort, resolvePluginSourcePolicy } from "./config.ts";
+import { getEnvironmentFilePaths, loadEnvironmentFiles } from "./environment.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
-import {
-  getEnvironmentFilePaths,
-  loadEnvironmentFiles,
-} from "./environment.ts";
+import { loadTheme, resolveThemeWatchDir } from "./steno_theme.ts";
 
 /** Coordinates config loading, theme setup, and site builds. */
 export class Steno {
@@ -83,25 +76,27 @@ export class Steno {
    * from prior behavior.
    */
   private async loadRuntime(): Promise<ResolvedProject> {
-    const project = await resolveProject(
-      this.configPath,
-      undefined,
-      this.buildState.pageCache,
-    );
+    const project = await resolveProject(this.configPath, undefined, this.buildState.pageCache);
     this.config = project.config;
     this.theme = await loadTheme(project.config);
 
     const configuredPlugins = project.config.plugins ?? [];
-    const hasIsolatedPlugin = configuredPlugins.some((entry) =>
-      typeof entry === "object" && entry !== null &&
-      (entry as { mode?: string }).mode === "isolated"
+    const hasIsolatedPlugin = configuredPlugins.some(
+      (entry) =>
+        typeof entry === "object" &&
+        entry !== null &&
+        (entry as { mode?: string }).mode === "isolated",
     );
-    const pluginsSignature = JSON.stringify(configuredPlugins);
+    const sourcePolicy = resolvePluginSourcePolicy(project.config);
+    const pluginsSignature = JSON.stringify({
+      plugins: configuredPlugins,
+      allowLocal: sourcePolicy.allowLocal,
+      allowRemoteHttp: sourcePolicy.allowRemoteHttp,
+      allowNodeBuiltins: sourcePolicy.allowNodeBuiltins,
+    });
 
     let sitePlugins: StenoPlugin[];
-    if (
-      !hasIsolatedPlugin && this.sitePluginsSignature === pluginsSignature
-    ) {
+    if (!hasIsolatedPlugin && this.sitePluginsSignature === pluginsSignature) {
       sitePlugins = this.sitePlugins;
     } else {
       sitePlugins = await loadPlugins(project.config);
@@ -109,25 +104,20 @@ export class Steno {
       this.sitePluginsSignature = hasIsolatedPlugin ? null : pluginsSignature;
     }
 
-    const allowThemePlugins =
-      resolvePluginSourcePolicy(project.config).allowThemePlugins;
+    const allowThemePlugins = resolvePluginSourcePolicy(project.config).allowThemePlugins;
 
     const themePlugins = allowThemePlugins
       ? (this.theme?.plugins ?? []).filter((plugin, index) => {
-        if (!isStenoPlugin(plugin)) {
-          console.warn(
-            `Theme plugin at index ${index} is invalid and will be skipped.`,
-          );
-          return false;
-        }
-        return true;
-      })
+          if (!isStenoPlugin(plugin)) {
+            console.warn(`Theme plugin at index ${index} is invalid and will be skipped.`);
+            return false;
+          }
+          return true;
+        })
       : [];
 
     if (!allowThemePlugins && (this.theme?.plugins?.length ?? 0) > 0) {
-      console.warn(
-        "Theme plugins are disabled by `pluginSourcePolicy.allowThemePlugins: false`.",
-      );
+      console.warn("Theme plugins are disabled by `pluginSourcePolicy.allowThemePlugins: false`.");
     }
 
     this.plugins = [...themePlugins, ...sitePlugins];
@@ -136,9 +126,7 @@ export class Steno {
 
   /** Core execution method for triggering a site build orchestration. */
   private async executeBuild(dev: boolean): Promise<void> {
-    const project = dev
-      ? await this.loadRuntime()
-      : await this.runtimeLoadingPromise;
+    const project = dev ? await this.loadRuntime() : await this.runtimeLoadingPromise;
 
     try {
       await buildSite({
@@ -150,10 +138,7 @@ export class Steno {
         pages: project.pages,
         dev,
         verbose: this.verbose,
-        environment: loadEnvironmentFiles(
-          Deno.cwd(),
-          dev ? "development" : "production",
-        ),
+        environment: loadEnvironmentFiles(Deno.cwd(), dev ? "development" : "production"),
       });
     } finally {
       disposeIsolatedPlugins(this.plugins);
@@ -176,15 +161,13 @@ export class Steno {
     const contentDir = project.config.contentDir || "content";
     const outputDir = project.config.output || "dist";
     const devPort = resolveDevPort(project.config);
-    const envFiles = getEnvironmentFilePaths(Deno.cwd(), "development").filter(
-      (path) => {
-        try {
-          return Deno.statSync(path).isFile;
-        } catch {
-          return false;
-        }
-      },
-    );
+    const envFiles = getEnvironmentFilePaths(Deno.cwd(), "development").filter((path) => {
+      try {
+        return Deno.statSync(path).isFile;
+      } catch {
+        return false;
+      }
+    });
     // A theme loaded from a local path is under active development just
     // like the content — watch it too, so editing a layout or the theme's
     // own mod.ts triggers a rebuild instead of silently doing nothing.
