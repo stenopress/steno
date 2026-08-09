@@ -44,9 +44,7 @@ function createFixture(): Fixture {
     `
     import type { StenoPlugin } from "${import.meta.resolve("../types.ts")}";
     export default function(options: Record<string, unknown> = {}): StenoPlugin {
-      Deno.writeTextFileSync(${
-      JSON.stringify(countFile)
-    }, "x", { append: true });
+      Deno.writeTextFileSync(${JSON.stringify(countFile)}, "x", { append: true });
       return { name: "counting-plugin", ...options };
     }
     `,
@@ -128,8 +126,7 @@ export function registerStenoTests(): void {
   });
 
   Deno.test({
-    name:
-      "Steno: re-instantiates a trusted plugin once its config.plugins entry actually changes",
+    name: "Steno: re-instantiates a trusted plugin once its config.plugins entry actually changes",
     permissions: { read: true, write: true, run: true, env: true },
     fn: async () => {
       const f = createFixture();

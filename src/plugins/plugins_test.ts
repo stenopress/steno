@@ -185,9 +185,7 @@ export function registerPluginTests(): void {
         Deno.writeTextFileSync(
           pluginPath,
           `
-        import type { StenoPlugin } from "${
-            import.meta.resolve("./plugins.ts")
-          }";
+        import type { StenoPlugin } from "${import.meta.resolve("./plugins.ts")}";
         export default function(_options = {}): StenoPlugin {
           return { name: "test-plugin" };
         }
@@ -209,8 +207,7 @@ export function registerPluginTests(): void {
   });
 
   Deno.test({
-    name:
-      "plugins: loadPlugins loads plugin from object entry and passes options",
+    name: "plugins: loadPlugins loads plugin from object entry and passes options",
     permissions: { read: true, write: true },
     fn: async () => {
       const tempDir = Deno.makeTempDirSync();
@@ -219,9 +216,7 @@ export function registerPluginTests(): void {
       Deno.writeTextFileSync(
         pluginPath,
         `
-        import type { StenoPlugin } from "${
-          import.meta.resolve("./plugins.ts")
-        }";
+        import type { StenoPlugin } from "${import.meta.resolve("./plugins.ts")}";
         export default function(options: Record<string, unknown> = {}): StenoPlugin {
           return { name: options.name as string ?? "unnamed" };
         }

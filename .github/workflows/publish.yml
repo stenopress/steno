@@ -12,6 +12,7 @@ on:
         options:
           - themes
           - init
+          - migrate
 
 jobs:
   quality:
@@ -85,3 +86,23 @@ jobs:
 
       - run: deno publish
         working-directory: packages/init
+
+  publish-migrate:
+    needs: quality
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.target == 'migrate'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - run: deno publish
+        working-directory: packages/migrate

@@ -88,9 +88,7 @@ export async function loadPersistentBuildCache(
       outputPath: typedEntry.outputPath,
       sourceText: typedEntry.sourceText,
       body: typeof typedEntry.body === "string" ? typedEntry.body : undefined,
-      htmlContent: typeof typedEntry.htmlContent === "string"
-        ? typedEntry.htmlContent
-        : undefined,
+      htmlContent: typeof typedEntry.htmlContent === "string" ? typedEntry.htmlContent : undefined,
       assetsSignature: typeof typedEntry.assetsSignature === "string"
         ? typedEntry.assetsSignature
         : undefined,

@@ -300,9 +300,7 @@ export async function processWatchEvents(
       event.paths.length > 0 &&
       event.paths.every((path) =>
         isTransactionalOutputPath(path, options.outputDir) ||
-        ignoredPaths.some((ignoredPath) =>
-          isPathInsideOrEqual(path, ignoredPath)
-        )
+        ignoredPaths.some((ignoredPath) => isPathInsideOrEqual(path, ignoredPath))
       )
     ) {
       continue;

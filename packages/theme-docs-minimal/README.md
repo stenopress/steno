@@ -1,9 +1,8 @@
 # @steno/theme-docs-minimal
 
-A minimal documentation theme for Steno with the same editorial paper, ink,
-serif-heading, and accent language as the Minimal and Marketing Minimal themes.
-It preserves a dense nested documentation tree while keeping long-form content
-quiet and highly readable.
+A minimal documentation theme for Steno with the same editorial paper, ink, serif-heading, and
+accent language as the Minimal and Marketing Minimal themes. It preserves a dense nested
+documentation tree while keeping long-form content quiet and highly readable.
 
 ## Usage
 
@@ -28,10 +27,9 @@ themeConfig:
   accentDarkFg: "#171519"
 ```
 
-`accent`, `accentHover`, and `accentFg` set the light-mode accent color, its
-hover state, and the foreground color used on top of it. `accentDark`,
-`accentDarkHover`, and `accentDarkFg` set the same three for dark mode. Values
-default to the theme's own purple accent shown above.
+`accent`, `accentHover`, and `accentFg` set the light-mode accent color, its hover state, and the
+foreground color used on top of it. `accentDark`, `accentDarkHover`, and `accentDarkFg` set the same
+three for dark mode. Values default to the theme's own purple accent shown above.
 
 ## Development
 

@@ -29,8 +29,7 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "resolveThemeWatchDir: resolves a relative local theme path against cwd",
+  name: "resolveThemeWatchDir: resolves a relative local theme path against cwd",
   fn: () => {
     const dir = resolveThemeWatchDir(baseConfig({ theme: "./my-theme" }));
     assertEquals(dir, join(Deno.cwd(), "my-theme"));
@@ -46,8 +45,7 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "resolveThemeWatchDir: resolves a file:// theme specifier to a plain path",
+  name: "resolveThemeWatchDir: resolves a file:// theme specifier to a plain path",
   permissions: { read: true, write: true },
   fn: () => {
     const tempDir = Deno.makeTempDirSync();
@@ -60,8 +58,7 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "loadTheme: picks up an edited local mod.ts theme across repeated loads",
+  name: "loadTheme: picks up an edited local mod.ts theme across repeated loads",
   permissions: { read: true, write: true },
   fn: async () => {
     const tempDir = Deno.makeTempDirSync();

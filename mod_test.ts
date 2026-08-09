@@ -15,8 +15,7 @@ import { join, toFileUrl } from "@std/path";
  */
 export function registerModTests(): void {
   Deno.test({
-    name:
-      "mod: a theme importing a value export from mod.ts does not deadlock the build",
+    name: "mod: a theme importing a value export from mod.ts does not deadlock the build",
     permissions: { read: true, write: true, run: true, env: true },
     fn: async () => {
       const tempDir = await Deno.makeTempDir();
@@ -64,9 +63,7 @@ export default theme;
         const timeoutMs = 15_000;
         const result = await Promise.race([
           child.output(),
-          new Promise<"timeout">((resolve) =>
-            setTimeout(() => resolve("timeout"), timeoutMs)
-          ),
+          new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), timeoutMs)),
         ]);
 
         if (result === "timeout") {

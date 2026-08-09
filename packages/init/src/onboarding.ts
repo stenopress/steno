@@ -112,20 +112,17 @@ const OFFICIAL_PLUGINS: Record<PluginChoice, {
   },
   shiki: {
     label: "Shiki syntax highlighting",
-    description:
-      "Highlights fenced code blocks with the same grammars and themes as VS Code",
+    description: "Highlights fenced code blocks with the same grammars and themes as VS Code",
     package: "jsr:@steno/plugin-shiki",
   },
   seo: {
     label: "SEO",
-    description:
-      "Generates a sitemap, RSS and Atom feeds, and robots.txt from your site's pages",
+    description: "Generates a sitemap, RSS and Atom feeds, and robots.txt from your site's pages",
     package: "jsr:@steno/plugin-seo",
   },
   docs: {
     label: "Docs sync",
-    description:
-      "Mirrors markdown from an external directory into contentDir before each build",
+    description: "Mirrors markdown from an external directory into contentDir before each build",
     package: "jsr:@steno/plugin-docs",
   },
   search: {
@@ -195,8 +192,7 @@ function printBanner(): void {
     `\x1b[35mSSS\x1b[0m    \x1b[33mEEEE\x1b[0m      \x1b[34mOOOO\x1b[0m`,
   ];
 
-  const stripAnsi = (s: string) =>
-    s.replace(new RegExp(`${ESC}[0-9;]*m`, "g"), "");
+  const stripAnsi = (s: string) => s.replace(new RegExp(`${ESC}[0-9;]*m`, "g"), "");
   const logoWidth = Math.max(...logo.map((l) => stripAnsi(l).length));
 
   const tagline = "A fast Deno-powered static site generator";
@@ -316,9 +312,7 @@ function selectTheme(advanced: boolean): string {
 
   extraRows.forEach((row, i) => {
     console.log(
-      `  ${paint(c.purple, `${entries.length + i + 1})`)} ${
-        paint(c.whiteBold, row.label)
-      }`,
+      `  ${paint(c.purple, `${entries.length + i + 1})`)} ${paint(c.whiteBold, row.label)}`,
     );
     console.log(`     ${paint(c.gray, row.hint)}`);
     console.log();
@@ -328,8 +322,7 @@ function selectTheme(advanced: boolean): string {
 
   while (true) {
     const arrow = paint(c.purple, "›");
-    const selection =
-      prompt(`  ${arrow} Select theme ${paint(c.gray, "[1]")}`)?.trim() || "1";
+    const selection = prompt(`  ${arrow} Select theme ${paint(c.gray, "[1]")}`)?.trim() || "1";
 
     const index = parseInt(selection) - 1;
     if (index >= 0 && index < entries.length) {
@@ -424,9 +417,7 @@ function truncate(text: string, maxLength: number): string {
 function promptPackageSpecifier(): string | undefined {
   const arrow = paint(c.purple, "›");
   const value = prompt(
-    `  ${arrow} Package specifier ${
-      paint(c.gray, "(e.g. jsr:@user/plugin-name)")
-    }`,
+    `  ${arrow} Package specifier ${paint(c.gray, "(e.g. jsr:@user/plugin-name)")}`,
   )?.trim();
   return value && value.length > 0 ? value : undefined;
 }
@@ -486,13 +477,9 @@ function selectPluginsInteractive(): PluginSelection {
 
     if (row.type === "official") {
       const item = officialItems[row.index];
-      const box = selectedOfficial.has(row.index)
-        ? paint(c.green, "[x]")
-        : paint(c.gray, "[ ]");
+      const box = selectedOfficial.has(row.index) ? paint(c.green, "[x]") : paint(c.gray, "[ ]");
       const desc = truncate(item.description, descWidth());
-      return `  ${pointer} ${box} ${paintLabel(item.label)}  ${
-        paint(c.gray, desc)
-      }`;
+      return `  ${pointer} ${box} ${paintLabel(item.label)}  ${paint(c.gray, desc)}`;
     }
 
     if (row.type === "add-community") {
@@ -500,18 +487,16 @@ function selectPluginsInteractive(): PluginSelection {
         "type a package specifier of your own",
         descWidth(),
       );
-      return `  ${pointer} ${paint(c.cyan, "[+]")} ${
-        paintLabel(ADD_COMMUNITY_LABEL)
-      }  ${paint(c.gray, desc)}`;
+      return `  ${pointer} ${paint(c.cyan, "[+]")} ${paintLabel(ADD_COMMUNITY_LABEL)}  ${
+        paint(c.gray, desc)
+      }`;
     }
 
     const pkg = communityPackages[row.index];
-    const box = selectedCommunity.has(row.index)
-      ? paint(c.green, "[x]")
-      : paint(c.gray, "[ ]");
-    return `  ${pointer} ${box} ${
-      paint(active ? c.whiteBold : c.white, pkg)
-    }  ${paint(c.gray, "community plugin")}`;
+    const box = selectedCommunity.has(row.index) ? paint(c.green, "[x]") : paint(c.gray, "[ ]");
+    return `  ${pointer} ${box} ${paint(active ? c.whiteBold : c.white, pkg)}  ${
+      paint(c.gray, "community plugin")
+    }`;
   };
 
   let lastRowCount = 0;
@@ -763,9 +748,7 @@ export async function runOnboarding(
   const shortUrls = options?.shortUrls ??
     (advanced ? promptYesNo("Enable short URLs?", true) : true);
   const devPort = options?.devPort ??
-    (advanced
-      ? parseInt(promptWithDefault("Dev server port", "5735"), 10) || 5735
-      : 5735);
+    (advanced ? parseInt(promptWithDefault("Dev server port", "5735"), 10) || 5735 : 5735);
   const stenoVersion = options?.stenoVersion ??
     (advanced
       ? promptWithDefault("@steno/steno version", DEFAULT_STENO_VERSION)
@@ -805,9 +788,7 @@ export async function runOnboarding(
     `title: ${toYamlString(title)}
 description: ${toYamlString(description)}
 author: ${toYamlString(author)}
-${toPluginList(plugins, communityPlugins)}contentDir: ${
-      toYamlString(contentDirName)
-    }
+${toPluginList(plugins, communityPlugins)}contentDir: ${toYamlString(contentDirName)}
 output: ${toYamlString(outputDirName)}
 devPort: ${devPort}
 
@@ -870,9 +851,7 @@ Your Steno site is ready. Edit this page at \`${contentDirName}/index.md\`.
   );
   console.log();
   console.log(
-    `  ${paint(c.cyanBold, "deno task build")}   ${
-      paint(c.gray, "# build the site into dist/")
-    }`,
+    `  ${paint(c.cyanBold, "deno task build")}   ${paint(c.gray, "# build the site into dist/")}`,
   );
   console.log(
     `  ${paint(c.cyanBold, "deno task dev")}     ${

@@ -67,9 +67,9 @@ function table(
     "| Scenario | Samples | Min | Average | p75 | p99 |",
     "| --- | ---: | ---: | ---: | ---: | ---: |",
     ...entries.map((row) =>
-      `| ${row.name} | ${row.n} | ${formatNs(row.min)} | ${
-        formatNs(row.avg)
-      } | ${formatNs(row.p75)} | ${formatNs(row.p99)} |`
+      `| ${row.name} | ${row.n} | ${formatNs(row.min)} | ${formatNs(row.avg)} | ${
+        formatNs(row.p75)
+      } | ${formatNs(row.p99)} |`
     ),
   ].join("\n");
 }

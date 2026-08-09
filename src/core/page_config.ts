@@ -66,9 +66,7 @@ export function resolvePageConfigOverrides(
       overrides.head = validateHeadTags(candidate.head, "steno.head");
     } catch (error) {
       throw new Error(
-        `Invalid per-page configuration in "${pagePath}": ${
-          errorMessage(error)
-        }`,
+        `Invalid per-page configuration in "${pagePath}": ${errorMessage(error)}`,
       );
     }
   }

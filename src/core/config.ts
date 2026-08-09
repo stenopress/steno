@@ -1,11 +1,6 @@
 import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
-import type {
-  PluginEntry,
-  PluginSourcePolicy,
-  SiteConfig,
-  StenoPlugin,
-} from "../types.ts";
+import type { PluginEntry, PluginSourcePolicy, SiteConfig, StenoPlugin } from "../types.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
 import { loadIsolatedPlugin } from "../plugins/isolated_plugin.ts";
 import { DEFAULT_DEV_PORT } from "../utils/server.ts";
@@ -327,9 +322,7 @@ export async function loadPlugins(
     } catch (err) {
       if (entry.mode === "isolated") {
         throw new Error(
-          `Failed to load isolated plugin "${packageName}": ${
-            errorMessage(err)
-          }`,
+          `Failed to load isolated plugin "${packageName}": ${errorMessage(err)}`,
           { cause: err },
         );
       }
@@ -372,15 +365,11 @@ function warnOnUnknownConfigKeys(
   config: Record<string, unknown>,
   configPath: string,
 ): void {
-  const unknownKeys = Object.keys(config).filter((key) =>
-    !KNOWN_CONFIG_KEYS.has(key)
-  );
+  const unknownKeys = Object.keys(config).filter((key) => !KNOWN_CONFIG_KEYS.has(key));
   if (unknownKeys.length === 0) return;
 
   console.warn(
-    `[config] Unrecognized key${
-      unknownKeys.length === 1 ? "" : "s"
-    } in "${configPath}": ${
+    `[config] Unrecognized key${unknownKeys.length === 1 ? "" : "s"} in "${configPath}": ${
       unknownKeys.map((key) => `"${key}"`).join(", ")
     }. Ignored — check for a typo, or nest project-specific fields under "custom".`,
   );

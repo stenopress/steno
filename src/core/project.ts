@@ -1,10 +1,6 @@
 import { basename, dirname, isAbsolute, join, relative } from "@std/path";
 import { loadConfig } from "./config.ts";
-import {
-  collectMarkdownPages,
-  type MarkdownPage,
-  type MarkdownPageCache,
-} from "./collections.ts";
+import { collectMarkdownPages, type MarkdownPage, type MarkdownPageCache } from "./collections.ts";
 import type { NavigationNode, SiteConfig } from "../types.ts";
 import {
   commonAncestorDir,
@@ -116,9 +112,7 @@ function buildNavigationTree(
     node: NavTreeNode,
     isRoot = false,
   ): NavigationNode[] => {
-    const children = [...node.children.values()].flatMap((child) =>
-      toNavigationNodes(child)
-    );
+    const children = [...node.children.values()].flatMap((child) => toNavigationNodes(child));
 
     if (node.page) {
       if (children.length) node.page.children = children;
@@ -156,9 +150,7 @@ function buildZeroConfigSiteTitle(
 }
 
 function getZeroConfigTheme(mode: ZeroConfigDiscovery["mode"]): string {
-  return mode === "single-file"
-    ? "jsr:@steno/theme-minimal"
-    : "jsr:@steno/theme-docs-minimal";
+  return mode === "single-file" ? "jsr:@steno/theme-minimal" : "jsr:@steno/theme-docs-minimal";
 }
 
 function stripReservedStenoNamespace(page: MarkdownPage): MarkdownPage {
@@ -251,17 +243,14 @@ function buildZeroConfigSiteConfig(
       title: typeof stenoConfig.title === "string" && stenoConfig.title.trim()
         ? stenoConfig.title.trim()
         : siteTitle,
-      description: typeof stenoConfig.description === "string"
-        ? stenoConfig.description
-        : "",
+      description: typeof stenoConfig.description === "string" ? stenoConfig.description : "",
       author: typeof stenoConfig.author === "string" ? stenoConfig.author : "",
       contentDir: discovery.contentDir,
-      output:
-        typeof stenoConfig.output === "string" && stenoConfig.output.trim()
-          ? (isAbsolute(stenoConfig.output.trim())
-            ? stenoConfig.output.trim()
-            : join(rootDir, stenoConfig.output.trim()))
-          : join(rootDir, "dist"),
+      output: typeof stenoConfig.output === "string" && stenoConfig.output.trim()
+        ? (isAbsolute(stenoConfig.output.trim())
+          ? stenoConfig.output.trim()
+          : join(rootDir, stenoConfig.output.trim()))
+        : join(rootDir, "dist"),
       navigation: buildNavigationTree(pages, stenoConfig.shortUrls !== false),
       shortUrls: stenoConfig.shortUrls !== false,
       theme: typeof stenoConfig.theme === "string" &&

@@ -96,9 +96,7 @@ export async function collectMarkdownPages(
       const entryRelPath = relPath ? join(relPath, entry.name) : entry.name;
 
       if (
-        ignorePaths.some((ignorePath) =>
-          isPathInsideOrEqual(fullPath, ignorePath)
-        )
+        ignorePaths.some((ignorePath) => isPathInsideOrEqual(fullPath, ignorePath))
       ) {
         continue;
       }
@@ -114,9 +112,7 @@ export async function collectMarkdownPages(
   };
 
   await scanDirectory(contentDir);
-  markdownFiles.sort((left, right) =>
-    left.relPath.localeCompare(right.relPath)
-  );
+  markdownFiles.sort((left, right) => left.relPath.localeCompare(right.relPath));
 
   const pageCache = options.pageCache;
   const pages = await mapWithConcurrency(
@@ -185,9 +181,7 @@ function sortItems(
       const aStr = String(aVal);
       const bStr = String(bVal);
 
-      return order === "desc"
-        ? bStr.localeCompare(aStr)
-        : aStr.localeCompare(bStr);
+      return order === "desc" ? bStr.localeCompare(aStr) : aStr.localeCompare(bStr);
     });
   }
 

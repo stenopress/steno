@@ -1,9 +1,4 @@
-import {
-  assertEquals,
-  assertMatch,
-  assertRejects,
-  assertThrows,
-} from "@std/assert";
+import { assertEquals, assertMatch, assertRejects, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import {
   OnboardingError,

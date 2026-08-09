@@ -25,10 +25,9 @@ themeConfig:
   accentDarkFg: "#09090b"
 ```
 
-`accent`, `accentHover`, and `accentFg` set the light-mode accent color, its
-hover state, and the foreground color used on top of it. `accentDark`,
-`accentDarkHover`, and `accentDarkFg` set the same three for dark mode. Values
-default to the theme's own purple accent shown above.
+`accent`, `accentHover`, and `accentFg` set the light-mode accent color, its hover state, and the
+foreground color used on top of it. `accentDark`, `accentDarkHover`, and `accentDarkFg` set the same
+three for dark mode. Values default to the theme's own purple accent shown above.
 
 ## Development
 

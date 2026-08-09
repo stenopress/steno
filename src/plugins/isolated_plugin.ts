@@ -55,9 +55,7 @@ function permissionArg(
   name: string,
   values: string[] | undefined,
 ): string {
-  return values?.length
-    ? `--allow-${name}=${values.join(",")}`
-    : `--deny-${name}`;
+  return values?.length ? `--allow-${name}=${values.join(",")}` : `--deny-${name}`;
 }
 
 function inferredImportHosts(packageName: string): string[] {
@@ -78,13 +76,9 @@ function workerArgs(
     ...inferredImportHosts(packageName),
     ...(permissions.import ?? []),
   ];
-  const moduleReadPaths = packageName.startsWith("file://")
-    ? [new URL(packageName).pathname]
-    : [];
+  const moduleReadPaths = packageName.startsWith("file://") ? [new URL(packageName).pathname] : [];
   const readPaths = [...moduleReadPaths, ...(permissions.read ?? [])];
-  const lockArgs = lockFile
-    ? [`--lock=${lockFile}`, "--frozen"]
-    : ["--no-lock"];
+  const lockArgs = lockFile ? [`--lock=${lockFile}`, "--frozen"] : ["--no-lock"];
   return [
     "run",
     "--quiet",
@@ -350,8 +344,7 @@ export async function loadIsolatedPlugin(
       client.call("transformAst", tokens) as Promise<TokensList>;
   }
   if (hooks.has("transformHtml")) {
-    plugin.transformHtml = (html: string) =>
-      client.call("transformHtml", html) as Promise<string>;
+    plugin.transformHtml = (html: string) => client.call("transformHtml", html) as Promise<string>;
   }
   if (hooks.has("afterPage")) {
     plugin.afterPage = (page: GeneratedPage) =>

@@ -544,9 +544,7 @@ export function compileExpression(
 function emitExpr(node: TauExprNode, locals: ReadonlySet<string>): string {
   switch (node.type) {
     case "Literal":
-      return node.value === undefined
-        ? "undefined"
-        : JSON.stringify(node.value);
+      return node.value === undefined ? "undefined" : JSON.stringify(node.value);
     case "Identifier": {
       if (locals.has(node.name)) return node.name;
       if (BLOCKED_EXPRESSION_NAMES.has(node.name)) {
@@ -577,16 +575,12 @@ function emitExpr(node: TauExprNode, locals: ReadonlySet<string>): string {
     case "Unary":
       return `(${node.operator}${emitExpr(node.argument, locals)})`;
     case "Binary":
-      return `(${emitExpr(node.left, locals)} ${node.operator} ${
-        emitExpr(node.right, locals)
-      })`;
+      return `(${emitExpr(node.left, locals)} ${node.operator} ${emitExpr(node.right, locals)})`;
     case "Logical":
-      return `(${emitExpr(node.left, locals)} ${node.operator} ${
-        emitExpr(node.right, locals)
-      })`;
+      return `(${emitExpr(node.left, locals)} ${node.operator} ${emitExpr(node.right, locals)})`;
     case "Conditional":
-      return `(${emitExpr(node.test, locals)} ? ${
-        emitExpr(node.consequent, locals)
-      } : ${emitExpr(node.alternate, locals)})`;
+      return `(${emitExpr(node.test, locals)} ? ${emitExpr(node.consequent, locals)} : ${
+        emitExpr(node.alternate, locals)
+      })`;
   }
 }

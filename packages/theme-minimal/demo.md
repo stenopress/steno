@@ -5,22 +5,19 @@ date: April 18, 2026
 
 # A quiet place for words.
 
-<small>A clean, focused starting point for personal sites, journals, portfolios,
-and blogs.</small>
+<small>A clean, focused starting point for personal sites, journals, portfolios, and blogs.</small>
 
 ## Theme showcase
 
-This page also exercises the common content styles in the minimal theme: links,
-**strong text**, _emphasis_, `inline code`, and ~~deleted text~~.
+This page also exercises the common content styles in the minimal theme: links, **strong text**,
+_emphasis_, `inline code`, and ~~deleted text~~.
 
 ## Paragraphs and links
 
-This is a normal paragraph with a [helpful link](https://steno.land/). It is
-followed by another paragraph to make the content rhythm easy to inspect at a
-glance.
+This is a normal paragraph with a [helpful link](https://steno.land/). It is followed by another
+paragraph to make the content rhythm easy to inspect at a glance.
 
-The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor
-jugs.
+The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.
 
 ## Headings
 
@@ -46,8 +43,7 @@ jugs.
 
 ## Blockquote
 
-> Good typography is invisible: it helps people read without getting in their
-> way.
+> Good typography is invisible: it helps people read without getting in their way.
 
 ## Code
 

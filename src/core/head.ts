@@ -1,9 +1,4 @@
-import type {
-  HeadTag,
-  LinkHeadTag,
-  MetaHeadTag,
-  ScriptHeadTag,
-} from "../types.ts";
+import type { HeadTag, LinkHeadTag, MetaHeadTag, ScriptHeadTag } from "../types.ts";
 import { isRecord } from "../utils/text.ts";
 
 function isMetaTag(tag: HeadTag): tag is MetaHeadTag {
@@ -169,11 +164,9 @@ function attribute(name: string, value: string | undefined): string {
 export function renderHeadTags(tags: HeadTag[]): string {
   return tags.map((tag) => {
     if (isMetaTag(tag)) {
-      return `<meta${attribute("name", tag.name)}${
-        attribute("property", tag.property)
-      }${attribute("http-equiv", tag.httpEquiv)}${
-        attribute("charset", tag.charset)
-      }${attribute("content", tag.content)}>`;
+      return `<meta${attribute("name", tag.name)}${attribute("property", tag.property)}${
+        attribute("http-equiv", tag.httpEquiv)
+      }${attribute("charset", tag.charset)}${attribute("content", tag.content)}>`;
     }
     if (isLinkTag(tag)) {
       return `<link${attribute("rel", tag.rel)}${attribute("href", tag.href)}${
@@ -203,9 +196,7 @@ export function injectHeadTags(html: string, tags: HeadTag[]): string {
   }
   const bodyOpen = html.search(/<body(?:\s|>)/i);
   if (bodyOpen >= 0) {
-    return `${html.slice(0, bodyOpen)}<head>\n${rendered}\n</head>\n${
-      html.slice(bodyOpen)
-    }`;
+    return `${html.slice(0, bodyOpen)}<head>\n${rendered}\n</head>\n${html.slice(bodyOpen)}`;
   }
   return `<head>\n${rendered}\n</head>\n${html}`;
 }

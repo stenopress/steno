@@ -452,8 +452,7 @@ custom:
   });
 
   Deno.test({
-    name:
-      "collections: passes when all required fields are present and correct",
+    name: "collections: passes when all required fields are present and correct",
     permissions: { read: true, write: true },
     fn: async () => {
       const tempDir = Deno.makeTempDirSync();

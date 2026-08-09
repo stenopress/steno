@@ -552,9 +552,7 @@ export class TauParser {
 
   private parseIncludeBlock(): Node {
     this.consume("{@include ");
-    const quoteChar = ["'", '"'].includes(this.input[this.pos])
-      ? this.input[this.pos++]
-      : null;
+    const quoteChar = ["'", '"'].includes(this.input[this.pos]) ? this.input[this.pos++] : null;
     if (!quoteChar) {
       this.throwError(
         "Include paths must be quoted string literals.",
@@ -564,9 +562,7 @@ export class TauParser {
     const start = this.pos;
     while (
       this.pos < this.input.length &&
-      (quoteChar
-        ? this.input[this.pos] !== quoteChar
-        : this.input[this.pos] !== "}")
+      (quoteChar ? this.input[this.pos] !== quoteChar : this.input[this.pos] !== "}")
     ) this.pos++;
     const includePath = this.input.substring(start, this.pos).trim();
     if (quoteChar) {
@@ -704,9 +700,7 @@ export class TauParser {
         "TAU_INVALID_IDENTIFIER",
       );
     }
-    const attrString = spaceIndex !== -1
-      ? componentStr.substring(spaceIndex).trim()
-      : "";
+    const attrString = spaceIndex !== -1 ? componentStr.substring(spaceIndex).trim() : "";
     const props = parseProps(attrString);
 
     if (selfClosing) {

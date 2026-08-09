@@ -472,8 +472,7 @@ export function registerTauTests(): void {
   });
 
   Deno.test("tau: an async filter is awaited", async () => {
-    filters.shout = (val: unknown) =>
-      Promise.resolve(`${String(val).toUpperCase()}!`);
+    filters.shout = (val: unknown) => Promise.resolve(`${String(val).toUpperCase()}!`);
     try {
       const output = await render({
         template: `{value | shout}`,

@@ -1,16 +1,15 @@
 # Plugin sandbox
 
-This page is the detailed security model behind `mode: isolated`, written for
-people deciding whether to trust a plugin, or writing a plugin others will
-trust. If you only want the short version, see
-[Trust and permissions](plugins.md#trust-and-permissions) in the plugins guide.
+This page is the detailed security model behind `mode: isolated`, written for people deciding
+whether to trust a plugin, or writing a plugin others will trust. If you only want the short
+version, see [Trust and permissions](plugins.md#trust-and-permissions) in the plugins guide.
 
 Steno supports two explicit plugin execution modes:
 
-- `trusted` is the default for compatibility. The plugin is imported into the
-  Steno process and inherits all of its permissions.
-- `isolated` runs the plugin in a dedicated Deno subprocess with runtime
-  capabilities denied unless they are explicitly granted.
+- `trusted` is the default for compatibility. The plugin is imported into the Steno process and
+  inherits all of its permissions.
+- `isolated` runs the plugin in a dedicated Deno subprocess with runtime capabilities denied unless
+  they are explicitly granted.
 
 ```yaml
 plugins:
@@ -31,17 +30,15 @@ plugins:
         - jsr.io:443
 ```
 
-Registry plugins in isolated mode must include an explicit version. HTTP(S)
-plugins also require a `sha256-<base64>` integrity value. Every isolated remote
-plugin runs with a frozen Deno lockfile (`./deno.lock` by default), protecting
-its complete remote dependency graph.
+Registry plugins in isolated mode must include an explicit version. HTTP(S) plugins also require a
+`sha256-<base64>` integrity value. Every isolated remote plugin runs with a frozen Deno lockfile
+(`./deno.lock` by default), protecting its complete remote dependency graph.
 
 ## Security boundary
 
-Each isolated plugin gets its own process. Steno communicates with it using a
-versioned JSON-lines protocol over stdin/stdout. Plugin factories and these
-hooks execute inside the worker: `beforeBuild`, `transformAst`, `transformHtml`,
-`afterPage`, and `afterBuild`.
+Each isolated plugin gets its own process. Steno communicates with it using a versioned JSON-lines
+protocol over stdin/stdout. Plugin factories and these hooks execute inside the worker:
+`beforeBuild`, `transformAst`, `transformHtml`, `afterPage`, and `afterBuild`.
 
 The worker starts with:
 
@@ -58,19 +55,17 @@ The worker starts with:
 - per-request input and output limits; and
 - a deadline for initialization and every hook call.
 
-The worker is terminated when it times out, crashes, emits malformed or
-oversized protocol data, throws from a hook, completes a build, or when the
-parent build exits early. A worker failure fails the build but cannot terminate
-the Steno process.
+The worker is terminated when it times out, crashes, emits malformed or oversized protocol data,
+throws from a hook, completes a build, or when the parent build exits early. A worker failure fails
+the build but cannot terminate the Steno process.
 
-API consumers can call `steno.cancel()` to terminate active isolated-plugin
-workers. An in-flight isolated hook rejects and the build fails cleanly.
+API consumers can call `steno.cancel()` to terminate active isolated-plugin workers. An in-flight
+isolated hook rejects and the build fails cleanly.
 
-Filesystem permission for a local `file://` plugin always includes its top-level
-module file so Deno can import it. Local transitive modules need explicit read
-grants. Runtime Node compatibility APIs are subject to the same Deno
-permissions: importing `node:fs` does not grant filesystem access, and importing
-`node:child_process` does not grant subprocess access.
+Filesystem permission for a local `file://` plugin always includes its top-level module file so Deno
+can import it. Local transitive modules need explicit read grants. Runtime Node compatibility APIs
+are subject to the same Deno permissions: importing `node:fs` does not grant filesystem access, and
+importing `node:child_process` does not grant subprocess access.
 
 ## Threat model
 
@@ -89,26 +84,24 @@ The sandbox is designed to contain a malicious plugin that attempts to:
 - corrupt the protocol; or
 - crash or exit its worker.
 
-Capabilities explicitly listed under `permissions` are intentionally outside the
-boundary. A plugin allowed to write a directory can corrupt files in that
-directory. A plugin allowed network and secret-bearing environment variables can
-exfiltrate those variables. Grants should therefore be narrow.
+Capabilities explicitly listed under `permissions` are intentionally outside the boundary. A plugin
+allowed to write a directory can corrupt files in that directory. A plugin allowed network and
+secret-bearing environment variables can exfiltrate those variables. Grants should therefore be
+narrow.
 
 ## Current exclusions
 
 The following are not claimed to be sandboxed:
 
 - Plugins configured with `mode: trusted` or the string shorthand.
-- Theme modules, Tau templates, and theme-bundled plugins. Themes are loaded and
-  rendered in-process. Set `allowThemePlugins: false` to disable bundled
-  plugins, but only install themes you trust.
+- Theme modules, Tau templates, and theme-bundled plugins. Themes are loaded and rendered
+  in-process. Set `allowThemePlugins: false` to disable bundled plugins, but only install themes you
+  trust.
 - The Steno parent process itself.
-- Denial of service outside the worker's V8 heap, such as kernel or Deno runtime
-  vulnerabilities.
-- Vulnerabilities in Deno's permission implementation, V8, the operating system,
-  or native code explicitly allowed by the user.
-- Integrity of an entire remote dependency graph unless a frozen lockfile is
-  used.
+- Denial of service outside the worker's V8 heap, such as kernel or Deno runtime vulnerabilities.
+- Vulnerabilities in Deno's permission implementation, V8, the operating system, or native code
+  explicitly allowed by the user.
+- Integrity of an entire remote dependency graph unless a frozen lockfile is used.
 
-The sandbox should be treated as defense in depth until it has passed
-cross-platform adversarial testing and independent security review.
+The sandbox should be treated as defense in depth until it has passed cross-platform adversarial
+testing and independent security review.

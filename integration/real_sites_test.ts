@@ -109,8 +109,7 @@ function normalizeOutputPath(
 async function assertInternalLinks(outputDir: string): Promise<void> {
   const files = await listFiles(outputDir);
   const fileSet = new Set(files);
-  const attributePattern =
-    /\b(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
+  const attributePattern = /\b(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
 
   for (const htmlPath of files.filter((path) => path.endsWith(".html"))) {
     const html = await Deno.readTextFile(join(outputDir, htmlPath));

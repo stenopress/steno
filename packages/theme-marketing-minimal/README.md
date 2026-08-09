@@ -1,7 +1,7 @@
 # @steno/theme-marketing-minimal
 
-A polished, content-driven landing-page theme for Steno with responsive product
-sections, code examples, calls to action, and lightweight interactions.
+A polished, content-driven landing-page theme for Steno with responsive product sections, code
+examples, calls to action, and lightweight interactions.
 
 ```yaml
 theme: jsr:@steno/theme-marketing-minimal@^0.10.0
@@ -10,9 +10,8 @@ themeConfig:
   jsrUrl: https://jsr.io/@your-org/your-project
 ```
 
-Write landing-page sections directly in Markdown or trusted HTML. The theme
-supplies the responsive shell, visual system, footer, icons, and copy-command
-interaction.
+Write landing-page sections directly in Markdown or trusted HTML. The theme supplies the responsive
+shell, visual system, footer, icons, and copy-command interaction.
 
 ## Configuration
 
@@ -37,15 +36,13 @@ themeConfig:
   jsrUrl: "https://jsr.io/@steno/steno"
 ```
 
-`accent`, `accentHover`, and `accentFg` set the light-mode accent color, its
-hover state, and the foreground color used on top of it; `accentDark`,
-`accentDarkHover`, and `accentDarkFg` set the same three for dark mode.
-`eyebrow` is the small label above the hero title. `heroTitle` and
-`heroDescription` are the hero heading and its supporting paragraph.
-`primaryLabel`/`primaryUrl` and `secondaryLabel`/`secondaryUrl` set the two hero
-call-to-action buttons. `githubUrl` and `jsrUrl` link the header/footer icons;
-set them to your own project instead of Steno's. Values shown above are the
-theme's defaults.
+`accent`, `accentHover`, and `accentFg` set the light-mode accent color, its hover state, and the
+foreground color used on top of it; `accentDark`, `accentDarkHover`, and `accentDarkFg` set the same
+three for dark mode. `eyebrow` is the small label above the hero title. `heroTitle` and
+`heroDescription` are the hero heading and its supporting paragraph. `primaryLabel`/`primaryUrl` and
+`secondaryLabel`/`secondaryUrl` set the two hero call-to-action buttons. `githubUrl` and `jsrUrl`
+link the header/footer icons; set them to your own project instead of Steno's. Values shown above
+are the theme's defaults.
 
 ## Development
 

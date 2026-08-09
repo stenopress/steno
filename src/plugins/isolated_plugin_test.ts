@@ -1,9 +1,4 @@
-import {
-  assertEquals,
-  assertNotEquals,
-  assertRejects,
-  assertStringIncludes,
-} from "@std/assert";
+import { assertEquals, assertNotEquals, assertRejects, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { loadPlugins } from "../core/config.ts";
 import {
@@ -300,8 +295,7 @@ export function registerIsolatedPluginTests(): void {
   });
 
   Deno.test({
-    name:
-      "isolated plugins: build-cache signature changes when local plugin content changes",
+    name: "isolated plugins: build-cache signature changes when local plugin content changes",
     permissions: { read: true, write: true, run: true, env: true },
     fn: async () => {
       const directory = Deno.makeTempDirSync();

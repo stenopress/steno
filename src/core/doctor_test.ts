@@ -56,8 +56,7 @@ plugins:
   });
 
   Deno.test({
-    name:
-      "doctor: does not suggest isolation when all plugins are already isolated",
+    name: "doctor: does not suggest isolation when all plugins are already isolated",
     permissions: { read: true, write: true },
     fn: async () => {
       const tempDir = await Deno.makeTempDir();
@@ -92,9 +91,8 @@ plugins:
       }
 
       const output = messages.join("\n");
-      const hintCount =
-        output.split('Consider "mode: isolated" for third-party plugins')
-          .length - 1;
+      const hintCount = output.split('Consider "mode: isolated" for third-party plugins')
+        .length - 1;
       assertEquals(hintCount, 0);
     },
   });
@@ -221,8 +219,7 @@ shortUrls: true
   });
 
   Deno.test({
-    name:
-      "doctor: does not flag malformed frontmatter in public/ (real build never parses it)",
+    name: "doctor: does not flag malformed frontmatter in public/ (real build never parses it)",
     permissions: { read: true, write: true },
     fn: async () => {
       const tempDir = await Deno.makeTempDir();

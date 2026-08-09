@@ -92,9 +92,7 @@ export function debugBuildStart(
   theme: { name: string; version: string } | undefined,
   plugins: Array<{ name: string }>,
 ): void {
-  const themeLabel = theme
-    ? `${theme.name}@${theme.version}`
-    : `${c.gray}(none)${c.reset}`;
+  const themeLabel = theme ? `${theme.name}@${theme.version}` : `${c.gray}(none)${c.reset}`;
   const pluginsLabel = plugins.length
     ? plugins.map((p) => p.name).join(", ")
     : `${c.gray}(none)${c.reset}`;

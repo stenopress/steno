@@ -37,9 +37,7 @@ export function parseEnvironmentFile(
   for (const [index, rawLine] of source.split(/\r?\n/).entries()) {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
-    const normalized = line.startsWith("export ")
-      ? line.slice("export ".length).trimStart()
-      : line;
+    const normalized = line.startsWith("export ") ? line.slice("export ".length).trimStart() : line;
     const separator = normalized.indexOf("=");
     if (separator < 1) {
       throw new Error(
@@ -59,9 +57,9 @@ export function parseEnvironmentFile(
         : rawValue.replace(/\s+#.*$/, "").trimEnd();
     } catch (error) {
       throw new Error(
-        `Invalid dotenv value for "${key}" in "${filePath}" at line ${
-          index + 1
-        }: ${errorMessage(error)}.`,
+        `Invalid dotenv value for "${key}" in "${filePath}" at line ${index + 1}: ${
+          errorMessage(error)
+        }.`,
       );
     }
   }

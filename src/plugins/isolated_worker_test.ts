@@ -17,8 +17,7 @@ const NON_FUNCTION_URL = "data:application/javascript," +
   encodeURIComponent(`export default 42;`);
 
 Deno.test({
-  name:
-    "isolated_worker: rejects a request with an unsupported protocol version",
+  name: "isolated_worker: rejects a request with an unsupported protocol version",
   fn: async () => {
     await assertRejects(
       () =>
@@ -68,8 +67,7 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "isolated_worker: init rejects a factory result that isn't a valid plugin",
+  name: "isolated_worker: init rejects a factory result that isn't a valid plugin",
   fn: async () => {
     await assertRejects(
       () =>
@@ -86,8 +84,7 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "isolated_worker: init succeeds and reports the plugin's declared hooks",
+  name: "isolated_worker: init succeeds and reports the plugin's declared hooks",
   fn: async () => {
     const response = await handleRequest({
       id: 1,

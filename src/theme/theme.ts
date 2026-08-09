@@ -1,10 +1,5 @@
 import { render } from "../utils/tau.ts";
-import type {
-  SiteConfig,
-  StenoPlugin,
-  StenoTheme,
-  ThemeConfigField,
-} from "../types.ts";
+import type { SiteConfig, StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
 import type { CollectionMap } from "../core/collections.ts";
 import { basename, join, resolve, toFileUrl } from "@std/path";
 import { parse as parseYaml } from "@std/yaml";
@@ -111,11 +106,7 @@ function validateThemeConfigField(
     );
   }
 
-  const actualType = Array.isArray(value)
-    ? "array"
-    : value === null
-    ? "null"
-    : typeof value;
+  const actualType = Array.isArray(value) ? "array" : value === null ? "null" : typeof value;
   const validType = field.type === "integer"
     ? typeof value === "number" && Number.isInteger(value)
     : field.type === "object"
@@ -399,9 +390,7 @@ export class Theme {
     }
     if (yamlContent === undefined) return {};
     const parsed = parseYaml(yamlContent);
-    return parsed && typeof parsed === "object"
-      ? (parsed as ThemeDirectoryMetadata)
-      : {};
+    return parsed && typeof parsed === "object" ? (parsed as ThemeDirectoryMetadata) : {};
   }
 
   /** Loads layout templates and their source paths from a theme directory. */
@@ -469,9 +458,7 @@ export class Theme {
         const walk = (currentDir: string, relPrefix = "") => {
           for (const entry of Deno.readDirSync(currentDir)) {
             const fullPath = join(currentDir, entry.name);
-            const relPath = relPrefix
-              ? `${relPrefix}/${entry.name}`
-              : entry.name;
+            const relPath = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
             if (entry.isDirectory) walk(fullPath, relPath);
             else if (entry.isFile) {
               assets[relPath] = toFileUrl(fullPath);

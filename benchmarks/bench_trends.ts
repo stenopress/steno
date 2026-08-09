@@ -23,9 +23,7 @@ const snapshot: BenchSnapshot = {
         p99Ns: ok.p99,
       };
     })
-    .filter((entry): entry is { name: string; avgNs: number; p99Ns: number } =>
-      entry !== null
-    ),
+    .filter((entry): entry is { name: string; avgNs: number; p99Ns: number } => entry !== null),
 };
 
 await Deno.mkdir(HISTORY_DIR, { recursive: true });

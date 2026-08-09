@@ -7,11 +7,7 @@ import { runAstTransforms, runHtmlTransforms } from "../../plugins/plugins.ts";
 import { processIncludes } from "../includes.ts";
 import { buildRedirects } from "../redirects.ts";
 import { loadDataFiles } from "../data.ts";
-import {
-  buildComplete,
-  debugBuildStart,
-  debugPageContext,
-} from "../../utils/output.ts";
+import { buildComplete, debugBuildStart, debugPageContext } from "../../utils/output.ts";
 import {
   resolveMarkdownScanIgnorePaths,
   resolvePageRoute,
@@ -140,9 +136,7 @@ export async function buildSite({
     const shortUrls = resolveShortUrls(config);
     const cachePath = resolveCachePath(contentDir);
     const publicDirPath = resolvePublicDir(contentDir, config.publicDir);
-    const publicFiles = publicDirPath
-      ? await collectFilesRecursively(publicDirPath)
-      : [];
+    const publicFiles = publicDirPath ? await collectFilesRecursively(publicDirPath) : [];
 
     const scannedPages = pages ?? await collectMarkdownPages(contentDir, {
       ignorePaths: resolveMarkdownScanIgnorePaths(
@@ -173,14 +167,10 @@ export async function buildSite({
       }
     }
 
-    const activePages = scannedPages.filter((page) =>
-      page.frontmatter.draft !== true || dev
-    );
+    const activePages = scannedPages.filter((page) => page.frontmatter.draft !== true || dev);
     stagedConfig.pages = activePages.map((page) => ({
       slug: resolvePageRoute(page, shortUrls).outputPath,
-      title: typeof page.frontmatter.title === "string"
-        ? page.frontmatter.title
-        : page.title,
+      title: typeof page.frontmatter.title === "string" ? page.frontmatter.title : page.title,
       description: typeof page.frontmatter.description === "string"
         ? page.frontmatter.description
         : undefined,
@@ -357,15 +347,11 @@ export async function buildSite({
         const pageHead = mergeHeadTags(siteHead, pageOverrides.head);
         const pageSite = {
           ...config,
-          ...(pageOverrides.title !== undefined
-            ? { title: pageOverrides.title }
-            : {}),
+          ...(pageOverrides.title !== undefined ? { title: pageOverrides.title } : {}),
           ...(pageOverrides.description !== undefined
             ? { description: pageOverrides.description }
             : {}),
-          ...(pageOverrides.author !== undefined
-            ? { author: pageOverrides.author }
-            : {}),
+          ...(pageOverrides.author !== undefined ? { author: pageOverrides.author } : {}),
           head: pageHead,
           ...(pageOverrides.navigation !== undefined
             ? { navigation: pageOverrides.navigation }
@@ -376,9 +362,7 @@ export async function buildSite({
         try {
           pageThemeConfig = theme?.resolveConfig(pageOverrides.themeConfig);
         } catch (error) {
-          const message = error instanceof Error
-            ? error.message
-            : String(error);
+          const message = error instanceof Error ? error.message : String(error);
           throw new Error(
             `Invalid per-page configuration in "${page.relPath}": ${message}`,
           );
@@ -396,9 +380,9 @@ export async function buildSite({
             : undefined,
           collections: await getCollections(),
           data,
-          title: (typeof page.frontmatter.title === "string"
-            ? page.frontmatter.title
-            : undefined) || page.title || config.title,
+          title:
+            (typeof page.frontmatter.title === "string" ? page.frontmatter.title : undefined) ||
+            page.title || config.title,
           assets: themeAssets,
         };
 
@@ -479,8 +463,7 @@ export async function buildSite({
     await mapWithConcurrency(
       renderedWrites,
       STAGING_COPY_CONCURRENCY,
-      (job) =>
-        Deno.writeTextFile(job.path, job.content),
+      (job) => Deno.writeTextFile(job.path, job.content),
     );
     for (
       const { outputFilePath, stagedOutputFilePath, html } of afterPageQueue

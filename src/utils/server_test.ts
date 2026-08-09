@@ -1,9 +1,4 @@
-import {
-  assert,
-  assertEquals,
-  assertRejects,
-  assertStringIncludes,
-} from "@std/assert";
+import { assert, assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import {
   createDevServerHandler,
@@ -121,8 +116,7 @@ export function registerServerTests(): void {
   Deno.test("server: findAvailablePort returns first free port", async () => {
     const port = await findAvailablePort(5735, {
       maxPort: 5737,
-      isPortAvailable: (candidatePort) =>
-        Promise.resolve(candidatePort === 5737),
+      isPortAvailable: (candidatePort) => Promise.resolve(candidatePort === 5737),
     });
 
     assertEquals(port, 5737);

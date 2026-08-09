@@ -206,8 +206,7 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "cache: toBuildStatePageMap falls back to fullPath when relPath is not a string",
+  name: "cache: toBuildStatePageMap falls back to fullPath when relPath is not a string",
   fn: () => {
     const pages = [
       {

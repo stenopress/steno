@@ -14,25 +14,11 @@ export { Steno } from "./src/core/steno.ts";
 /** Runs the Steno CLI with the provided arguments. */
 export { runStenoCli } from "./src/core/steno_cli.ts";
 /** A single item within a generated collection. */
-export type {
-  Collection,
-  CollectionItem,
-  CollectionMap,
-} from "./src/core/collections.ts";
+export type { Collection, CollectionItem, CollectionMap } from "./src/core/collections.ts";
 /** Built-in template filters and the template renderer. */
-export {
-  clearTauCache,
-  filters,
-  getTauCacheStats,
-  render,
-} from "./src/utils/tau.ts";
+export { clearTauCache, filters, getTauCacheStats, render } from "./src/utils/tau.ts";
 /** Types used to configure and extend the Tau template renderer. */
-export type {
-  FilterFunction,
-  TauCacheStats,
-  TauLimits,
-  TauOptions,
-} from "./src/utils/tau.ts";
+export type { FilterFunction, TauCacheStats, TauLimits, TauOptions } from "./src/utils/tau.ts";
 /** Structured Tau failures and their stable machine-readable codes. */
 export { TauError } from "./src/utils/tau_error.ts";
 export type { TauErrorCode, TauErrorLocation } from "./src/utils/tau_error.ts";

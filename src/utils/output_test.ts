@@ -1,10 +1,5 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
-import {
-  createColors,
-  createSymbols,
-  debugBuildStart,
-  debugPageContext,
-} from "./output.ts";
+import { createColors, createSymbols, debugBuildStart, debugPageContext } from "./output.ts";
 
 function captureLogs(fn: () => void): string[] {
   const messages: string[] = [];

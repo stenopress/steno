@@ -11,9 +11,7 @@ export function humanizeSegment(input: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  return value
-    ? value.replace(/\b\w/g, (char) => char.toUpperCase())
-    : "Untitled";
+  return value ? value.replace(/\b\w/g, (char) => char.toUpperCase()) : "Untitled";
 }
 
 export function inferPageTitle(page: MarkdownPage): string {
@@ -116,9 +114,7 @@ export function resolvePageRoute(
     const stem = normalizedRelPath.replace(/\.md$/, "");
     const isIndex = stem === "index" || stem.endsWith("/index");
     const indexDir = stem === "index" ? "" : stem.slice(0, -"index".length);
-    const url = shortUrls
-      ? isIndex ? `/${indexDir}` : `/${stem}`
-      : `/${stem}.html`;
+    const url = shortUrls ? isIndex ? `/${indexDir}` : `/${stem}` : `/${stem}.html`;
     const outputPath = shortUrls
       ? isIndex ? `${indexDir}index.html` : `${stem}/index.html`
       : `${stem}.html`;

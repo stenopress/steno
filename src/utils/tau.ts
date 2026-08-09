@@ -61,8 +61,7 @@ interface TauHelpers {
 }
 
 // `new Function` can't build an async function; borrow AsyncFunction's constructor.
-const AsyncFunction: FunctionConstructor =
-  Object.getPrototypeOf(async function () {}).constructor;
+const AsyncFunction: FunctionConstructor = Object.getPrototypeOf(async function () {}).constructor;
 
 const templateCache = new Map<string, CompiledTemplateFn>();
 let templateCacheHits = 0;
@@ -121,13 +120,9 @@ export const filters: Record<string, FilterFunction> = Object.assign(
     },
     truncate: (val: unknown, len: unknown = 100) => {
       if (val === null || val === undefined) return "";
-      const parsedLen = typeof len === "string"
-        ? parseInt(len, 10)
-        : Number(len);
+      const parsedLen = typeof len === "string" ? parseInt(len, 10) : Number(len);
       const finalLen = isNaN(parsedLen) ? 100 : parsedLen;
-      return String(val).length > finalLen
-        ? String(val).slice(0, finalLen) + "..."
-        : String(val);
+      return String(val).length > finalLen ? String(val).slice(0, finalLen) + "..." : String(val);
     },
     upper: (val: unknown) => (val ? String(val).toUpperCase() : ""),
     lower: (val: unknown) => (val ? String(val).toLowerCase() : ""),
@@ -181,9 +176,7 @@ function compileNodes(
   let currentLocals = locals;
   for (const node of nodes) {
     if (node.type === "text") {
-      code += `helpers.append(${target}, ${
-        JSON.stringify(node.value)
-      }, false);\n`;
+      code += `helpers.append(${target}, ${JSON.stringify(node.value)}, false);\n`;
     } else if (node.type === "let") {
       const value = compileExpression(node.expression!, currentLocals);
       code += `const ${node.letName} = ${value};\n`;
@@ -199,12 +192,8 @@ function compileNodes(
             `Unknown Tau filter "${filter.name}".`,
           );
         }
-        const args = filter.args.map((arg) =>
-          compileExpression(arg, currentLocals)
-        );
-        expr = `(await helpers.filters.${filter.name}(${
-          [expr, ...args].join(", ")
-        }))`;
+        const args = filter.args.map((arg) => compileExpression(arg, currentLocals));
+        expr = `(await helpers.filters.${filter.name}(${[expr, ...args].join(", ")}))`;
       }
       code += `helpers.append(${target}, ${expr}, true);\n`;
     } else if (node.type === "html") {
@@ -220,9 +209,7 @@ function compileNodes(
         compileNodes(node.consequent || [], currentLocals, target, state)
       }}`;
       if (node.alternate?.length) {
-        code += ` else {\n${
-          compileNodes(node.alternate, currentLocals, target, state)
-        }}\n`;
+        code += ` else {\n${compileNodes(node.alternate, currentLocals, target, state)}}\n`;
       } else code += "\n";
     } else if (node.type === "each") {
       const array = compileExpression(node.array!, currentLocals);
@@ -409,9 +396,7 @@ async function renderWithCompiledTemplate(
       if (state.includeStack.includes(path)) {
         throw new TauError(
           "TAU_INCLUDE_CYCLE",
-          `Tau include cycle detected: ${
-            [...state.includeStack, path].join(" -> ")
-          }.`,
+          `Tau include cycle detected: ${[...state.includeStack, path].join(" -> ")}.`,
         );
       }
       state.includeStack.push(path);
@@ -456,9 +441,7 @@ async function renderWithCompiledTemplate(
       if (state.componentStack.includes(name)) {
         throw new TauError(
           "TAU_COMPONENT_CYCLE",
-          `Tau component cycle detected: ${
-            [...state.componentStack, name].join(" -> ")
-          }.`,
+          `Tau component cycle detected: ${[...state.componentStack, name].join(" -> ")}.`,
         );
       }
       assertTemplateSize(componentTemplate, state.limits);
@@ -472,11 +455,10 @@ async function renderWithCompiledTemplate(
         componentFnCache.set(componentTemplate, componentRenderFn);
       }
 
-      const globals =
-        parentContext.globals && typeof parentContext.globals === "object" &&
+      const globals = parentContext.globals && typeof parentContext.globals === "object" &&
           !Array.isArray(parentContext.globals)
-          ? parentContext.globals
-          : {};
+        ? parentContext.globals
+        : {};
       state.componentStack.push(name);
       try {
         const output = await renderWithCompiledTemplate(

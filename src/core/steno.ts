@@ -76,7 +76,11 @@ export class Steno {
    * from prior behavior.
    */
   private async loadRuntime(): Promise<ResolvedProject> {
-    const project = await resolveProject(this.configPath, undefined, this.buildState.pageCache);
+    const project = await resolveProject(
+      this.configPath,
+      undefined,
+      this.buildState.pageCache,
+    );
     this.config = project.config;
     this.theme = await loadTheme(project.config);
 
@@ -108,16 +112,20 @@ export class Steno {
 
     const themePlugins = allowThemePlugins
       ? (this.theme?.plugins ?? []).filter((plugin, index) => {
-          if (!isStenoPlugin(plugin)) {
-            console.warn(`Theme plugin at index ${index} is invalid and will be skipped.`);
-            return false;
-          }
-          return true;
-        })
+        if (!isStenoPlugin(plugin)) {
+          console.warn(
+            `Theme plugin at index ${index} is invalid and will be skipped.`,
+          );
+          return false;
+        }
+        return true;
+      })
       : [];
 
     if (!allowThemePlugins && (this.theme?.plugins?.length ?? 0) > 0) {
-      console.warn("Theme plugins are disabled by `pluginSourcePolicy.allowThemePlugins: false`.");
+      console.warn(
+        "Theme plugins are disabled by `pluginSourcePolicy.allowThemePlugins: false`.",
+      );
     }
 
     this.plugins = [...themePlugins, ...sitePlugins];
@@ -138,7 +146,10 @@ export class Steno {
         pages: project.pages,
         dev,
         verbose: this.verbose,
-        environment: loadEnvironmentFiles(Deno.cwd(), dev ? "development" : "production"),
+        environment: loadEnvironmentFiles(
+          Deno.cwd(),
+          dev ? "development" : "production",
+        ),
       });
     } finally {
       disposeIsolatedPlugins(this.plugins);
@@ -161,13 +172,15 @@ export class Steno {
     const contentDir = project.config.contentDir || "content";
     const outputDir = project.config.output || "dist";
     const devPort = resolveDevPort(project.config);
-    const envFiles = getEnvironmentFilePaths(Deno.cwd(), "development").filter((path) => {
-      try {
-        return Deno.statSync(path).isFile;
-      } catch {
-        return false;
-      }
-    });
+    const envFiles = getEnvironmentFilePaths(Deno.cwd(), "development").filter(
+      (path) => {
+        try {
+          return Deno.statSync(path).isFile;
+        } catch {
+          return false;
+        }
+      },
+    );
     // A theme loaded from a local path is under active development just
     // like the content — watch it too, so editing a layout or the theme's
     // own mod.ts triggers a rebuild instead of silently doing nothing.

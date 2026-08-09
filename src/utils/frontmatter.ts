@@ -7,11 +7,7 @@ export function parseFrontmatter(
   content: string,
   filePath?: string,
 ): { frontmatter: Record<string, unknown>; body: string } {
-  const delimiter = content.startsWith("---\n")
-    ? "---"
-    : content.startsWith("+++\n")
-    ? "+++"
-    : "";
+  const delimiter = content.startsWith("---\n") ? "---" : content.startsWith("+++\n") ? "+++" : "";
 
   if (!delimiter) {
     return { frontmatter: {}, body: content };

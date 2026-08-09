@@ -134,8 +134,7 @@ Deno.bench(
       template: largeListTemplate,
       context: { items: thousandItems },
       components: {
-        Row:
-          "<article><h4>{title}</h4><p>{excerpt | truncate(60)}</p></article>",
+        Row: "<article><h4>{title}</h4><p>{excerpt | truncate(60)}</p></article>",
       },
     });
   },

@@ -181,8 +181,7 @@ export function registerConfigTests(): void {
   });
 
   Deno.test({
-    name:
-      "config: resolveThemeConfig prefers top-level over custom.themeConfig",
+    name: "config: resolveThemeConfig prefers top-level over custom.themeConfig",
     fn: () => {
       assertEquals(
         resolveThemeConfig({

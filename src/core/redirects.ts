@@ -33,9 +33,7 @@ function resolveRedirectOutputPath(
   // normalise leading slash
   const clean = from.replace(/^\//, "");
 
-  return shortUrls
-    ? join(outputDir, clean, "index.html")
-    : join(outputDir, `${clean}.html`);
+  return shortUrls ? join(outputDir, clean, "index.html") : join(outputDir, `${clean}.html`);
 }
 
 /**

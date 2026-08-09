@@ -99,7 +99,5 @@ export function getTauErrorHint(code: TauErrorCode): string {
 
 /** Formats a Tau error for human-readable CLI output. */
 export function formatTauError(error: TauError): string {
-  return `${error.message}\n  Code: ${error.code}\n  Hint: ${
-    getTauErrorHint(error.code)
-  }`;
+  return `${error.message}\n  Code: ${error.code}\n  Hint: ${getTauErrorHint(error.code)}`;
 }

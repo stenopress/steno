@@ -1,10 +1,5 @@
 import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
-import {
-  injectHeadTags,
-  mergeHeadTags,
-  renderHeadTags,
-  validateHeadTags,
-} from "./head.ts";
+import { injectHeadTags, mergeHeadTags, renderHeadTags, validateHeadTags } from "./head.ts";
 
 export function registerHeadTests(): void {
   Deno.test("head: renders meta, Open Graph, links and scripts", () => {

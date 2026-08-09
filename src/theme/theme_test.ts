@@ -1,9 +1,4 @@
-import {
-  assertEquals,
-  assertRejects,
-  assertStringIncludes,
-  assertThrows,
-} from "@std/assert";
+import { assertEquals, assertRejects, assertStringIncludes, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import { mergeTheme, Theme } from "./theme.ts";
 import type { StenoTheme } from "../types.ts";
@@ -85,8 +80,7 @@ export function registerThemeTests(): void {
   });
 
   Deno.test({
-    name:
-      "theme: copyAssets hashes CSS/JS deterministically and leaves other assets untouched",
+    name: "theme: copyAssets hashes CSS/JS deterministically and leaves other assets untouched",
     permissions: { read: true, write: true },
     fn: async () => {
       const tempDir = Deno.makeTempDirSync();

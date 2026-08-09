@@ -20,9 +20,7 @@ function pathIs(path: string, type: "isDirectory" | "isFile"): boolean {
 }
 
 function isIgnored(path: string, ignorePaths: string[]): boolean {
-  return ignorePaths.some((ignorePath) =>
-    isPathInsideOrEqual(path, ignorePath)
-  );
+  return ignorePaths.some((ignorePath) => isPathInsideOrEqual(path, ignorePath));
 }
 
 function countMarkdownFiles(dir: string, ignorePaths: string[]): number {
@@ -148,9 +146,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     const frontmatterErrors = checkFrontmatter(contentDir, scanIgnorePaths);
     if (frontmatterErrors.length === 0) {
       ok(
-        `Frontmatter parses cleanly in all ${pageCount} page${
-          pageCount === 1 ? "" : "s"
-        }`,
+        `Frontmatter parses cleanly in all ${pageCount} page${pageCount === 1 ? "" : "s"}`,
       );
     } else {
       for (const message of frontmatterErrors) fail(message);
@@ -182,9 +178,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     ok(`Theme declared (${themeName})`);
     // warn on local path themes
     if (themeName.startsWith(".") || themeName.startsWith("/")) {
-      const themeDir = themeName.startsWith(".")
-        ? join(Deno.cwd(), themeName)
-        : themeName;
+      const themeDir = themeName.startsWith(".") ? join(Deno.cwd(), themeName) : themeName;
       if (pathIs(themeDir, "isDirectory")) {
         ok(`Local theme directory found`);
       } else {
@@ -262,9 +256,7 @@ export async function runDoctor(configPath: string): Promise<void> {
     for (const entry of plugins) {
       const pkg = typeof entry === "string" ? entry : entry.package;
       const isolated = typeof entry === "object" && entry.mode === "isolated";
-      const execution = isolated
-        ? "isolated, subprocess"
-        : "trusted, in-process";
+      const execution = isolated ? "isolated, subprocess" : "trusted, in-process";
       if (
         !pkg.startsWith("jsr:") && !pkg.startsWith("npm:") &&
         !pkg.startsWith("file://") && !pkg.startsWith("https://")
@@ -284,9 +276,7 @@ export async function runDoctor(configPath: string): Promise<void> {
   const collectionCount = Object.keys(collections).length;
   if (collectionCount > 0) {
     ok(
-      `${collectionCount} collection${
-        collectionCount === 1 ? "" : "s"
-      } configured`,
+      `${collectionCount} collection${collectionCount === 1 ? "" : "s"} configured`,
     );
   } else {
     info(`No collections configured (auto-detected from subdirectories)`);

@@ -135,11 +135,9 @@ export async function loadTheme(
         return await Theme.loadFromDirectory(themeDir, themeConfig);
       }
 
-      let resolvedPath = themeName.startsWith("file://")
-        ? themeName
-        : toFileUrl(
-          isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName),
-        ).href;
+      let resolvedPath = themeName.startsWith("file://") ? themeName : toFileUrl(
+        isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName),
+      ).href;
 
       let stat: Deno.FileInfo | undefined;
       try {

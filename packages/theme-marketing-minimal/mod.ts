@@ -13,8 +13,7 @@ const defaultConfig = {
   accentDarkFg: "#171519",
   eyebrow: "A clearer way forward",
   heroTitle: "Make the important thing impossible to miss.",
-  heroDescription:
-    "A focused, fast landing page for products, studios, and ideas worth sharing.",
+  heroDescription: "A focused, fast landing page for products, studios, and ideas worth sharing.",
   primaryLabel: "Get started",
   primaryUrl: "#content",
   secondaryLabel: "Learn more",

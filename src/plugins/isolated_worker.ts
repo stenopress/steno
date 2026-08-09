@@ -22,9 +22,8 @@ const hookNames: IsolatedPluginHook[] = [
 if (import.meta.main) {
   for (const method of ["log", "info", "warn", "error", "debug"] as const) {
     console[method] = (...args: unknown[]) => {
-      const text = args.map((value) =>
-        typeof value === "string" ? value : JSON.stringify(value)
-      ).join(" ");
+      const text = args.map((value) => typeof value === "string" ? value : JSON.stringify(value))
+        .join(" ");
       Deno.stderr.writeSync(encoder.encode(`${text}\n`));
     };
   }

@@ -84,9 +84,7 @@ const communityPlugins = flags["community-plugins"]
   .map((p) => p.trim())
   .filter((p) => p.length > 0);
 
-const devPort = flags["dev-port"] !== undefined
-  ? parseInt(flags["dev-port"], 10)
-  : undefined;
+const devPort = flags["dev-port"] !== undefined ? parseInt(flags["dev-port"], 10) : undefined;
 if (devPort !== undefined && Number.isNaN(devPort)) {
   console.error(`\n❌  Invalid --dev-port "${flags["dev-port"]}".\n`);
   Deno.exit(1);
@@ -99,9 +97,7 @@ try {
     author: flags.author,
     // Only force plugin selection when the flag is actually passed, so
     // omitting it still triggers the interactive picker.
-    plugins: flags.plugins !== undefined
-      ? parsePluginChoices(flags.plugins)
-      : undefined,
+    plugins: flags.plugins !== undefined ? parsePluginChoices(flags.plugins) : undefined,
     communityPlugins,
     theme: parseThemeChoice(flags.theme),
     communityTheme: flags["community-theme"],

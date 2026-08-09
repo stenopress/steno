@@ -23,11 +23,7 @@ async function createFixture(options: FixtureOptions = {}): Promise<string> {
     ? `plugins:
   - package: "${options.plugin}"
     mode: trusted
-${
-      options.pluginOptions
-        ? `    options: ${JSON.stringify(options.pluginOptions)}\n`
-        : ""
-    }`
+${options.pluginOptions ? `    options: ${JSON.stringify(options.pluginOptions)}\n` : ""}`
     : "";
   const theme = options.theme
     ? `custom:

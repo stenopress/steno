@@ -106,8 +106,7 @@ export function registerOutputTransactionTests(): void {
   });
 
   Deno.test({
-    name:
-      "transactions: failures at each promotion rename preserve recoverable state",
+    name: "transactions: failures at each promotion rename preserve recoverable state",
     permissions: { read: true, write: true },
     fn: () => {
       for (const failureCall of [1, 2, 3]) {
@@ -152,12 +151,8 @@ export function registerOutputTransactionTests(): void {
         join(Deno.cwd(), "src/core/build/output_transaction.ts"),
       ).href;
       const script = `
-        const { beginOutputTransaction } = await import(${
-        JSON.stringify(moduleUrl)
-      });
-        const transaction = beginOutputTransaction(${
-        JSON.stringify(outputDir)
-      });
+        const { beginOutputTransaction } = await import(${JSON.stringify(moduleUrl)});
+        const transaction = beginOutputTransaction(${JSON.stringify(outputDir)});
         Deno.writeTextFileSync(
           ${JSON.stringify(join(root, "child-stage.txt"))},
           transaction.stagingDir,
@@ -194,8 +189,7 @@ export function registerOutputTransactionTests(): void {
   });
 
   Deno.test({
-    name:
-      "transactions: failed recovery reports both promotion and recovery errors",
+    name: "transactions: failed recovery reports both promotion and recovery errors",
     permissions: { read: true, write: true },
     fn: () => {
       const base = realFileSystem();

@@ -1,17 +1,9 @@
-import {
-  assertEquals,
-  assertRejects,
-  assertStringIncludes,
-  assertThrows,
-} from "@std/assert";
+import { assertEquals, assertRejects, assertStringIncludes, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import { Steno } from "../../../mod.ts";
 import type { SiteConfig, StenoPlugin } from "../../types.ts";
 import { buildSite } from "./build.ts";
-import {
-  beginOutputTransaction,
-  rollbackOutputTransaction,
-} from "./output_transaction.ts";
+import { beginOutputTransaction, rollbackOutputTransaction } from "./output_transaction.ts";
 import { fileExistsSync as fileExists } from "../../utils/fs.ts";
 
 interface TestFixture {
@@ -147,8 +139,7 @@ export function registerBuildTests(): void {
       const f = createFixture();
       const themeDir = f.writeTheme(
         {
-          layout:
-            `<!DOCTYPE html><html><body><Header />{@html content}</body></html>`,
+          layout: `<!DOCTYPE html><html><body><Header />{@html content}</body></html>`,
         },
         { header: `<header>{ theme.brand } - { site.title }</header>` },
         { "global.css": `body { margin: 0; }` },
@@ -180,9 +171,7 @@ export function registerBuildTests(): void {
 
       const assetFiles = [...Deno.readDirSync(join(f.outputDir, "assets"))]
         .map((entry) => entry.name);
-      const cssFileName = assetFiles.find((name) =>
-        /^global\.[0-9a-f]{8}\.css$/.test(name)
-      );
+      const cssFileName = assetFiles.find((name) => /^global\.[0-9a-f]{8}\.css$/.test(name));
       if (!cssFileName) {
         throw new Error(
           `Expected a hashed global.css asset, found: ${assetFiles.join(", ")}`,
@@ -573,8 +562,7 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
-    name:
-      "build: persistent cache re-renders pages when theme layout templates change",
+    name: "build: persistent cache re-renders pages when theme layout templates change",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
@@ -616,8 +604,7 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
-    name:
-      "build: persistent cache re-renders pages when plugin implementation changes",
+    name: "build: persistent cache re-renders pages when plugin implementation changes",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
@@ -880,8 +867,7 @@ export default theme;`,
     fn: async () => {
       const f = createFixture();
       const themeDir = f.writeTheme({
-        layout:
-          "<html><head><title>{title}</title></head><body>{@html content}</body></html>",
+        layout: "<html><head><title>{title}</title></head><body>{@html content}</body></html>",
       });
       f.writeConfig(
         `custom:\n  theme: "${themeDir}"\nhead:\n  - name: description\n    content: Site description\n  - property: og:type\n    content: website\n  - tag: script\n    src: /app.js\n`,
@@ -933,8 +919,7 @@ export default theme;`,
   });
 
   Deno.test({
-    name:
-      "build: exposes PUBLIC_ environment variables and namespaced env in layouts",
+    name: "build: exposes PUBLIC_ environment variables and namespaced env in layouts",
     permissions: { read: true, write: true, env: true },
     fn: async () => {
       const f = createFixture();
@@ -1195,9 +1180,7 @@ Body.`,
           );
           for (const entry of entries) {
             const path = join(directory, entry.name);
-            const relativePath = prefix
-              ? `${prefix}/${entry.name}`
-              : entry.name;
+            const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
             if (entry.isDirectory) {
               await walk(path, relativePath);
             } else if (entry.isFile) {

@@ -29,9 +29,7 @@ export function isStenoPlugin(plugin: unknown): plugin is StenoPlugin {
     "afterBuild",
   ] as const;
 
-  return hookKeys.every((key) =>
-    candidate[key] === undefined || isHookFunction(candidate[key])
-  );
+  return hookKeys.every((key) => candidate[key] === undefined || isHookFunction(candidate[key]));
 }
 
 /**

@@ -93,8 +93,7 @@ Plain content.
   });
 
   Deno.test({
-    name:
-      "zero-config: single-file mode nested in a subdirectory builds to the site root",
+    name: "zero-config: single-file mode nested in a subdirectory builds to the site root",
     permissions: { read: true, write: true },
     fn: async () => {
       // The README's own quickstart tells users to create "content/index.md"
