@@ -116,6 +116,16 @@ plugin declares a `mode`:
   restriction. Theme-bundled plugins run at this level too, unless you turn them
   off with `allowThemePlugins: false`.
 
+In `steno dev`, a trusted plugin's factory only runs again when
+`config.plugins` actually changes - editing content doesn't re-trigger it, so
+a plugin with real init cost (Shiki loading its grammars, for example) only
+pays that cost once per dev session, not once per rebuild. Isolated plugins
+don't get this: their worker is intentionally torn down at the end of every
+build (part of the sandbox's threat model, see
+[plugin sandbox](plugin_sandbox.md)), so an isolated entry always reloads on
+the next rebuild regardless. `steno build` is unaffected either way - it
+loads plugins exactly once per process.
+
 `pluginSourcePolicy` controls which kinds of module specifiers are allowed at
 all (`jsr:` and `npm:` by default), it is a source filter, not a sandbox, and it
 applies the same way to both modes. It does not look inside a plugin's own
