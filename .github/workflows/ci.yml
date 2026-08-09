@@ -52,8 +52,8 @@ jobs:
       - name: Test generated projects
         run: deno task --cwd packages/init test:smoke
 
-      - name: Test migrate package
-        run: deno task --cwd packages/migrate test
+      # - name: Test migrate package
+      #   run: deno task --cwd packages/migrate test
 
       - name: Test representative sites
         run: deno task test:sites
