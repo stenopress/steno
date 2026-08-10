@@ -1,5 +1,6 @@
 import { registerCliTests } from "./src/utils/cli_test.ts";
 import { registerConfigTests } from "./src/core/config_test.ts";
+import { registerConfigValidationTests } from "./src/core/config_validation_test.ts";
 import { registerFrontmatterTests } from "./src/utils/frontmatter_test.ts";
 import { registerTauTests } from "./src/utils/tau_test.ts";
 import { registerTauCacheTests } from "./src/utils/tau_cache_test.ts";
@@ -25,6 +26,7 @@ import { registerModTests } from "./mod_test.ts";
 
 registerCliTests();
 registerConfigTests();
+registerConfigValidationTests();
 registerFrontmatterTests();
 registerTauTests();
 registerTauCacheTests();

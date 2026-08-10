@@ -5,7 +5,8 @@ import { isStenoPlugin } from "../plugins/plugins.ts";
 import type { PluginEntry, PluginSourcePolicy, SiteConfig, StenoPlugin } from "../types.ts";
 import { DEFAULT_DEV_PORT } from "../utils/server.ts";
 import { errorMessage } from "../utils/text.ts";
-import { DiagnosticBag } from "./diagnostics.ts";
+import { DiagnosticBag, enforceDiagnostics } from "./diagnostics.ts";
+import { validateSiteConfig } from "./config_validation.ts";
 
 type PluginFactory = (options: Record<string, unknown>) => StenoPlugin | Promise<StenoPlugin>;
 
@@ -120,7 +121,9 @@ function toPluginEntry(input: unknown): PluginEntry | null {
   }
 
   if (
-    candidate.mode !== undefined && candidate.mode !== "trusted" && candidate.mode !== "isolated"
+    candidate.mode !== undefined &&
+    candidate.mode !== "trusted" &&
+    candidate.mode !== "isolated"
   ) {
     return null;
   }
@@ -340,48 +343,14 @@ export async function loadPlugins(
   return plugins;
 }
 
-const KNOWN_CONFIG_KEYS = new Set<string>([
-  "title",
-  "description",
-  "author",
-  "head",
-  "contentDir",
-  "output",
-  "publicDir",
-  "plugins",
-  "collections",
-  "redirects",
-  "shortUrls",
-  "hashAssets",
-  "devPort",
-  "theme",
-  "themeConfig",
-  "globals",
-  "pluginSourcePolicy",
-  "custom",
-  "navigation",
-  "pages",
-]);
-
-/**
- * Warns about top-level config keys steno doesn't recognize — most often a
- * typo (`colllections`) or a field misplaced outside `custom`, which
- * otherwise silently does nothing with no error anywhere in the build.
+/** Reads, parses, and validates a Steno site configuration file.
+ *
+ * Type mismatches against `SiteConfig`'s documented shape are fatal
+ * unconditionally (dev included) via {@link validateSiteConfig} - a config
+ * that doesn't parse into its documented shape isn't something worth
+ * building from, even provisionally. Unrecognized top-level keys are
+ * reported as warnings, same as before.
  */
-function warnOnUnknownConfigKeys(config: Record<string, unknown>, configPath: string): void {
-  const unknownKeys = Object.keys(config).filter((key) => !KNOWN_CONFIG_KEYS.has(key));
-  if (unknownKeys.length === 0) return;
-
-  console.warn(
-    `[config] Unrecognized key${unknownKeys.length === 1 ? "" : "s"} in "${configPath}": ${
-      unknownKeys
-        .map((key) => `"${key}"`)
-        .join(", ")
-    }. Ignored — check for a typo, or nest project-specific fields under "custom".`,
-  );
-}
-
-/** Reads and parses a Steno site configuration file. */
 export function loadConfig(configPath: string): SiteConfig {
   const fileContents = Deno.readTextFileSync(configPath);
   const parser = configPath.endsWith(".yaml") || configPath.endsWith(".yml")
@@ -396,13 +365,12 @@ export function loadConfig(configPath: string): SiteConfig {
     );
   }
 
+  let config: unknown;
   try {
-    const config = parser(fileContents);
+    config = parser(fileContents);
     if (!config || typeof config !== "object" || Array.isArray(config)) {
       throw new Error("expected a top-level object");
     }
-    warnOnUnknownConfigKeys(config as Record<string, unknown>, configPath);
-    return config as SiteConfig;
   } catch (error) {
     const detail = errorMessage(error);
     throw new Error(
@@ -410,4 +378,10 @@ export function loadConfig(configPath: string): SiteConfig {
       { cause: error },
     );
   }
+
+  const diagnostics = new DiagnosticBag();
+  validateSiteConfig(config as Record<string, unknown>, configPath, diagnostics);
+  enforceDiagnostics(diagnostics, false);
+
+  return config as SiteConfig;
 }

@@ -15,7 +15,10 @@ export function registerDoctorTests(): void {
       await Deno.writeTextFile(join(contentDir, "index.md"), "# Home");
       await Deno.writeTextFile(
         configPath,
-        `contentDir: ${JSON.stringify(contentDir)}
+        `title: "Test"
+description: "Test"
+author: "Test"
+contentDir: ${JSON.stringify(contentDir)}
 output: ${JSON.stringify(outputDir)}
 plugins:
   - package: "jsr:@example/trusted@1"
@@ -67,7 +70,10 @@ plugins:
       await Deno.writeTextFile(join(contentDir, "index.md"), "# Home");
       await Deno.writeTextFile(
         configPath,
-        `contentDir: ${JSON.stringify(contentDir)}
+        `title: "Test"
+description: "Test"
+author: "Test"
+contentDir: ${JSON.stringify(contentDir)}
 output: ${JSON.stringify(outputDir)}
 plugins:
   - package: "jsr:@example/isolated@1"
@@ -144,7 +150,10 @@ plugins:
       await Deno.writeTextFile(join(contentDir, "index.md"), "# Home");
       await Deno.writeTextFile(
         configPath,
-        `contentDir: ${JSON.stringify(contentDir)}
+        `title: "Test"
+description: "Test"
+author: "Test"
+contentDir: ${JSON.stringify(contentDir)}
 output: ${JSON.stringify(outputDir)}
 custom:
   theme: "./theme"
@@ -191,7 +200,10 @@ custom:
       await Deno.writeTextFile(join(contentDir, "index.md"), "# Home");
       await Deno.writeTextFile(
         configPath,
-        `contentDir: ${JSON.stringify(contentDir)}
+        `title: "Test"
+description: "Test"
+author: "Test"
+contentDir: ${JSON.stringify(contentDir)}
 output: ${JSON.stringify(outputDir)}
 theme: "./theme"
 shortUrls: true
@@ -239,7 +251,10 @@ shortUrls: true
 
       await Deno.writeTextFile(
         configPath,
-        `contentDir: ${JSON.stringify(contentDir)}
+        `title: "Test"
+description: "Test"
+author: "Test"
+contentDir: ${JSON.stringify(contentDir)}
 output: ${JSON.stringify(outputDir)}
 `,
       );
@@ -280,7 +295,10 @@ output: ${JSON.stringify(outputDir)}
       );
       await Deno.writeTextFile(
         configPath,
-        `contentDir: ${JSON.stringify(contentDir)}
+        `title: "Test"
+description: "Test"
+author: "Test"
+contentDir: ${JSON.stringify(contentDir)}
 output: ${JSON.stringify(outputDir)}
 `,
       );

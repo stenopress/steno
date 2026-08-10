@@ -105,6 +105,10 @@ content/_data/team.json              becomes data.team
 content/_data/blog/authors.yaml      becomes data.blog.authors
 ```
 
+A data file that fails to read or parse (invalid JSON/YAML/TOML) is reported as a
+`[data-file-invalid]` diagnostic - fatal for `steno build`, printed but non-fatal for `steno dev`;
+see [How Steno reports problems](troubleshooting.md#how-steno-reports-problems).
+
 ## Public assets
 
 Anything in `content/public/` is copied to the output as-is, with the same folder structure, no

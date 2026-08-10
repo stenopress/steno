@@ -4,6 +4,12 @@ Steno reads `content/.steno/config.yml` by default; pass another path with `--co
 picked from the file extension: `.yml`/`.yaml` for YAML, `.toml` for TOML - so
 `--config content/.steno/config.toml` reads the same fields written as TOML instead.
 
+Every field below is validated against its documented type as soon as the file loads - a wrong type
+(a string `devPort`, a `collections` entry that isn't an object, ...) or a missing required field
+(`title`/`description`/`author`) fails immediately with a precise `[config-invalid]` message naming
+the exact field, in every command including `dev`. An unrecognized top-level key is a warning, not
+an error - check for a typo, or nest project-specific fields under `custom`.
+
 ```yaml
 title: My site
 description: A concise description
@@ -53,12 +59,15 @@ redirects:
 ## Redirects
 
 Each `redirects` entry writes a static meta-refresh HTML page rather than a server-level redirect.
-`from` must start with `/`; entries that do not are skipped with a console warning. An empty `to`
-value is skipped the same way. `shortUrls` controls the emitted path: with `shortUrls: true`,
-`/old-url` becomes `<output>/old-url/index.html`; otherwise it becomes `<output>/old-url.html`.
-Redirects participate in the same output-collision detection as pages and theme assets, so a
-redirect that would overwrite an existing page or asset fails the build with an `Output collision`
-error.
+`from` must start with `/`, and `to` cannot be empty; an entry that violates either is reported as a
+`[redirect-invalid]` diagnostic (see
+[How Steno reports problems](troubleshooting.md#how-steno-reports-problems) - this fails
+`steno
+build`, `steno dev` prints it but keeps running). `shortUrls` controls the emitted path: with
+`shortUrls: true`, `/old-url` becomes `<output>/old-url/index.html`; otherwise it becomes
+`<output>/old-url.html`. Redirects participate in the same output-collision detection as pages and
+theme assets, so a redirect that would overwrite an existing page or asset fails the build with an
+`Output collision` error.
 
 `title`, `description`, and `author` are the site fields exposed as `site` in templates.
 `contentDir` and `output` are relative to the working directory unless absolute. `publicDir` is
