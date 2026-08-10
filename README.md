@@ -241,12 +241,14 @@ steno [command] [options]
 | `preview` | Serve an existing production build without watching.            |
 | `doctor`  | Check the project for common configuration and security issues. |
 | `help`    | Print CLI usage.                                                |
+| `version` | Print the installed Steno version.                              |
 
 | Option                | Description                                     |
 | --------------------- | ----------------------------------------------- |
 | `-c, --config <path>` | Use a specific configuration file.              |
 | `-p, --port <number>` | Select the preview port. The default is `4173`. |
 | `-h, --help`          | Show CLI usage.                                 |
+| `-v, --version`       | Print the installed Steno version.              |
 
 The default configuration path is `content/.steno/config.yml`. See the
 [doctor guide](docs/doctor.md) for project diagnostics.

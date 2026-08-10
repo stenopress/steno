@@ -4,6 +4,61 @@ import { runDoctor } from "./doctor.ts";
 
 export function registerDoctorTests(): void {
   Deno.test({
+    name: "doctor: returns false for a clean project",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = await Deno.makeTempDir();
+      const contentDir = join(tempDir, "content");
+      const configPath = join(tempDir, "config.yml");
+      await Deno.mkdir(contentDir);
+      await Deno.writeTextFile(join(contentDir, "index.md"), "# Home");
+      await Deno.writeTextFile(
+        configPath,
+        `title: "Test"\ndescription: "Test"\nauthor: "Test"\ncontentDir: ${
+          JSON.stringify(contentDir)
+        }\n`,
+      );
+
+      const original = console.log;
+      console.log = () => {};
+      let hasErrors: boolean;
+      try {
+        hasErrors = await runDoctor(configPath);
+      } finally {
+        console.log = original;
+      }
+
+      assertEquals(hasErrors, false);
+    },
+  });
+
+  Deno.test({
+    name: "doctor: returns true when the content directory is missing",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = await Deno.makeTempDir();
+      const configPath = join(tempDir, "config.yml");
+      await Deno.writeTextFile(
+        configPath,
+        `title: "Test"\ndescription: "Test"\nauthor: "Test"\ncontentDir: ${
+          JSON.stringify(join(tempDir, "content"))
+        }\n`,
+      );
+
+      const original = console.log;
+      console.log = () => {};
+      let hasErrors: boolean;
+      try {
+        hasErrors = await runDoctor(configPath);
+      } finally {
+        console.log = original;
+      }
+
+      assertEquals(hasErrors, true);
+    },
+  });
+
+  Deno.test({
     name: "doctor: reports each plugin execution mode",
     permissions: { read: true, write: true },
     fn: async () => {
