@@ -290,4 +290,59 @@ theme: "${join(contentDir, "broken-theme")}"
       }
     },
   });
+
+  Deno.test({
+    name: "Steno: warns (but does not fail the build) when two plugins share a name",
+    permissions: { read: true, write: true, run: true, env: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const configPath = join(contentDir, ".steno", "config.yml");
+      const pluginPath = join(tempDir, "dup-plugin.ts");
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---\ntitle: "Home"\n---\n# Hello\n`,
+      );
+      Deno.writeTextFileSync(
+        pluginPath,
+        `import type { StenoPlugin } from "${import.meta.resolve("../types.ts")}";
+export default function (tag: unknown): StenoPlugin {
+  return { name: "dup" };
+}
+`,
+      );
+      Deno.writeTextFileSync(
+        configPath,
+        `title: "Test"
+description: ""
+author: ""
+contentDir: "${contentDir}"
+output: "${join(tempDir, "dist")}"
+custom:
+  pluginSourcePolicy:
+    allowLocal: true
+plugins:
+  - package: "file://${pluginPath}"
+  - package: "file://${pluginPath}"
+    options: { tag: "second" }
+`,
+      );
+
+      const warnings: string[] = [];
+      const originalWarn = console.warn;
+      console.warn = (...args) => warnings.push(args.join(" "));
+      try {
+        const steno = new Steno(configPath, true);
+        await steno.ready();
+      } finally {
+        console.warn = originalWarn;
+        Deno.removeSync(tempDir, { recursive: true });
+      }
+
+      const joined = warnings.join("\n");
+      assertStringIncludes(joined, "plugin-name-duplicate");
+      assertStringIncludes(joined, '"dup"');
+    },
+  });
 }
