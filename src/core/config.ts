@@ -1,21 +1,17 @@
-import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
-import type { PluginEntry, PluginSourcePolicy, SiteConfig, StenoPlugin } from "../types.ts";
-import { isStenoPlugin } from "../plugins/plugins.ts";
+import { parse as parseYaml } from "@std/yaml";
 import { loadIsolatedPlugin } from "../plugins/isolated_plugin.ts";
+import { isStenoPlugin } from "../plugins/plugins.ts";
+import type { PluginEntry, PluginSourcePolicy, SiteConfig, StenoPlugin } from "../types.ts";
 import { DEFAULT_DEV_PORT } from "../utils/server.ts";
 import { errorMessage } from "../utils/text.ts";
 import { DiagnosticBag } from "./diagnostics.ts";
 
-type PluginFactory = (
-  options: Record<string, unknown>,
-) => StenoPlugin | Promise<StenoPlugin>;
+type PluginFactory = (options: Record<string, unknown>) => StenoPlugin | Promise<StenoPlugin>;
 
 type ResolvedPluginSourcePolicy = Required<PluginSourcePolicy>;
 
-export function resolvePluginSourcePolicy(
-  config: SiteConfig,
-): ResolvedPluginSourcePolicy {
+export function resolvePluginSourcePolicy(config: SiteConfig): ResolvedPluginSourcePolicy {
   const policy = config.pluginSourcePolicy ??
     config.custom?.pluginSourcePolicy ??
     config.custom?.pluginSecurity ??
@@ -34,9 +30,7 @@ export function resolveTheme(config: SiteConfig): string | undefined {
 }
 
 /** Resolves theme configuration values, preferring top-level `themeConfig`. */
-export function resolveThemeConfig(
-  config: SiteConfig,
-): Record<string, unknown> | undefined {
+export function resolveThemeConfig(config: SiteConfig): Record<string, unknown> | undefined {
   return config.themeConfig ?? config.custom?.themeConfig;
 }
 
@@ -51,9 +45,7 @@ export function resolveDevPort(config: SiteConfig): number {
 }
 
 /** Resolves global values exposed to templates. */
-export function resolveGlobals(
-  config: SiteConfig,
-): Record<string, unknown> | undefined {
+export function resolveGlobals(config: SiteConfig): Record<string, unknown> | undefined {
   return config.globals ?? config.custom?.globals;
 }
 
@@ -66,7 +58,8 @@ function getBlockedPluginReason(
   }
 
   if (
-    packageName.startsWith("./") || packageName.startsWith("../") ||
+    packageName.startsWith("./") ||
+    packageName.startsWith("../") ||
     packageName.startsWith("/")
   ) {
     return "path-based specifiers are not allowed. Use a registry package specifier (for example `jsr:` or `npm:`), or enable local plugins and use a `file://` URL.";
@@ -119,54 +112,58 @@ function toPluginEntry(input: unknown): PluginEntry | null {
 
   if (
     candidate.options !== undefined &&
-    (!candidate.options || typeof candidate.options !== "object" ||
+    (!candidate.options ||
+      typeof candidate.options !== "object" ||
       Array.isArray(candidate.options))
   ) {
     return null;
   }
 
   if (
-    candidate.mode !== undefined &&
-    candidate.mode !== "trusted" &&
-    candidate.mode !== "isolated"
-  ) return null;
+    candidate.mode !== undefined && candidate.mode !== "trusted" && candidate.mode !== "isolated"
+  ) {
+    return null;
+  }
 
   const permissions = candidate.permissions;
   if (
     permissions !== undefined &&
-    (!permissions || typeof permissions !== "object" ||
+    (!permissions ||
+      typeof permissions !== "object" ||
       Array.isArray(permissions) ||
-      Object.values(permissions).some((value) =>
-        !Array.isArray(value) ||
-        value.some((entry) => typeof entry !== "string")
+      Object.values(permissions).some(
+        (value) => !Array.isArray(value) || value.some((entry) => typeof entry !== "string"),
       ))
-  ) return null;
+  ) {
+    return null;
+  }
 
   if (
     candidate.timeoutMs !== undefined &&
     (typeof candidate.timeoutMs !== "number" ||
-      !Number.isFinite(candidate.timeoutMs) || candidate.timeoutMs <= 0)
-  ) return null;
+      !Number.isFinite(candidate.timeoutMs) ||
+      candidate.timeoutMs <= 0)
+  ) {
+    return null;
+  }
   if (
     candidate.maxOutputBytes !== undefined &&
     (typeof candidate.maxOutputBytes !== "number" ||
       !Number.isInteger(candidate.maxOutputBytes) ||
       candidate.maxOutputBytes <= 0)
-  ) return null;
+  ) {
+    return null;
+  }
   if (
     candidate.memoryMb !== undefined &&
     (typeof candidate.memoryMb !== "number" ||
       !Number.isInteger(candidate.memoryMb) ||
       candidate.memoryMb < 16)
-  ) return null;
-  if (
-    candidate.integrity !== undefined &&
-    typeof candidate.integrity !== "string"
-  ) return null;
-  if (
-    candidate.lockFile !== undefined &&
-    typeof candidate.lockFile !== "string"
-  ) return null;
+  ) {
+    return null;
+  }
+  if (candidate.integrity !== undefined && typeof candidate.integrity !== "string") return null;
+  if (candidate.lockFile !== undefined && typeof candidate.lockFile !== "string") return null;
 
   return {
     package: candidate.package,
@@ -181,9 +178,7 @@ function toPluginEntry(input: unknown): PluginEntry | null {
   };
 }
 
-function clonePluginOptions(
-  options: Record<string, unknown>,
-): Record<string, unknown> {
+function clonePluginOptions(options: Record<string, unknown>): Record<string, unknown> {
   const cloned = structuredClone(options);
   return Object.freeze(cloned);
 }
@@ -213,10 +208,7 @@ async function verifyPluginIntegrity(entry: PluginEntry): Promise<void> {
   let source: Uint8Array;
   if (entry.package.startsWith("file://")) {
     source = await Deno.readFile(new URL(entry.package));
-  } else if (
-    entry.package.startsWith("https://") ||
-    entry.package.startsWith("http://")
-  ) {
+  } else if (entry.package.startsWith("https://") || entry.package.startsWith("http://")) {
     const response = await fetch(entry.package);
     if (!response.ok) {
       throw new Error(
@@ -230,9 +222,7 @@ async function verifyPluginIntegrity(entry: PluginEntry): Promise<void> {
     );
   }
 
-  const digest = new Uint8Array(
-    await crypto.subtle.digest("SHA-256", source.slice().buffer),
-  );
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", source.slice().buffer));
   const actual = `sha256-${encodeBase64(digest)}`;
   if (actual !== entry.integrity) {
     throw new Error(
@@ -262,7 +252,7 @@ export async function loadPlugins(
       diagnostics.add({
         code: "plugin-entry-invalid",
         severity: "error",
-        message: `Invalid plugin entry in config: ${JSON.stringify(configuredEntry)}`,
+        message: `Invalid plugin entry in config.`,
         hint:
           'Each entry must be a package specifier string, or an object with at least a "package" field.',
       });
@@ -285,18 +275,14 @@ export async function loadPlugins(
     }
 
     try {
-      if (
-        entry.mode === "isolated" &&
-        !isPinnedRegistryPlugin(packageName)
-      ) {
+      if (entry.mode === "isolated" && !isPinnedRegistryPlugin(packageName)) {
         throw new Error(
           `Isolated registry plugin "${packageName}" must include an explicit version.`,
         );
       }
       if (
         entry.mode === "isolated" &&
-        (packageName.startsWith("http://") ||
-          packageName.startsWith("https://")) &&
+        (packageName.startsWith("http://") || packageName.startsWith("https://")) &&
         !entry.integrity
       ) {
         throw new Error(
@@ -323,9 +309,7 @@ export async function loadPlugins(
         continue;
       }
 
-      const plugin = await (factory as PluginFactory)(
-        clonePluginOptions(options),
-      );
+      const plugin = await (factory as PluginFactory)(clonePluginOptions(options));
       if (!isStenoPlugin(plugin)) {
         diagnostics.add({
           code: "plugin-load-failed",
@@ -340,10 +324,9 @@ export async function loadPlugins(
       plugins.push(plugin);
     } catch (err) {
       if (entry.mode === "isolated") {
-        throw new Error(
-          `Failed to load isolated plugin "${packageName}": ${errorMessage(err)}`,
-          { cause: err },
-        );
+        throw new Error(`Failed to load isolated plugin "${packageName}": ${errorMessage(err)}`, {
+          cause: err,
+        });
       }
       diagnostics.add({
         code: "plugin-load-failed",
@@ -385,16 +368,15 @@ const KNOWN_CONFIG_KEYS = new Set<string>([
  * typo (`colllections`) or a field misplaced outside `custom`, which
  * otherwise silently does nothing with no error anywhere in the build.
  */
-function warnOnUnknownConfigKeys(
-  config: Record<string, unknown>,
-  configPath: string,
-): void {
+function warnOnUnknownConfigKeys(config: Record<string, unknown>, configPath: string): void {
   const unknownKeys = Object.keys(config).filter((key) => !KNOWN_CONFIG_KEYS.has(key));
   if (unknownKeys.length === 0) return;
 
   console.warn(
     `[config] Unrecognized key${unknownKeys.length === 1 ? "" : "s"} in "${configPath}": ${
-      unknownKeys.map((key) => `"${key}"`).join(", ")
+      unknownKeys
+        .map((key) => `"${key}"`)
+        .join(", ")
     }. Ignored — check for a typo, or nest project-specific fields under "custom".`,
   );
 }
