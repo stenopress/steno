@@ -54,14 +54,14 @@ export function registerConfigValidationTests(): void {
     );
   });
 
-  Deno.test("config_validation: rejects missing/wrong-typed required fields", () => {
+  Deno.test("config_validation: title/description/author are optional, but wrong-typed if present is still an error", () => {
     assertEquals(errorCodes({ title: 1, description: "d", author: "a" }), [
       "config-invalid",
     ]);
-    assertEquals(errorCodes({ description: "d", author: "a" }), [
-      "config-invalid",
-    ]);
-    assertEquals(errorCodes({}).length, 3);
+    // Omitted entirely is fine - resolveConfiguredSiteMetadata (project.ts)
+    // fills these in later, the same way zero-config mode already does.
+    assertEquals(errorCodes({ description: "d", author: "a" }), []);
+    assertEquals(errorCodes({}), []);
   });
 
   Deno.test("config_validation: rejects wrong-typed optional strings/booleans", () => {
