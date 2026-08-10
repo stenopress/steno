@@ -33,4 +33,6 @@ export interface BuildStateEntry {
   htmlContent?: string;
   /** Theme assets manifest that was in effect when `htmlContent` was rendered. */
   assetsSignature?: string;
+  /** Serialized `collections` map in effect when `htmlContent` was rendered. */
+  collectionsSignature?: string;
 }
