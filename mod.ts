@@ -71,8 +71,8 @@ async function runCli(): Promise<void> {
       error instanceof TauError
         ? formatTauError(error)
         : error instanceof Error
-        ? error.message
-        : String(error),
+          ? error.message
+          : String(error),
     );
     printHelp();
     Deno.exit(1);

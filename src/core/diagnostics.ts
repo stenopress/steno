@@ -13,6 +13,7 @@ export interface Diagnostic {
   /** Stable, kebab-case identifier for this kind of problem, e.g.
    * `"theme-load-failed"`. Intended for tooling/automation, not prose. */
   code: string;
+  /** `"error"` fails a production build once printed; `"warning"` never does. */
   severity: "warning" | "error";
   /** Human-readable description of what went wrong. */
   message: string;
@@ -75,8 +76,11 @@ export function printDiagnostics(bag: DiagnosticBag): void {
  * `diagnostics` carries every error so a caller (or a future `--json`
  * output) can report all of them, not just the first. */
 export class StenoDiagnosticError extends Error {
+  /** Every error-severity diagnostic that caused the build to fail. */
   readonly diagnostics: Diagnostic[];
 
+  /** Builds the aggregate error message from `diagnostics` and stores them
+   * on the instance for a caller to inspect individually. */
   constructor(diagnostics: Diagnostic[]) {
     const summary = diagnostics
       .map((d) => `  - ${formatDiagnostic(d)}`)
