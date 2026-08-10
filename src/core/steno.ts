@@ -149,6 +149,28 @@ export class Steno {
     }
 
     this.plugins = [...themePlugins, ...sitePlugins];
+
+    // A plugin's name is what every diagnostic and error message identifies
+    // it by ("Plugin \"X\" failed to load ..."), so two plugins sharing one
+    // silently make those messages ambiguous - which "X" broke? - without
+    // anything else going wrong. Not build-breaking on its own, so a
+    // warning, not an error.
+    const seenPluginNames = new Set<string>();
+    for (const plugin of this.plugins) {
+      if (seenPluginNames.has(plugin.name)) {
+        diagnostics.add({
+          code: "plugin-name-duplicate",
+          severity: "warning",
+          message:
+            `More than one plugin is named "${plugin.name}" - diagnostics naming this plugin won't say which one they mean.`,
+          hint:
+            "Give each plugin a distinct name, even if it's the same package loaded twice with different options.",
+        });
+        continue;
+      }
+      seenPluginNames.add(plugin.name);
+    }
+
     enforceDiagnostics(diagnostics, dev);
     return project;
   }
