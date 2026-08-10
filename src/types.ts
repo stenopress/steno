@@ -314,12 +314,22 @@ export interface ThemeConfigField {
 /**
  * A Markdown AST token exposed to transformation plugins.
  *
- * Token-specific fields remain available by narrowing or casting the value.
+ * At runtime, `transformAst` receives - and must return - `marked`'s actual
+ * `Token` objects (from `marked.lexer()`), not plain objects shaped like
+ * this interface. `MarkdownToken` declares only the fields every token kind
+ * is guaranteed to have, so it's independent of `marked`'s own exported type
+ * names; it deliberately does **not** claim you can construct a minimal
+ * `{ type, raw }` object and hand it back; the tokens flow straight into
+ * `marked.parser()` afterward, which needs each token's real, kind-specific
+ * fields (a heading's `depth`, a list's `ordered`/`items`, a code block's
+ * `lang`, and so on) to render correctly. To read or set those, narrow on
+ * `type` and cast (`token as unknown as SomeMarkedTokenShape`) - never
+ * construct a plain object of this shape and expect full rendering from it.
  */
 export interface MarkdownToken {
-  /** Token kind, such as `heading`, `paragraph`, or `text`. */
+  /** Token kind, such as `heading`, `paragraph`, or `text`. Always present. */
   type: string;
-  /** Original Markdown source represented by the token. */
+  /** Original Markdown source represented by the token. Always present. */
   raw: string;
   /** Plain-text token content when the token kind provides it. */
   text?: string;
@@ -327,7 +337,12 @@ export interface MarkdownToken {
   tokens?: MarkdownToken[];
 }
 
-/** Markdown token list accepted and returned by AST transformation hooks. */
+/**
+ * Markdown token list accepted and returned by AST transformation hooks -
+ * the exact value `marked.lexer()` produces, typed as `MarkdownToken[]` plus
+ * its `links` property. See {@link MarkdownToken} for what that means for a
+ * `transformAst` implementation.
+ */
 export interface MarkdownTokens extends Array<MarkdownToken> {
   /** Reference-link definitions collected while lexing Markdown. */
   links: Record<string, {

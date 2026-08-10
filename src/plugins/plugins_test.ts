@@ -1,8 +1,9 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { runAstTransforms, runHtmlTransforms } from "./plugins.ts";
 import { loadPlugins } from "../core/config.ts";
 import type { StenoPlugin } from "./plugins.ts";
+import type { MarkdownTokens } from "../types.ts";
 import { marked } from "marked";
 
 export function registerPluginTests(): void {
@@ -12,6 +13,41 @@ export function registerPluginTests(): void {
     const tokens = marked.lexer("# Hello");
     const result = await runAstTransforms(tokens, []);
     assertEquals(result, tokens);
+  });
+
+  Deno.test("plugins: MarkdownTokens is compile-time compatible with marked.lexer()'s real output", async () => {
+    // This assignment is itself the compatibility check: if marked's Token
+    // shape ever drops `type`/`raw`/`links`, this file fails to type-check
+    // in CI - see MarkdownToken's docs in types.ts for why the public type
+    // stays this minimal on purpose.
+    const source =
+      "# Heading\n\nA paragraph with a [link](https://example.com).\n\n- one\n- two\n\n```ts\nconst x = 1;\n```\n";
+    const tokens: MarkdownTokens = marked.lexer(source);
+
+    for (const token of tokens) {
+      assertEquals(typeof token.type, "string");
+      assertEquals(typeof token.raw, "string");
+    }
+
+    // The same tokens, unmodified, must still render correctly through
+    // marked.parser() after a round trip through a transformAst plugin -
+    // proving real (not minimal) token fidelity survives the hook.
+    let sawTokens: MarkdownTokens | undefined;
+    const identityPlugin: StenoPlugin = {
+      name: "identity",
+      transformAst: (t) => {
+        sawTokens = t;
+        return t;
+      },
+    };
+    const result = await runAstTransforms(tokens, [identityPlugin]);
+    assertEquals(sawTokens, tokens);
+
+    const html = marked.parser(result);
+    assertStringIncludes(html, "<h1>Heading</h1>");
+    assertStringIncludes(html, '<a href="https://example.com">link</a>');
+    assertStringIncludes(html, "<li>one</li>");
+    assertStringIncludes(html, "const x = 1;");
   });
 
   Deno.test("plugins: runAstTransforms runs transforms in order", async () => {
