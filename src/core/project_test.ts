@@ -191,4 +191,96 @@ Steps.
       Deno.removeSync(tempDir, { recursive: true });
     },
   });
+
+  Deno.test({
+    name: "configured project: derives title from index.md's frontmatter when config omits it",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const configPath = join(contentDir, ".steno", "config.yml");
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---\ntitle: "From Frontmatter"\n---\n# A different heading\n`,
+      );
+      Deno.writeTextFileSync(
+        configPath,
+        `contentDir: ${JSON.stringify(contentDir)}\n`,
+      );
+
+      const project = await resolveProject(configPath);
+      assertEquals(project.mode, "configured");
+      assertEquals(project.config.title, "From Frontmatter");
+      assertEquals(project.config.description, "");
+      assertEquals(project.config.author, "");
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "configured project: falls back to index.md's H1 when there's no frontmatter title",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const configPath = join(contentDir, ".steno", "config.yml");
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(join(contentDir, "index.md"), `# Heading Title\n`);
+      Deno.writeTextFileSync(
+        configPath,
+        `contentDir: ${JSON.stringify(contentDir)}\n`,
+      );
+
+      const project = await resolveProject(configPath);
+      assertEquals(project.config.title, "Heading Title");
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "configured project: falls back to a humanized contentDir name with no index.md at all",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "my-cool_site");
+      const configPath = join(contentDir, ".steno", "config.yml");
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(
+        configPath,
+        `contentDir: ${JSON.stringify(contentDir)}\n`,
+      );
+
+      const project = await resolveProject(configPath);
+      assertEquals(project.config.title, "My Cool Site");
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
+
+  Deno.test({
+    name: "configured project: an explicit config title is never overridden",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const contentDir = join(tempDir, "content");
+      const configPath = join(contentDir, ".steno", "config.yml");
+      Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
+      Deno.writeTextFileSync(
+        join(contentDir, "index.md"),
+        `---\ntitle: "Ignored"\n---\n# Also ignored\n`,
+      );
+      Deno.writeTextFileSync(
+        configPath,
+        `title: "Explicit Title"\ncontentDir: ${JSON.stringify(contentDir)}\n`,
+      );
+
+      const project = await resolveProject(configPath);
+      assertEquals(project.config.title, "Explicit Title");
+
+      Deno.removeSync(tempDir, { recursive: true });
+    },
+  });
 }
