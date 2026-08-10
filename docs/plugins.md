@@ -8,23 +8,29 @@ them.
 
 ## Using an official plugin
 
-Steno publishes four official plugins under the `@steno/` scope:
+Steno publishes seven official plugins under the `@steno/` scope:
 
 - `jsr:@steno/plugin-tailwind` compiles Tailwind CSS as part of the build.
 - `jsr:@steno/plugin-shiki` adds syntax highlighting to fenced code blocks in your Markdown.
 - `jsr:@steno/plugin-seo` generates `sitemap.xml`, an RSS feed (`feed.xml`), and an Atom feed
   (`atom.xml`) from your pages.
 - `jsr:@steno/plugin-image` optimizes and resizes images referenced by your theme.
+- `jsr:@steno/plugin-docs` mirrors an external directory of Markdown files into `contentDir` before
+  each build, so a docs folder living outside the project (a monorepo package's own `docs/`, for
+  example) gets built as regular pages.
+- `jsr:@steno/plugin-search` generates a JSON search index (title, route, excerpt, headings) from
+  your rendered HTML, for client-side search.
+- `jsr:@steno/plugin-og` auto-generates an Open Graph preview image (plain SVG, no headless browser)
+  per page and injects the matching `og:image` tags into `<head>`.
 
-`plugin-tailwind` and `plugin-shiki` are the two the scaffolder knows about directly, add them by
-name when you create a project:
+The scaffolder (`deno create jsr:@steno/init`) offers all seven as checkboxes in its interactive
+plugin picker, and by name through `--plugins`:
 
 ```sh
-deno create jsr:@steno/init --plugins tailwind,shiki
+deno create jsr:@steno/init --plugins tailwind,shiki,seo,docs,search,og,image
 ```
 
-Any of the four can also be added manually to an existing project's config, each with its own
-`options`:
+Any of them can also be added manually to an existing project's config, each with its own `options`:
 
 ```yaml
 plugins:
@@ -39,9 +45,9 @@ plugins:
 ```
 
 See each plugin's own JSR page for its full option list. The scaffolder pins an exact version and
-runs `tailwind`/`shiki` in-process (`mode: trusted`); that's a deliberate choice for those two,
-since they are maintained alongside Steno itself and reviewed the same way. If you add any of the
-four manually, pin an exact version too, rather than a version range. See
+runs every official plugin it offers in-process (`mode: trusted`); that's a deliberate choice, since
+they're maintained alongside Steno itself and reviewed the same way. If you add any of them
+manually, pin an exact version too, rather than a version range. See
 [Trust and permissions](#trust-and-permissions) below if you would rather run one in the stricter
 sandboxed mode instead; [Isolated plugin entries](config_reference.md#isolated-plugin-entries) lists
 the exact permission fields to grant (each plugin's own docs list what filesystem and network access

@@ -207,6 +207,92 @@ Deno.test({
   },
 });
 
+Deno.test({
+  name: "ecosystem: plugin-docs@0.1.0 mirrors an external directory into contentDir",
+  permissions: { env: true, net: true, read: true, run: true, write: true },
+  fn: async () => {
+    const sourceDir = await Deno.makeTempDir({
+      prefix: "steno-ecosystem-docs-src-",
+    });
+    await Deno.writeTextFile(
+      join(sourceDir, "getting-started.md"),
+      "# Getting Started\n\nInstall the CLI and run your first build.",
+    );
+    const root = await createFixture({
+      plugin: "jsr:@steno/plugin-docs@0.1.0",
+      pluginOptions: { sourceDir },
+    });
+    try {
+      await build(root);
+      const html = await Deno.readTextFile(
+        join(root, "dist", "docs", "getting-started.html"),
+      );
+      assertStringIncludes(html, "Install the CLI");
+    } finally {
+      await removeFixture(root);
+      await Deno.remove(sourceDir, { recursive: true });
+    }
+  },
+});
+
+Deno.test({
+  name: "ecosystem: plugin-search@0.2.0 generates a JSON search index",
+  permissions: { env: true, net: true, read: true, run: true, write: true },
+  fn: async () => {
+    const root = await createFixture({
+      plugin: "jsr:@steno/plugin-search@0.2.0",
+      body: "## Section Heading\n\nSearchable body text.",
+    });
+    try {
+      await build(root);
+      const index = JSON.parse(
+        await Deno.readTextFile(join(root, "dist", "search-index.json")),
+      );
+      assert(Array.isArray(index));
+      const home = index.find((entry: { route: string }) => entry.route === "/");
+      assert(home, "expected an index entry for the home page");
+      assertStringIncludes(home.excerpt, "Searchable body text");
+      assert(home.headings.includes("Section Heading"));
+    } finally {
+      await removeFixture(root);
+    }
+  },
+});
+
+Deno.test({
+  name: "ecosystem: plugin-og@0.1.0 generates an Open Graph preview image",
+  permissions: { env: true, net: true, read: true, run: true, write: true },
+  fn: async () => {
+    const root = await createFixture({
+      plugin: "jsr:@steno/plugin-og@0.1.0",
+      pluginOptions: { siteUrl: "https://example.com" },
+      theme: "./theme",
+    });
+    try {
+      const themeDir = join(root, "theme");
+      await Deno.mkdir(join(themeDir, "layouts"), { recursive: true });
+      await Deno.writeTextFile(
+        join(themeDir, "theme.yaml"),
+        'name: "compat-og"\nversion: "1.0.0"\n',
+      );
+      await Deno.writeTextFile(
+        join(themeDir, "layouts", "layout.tau"),
+        "<!doctype html><html><head><title>{title}</title></head><body>{@html content}</body></html>",
+      );
+
+      await build(root);
+      assert(
+        (await Deno.stat(join(root, "dist", "og", "home.svg"))).isFile,
+      );
+      const html = await Deno.readTextFile(join(root, "dist", "index.html"));
+      assertStringIncludes(html, 'property="og:image"');
+      assertStringIncludes(html, "https://example.com/og/home.svg");
+    } finally {
+      await removeFixture(root);
+    }
+  },
+});
+
 for (
   const [name, assets] of [
     ["theme-minimal", ["style.css"]],
