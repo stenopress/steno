@@ -7,6 +7,9 @@
   "publish": {
     "exclude": [
       ".github",
+      ".claude",
+      ".devcontainer",
+      ".idea",
       "docs",
       "test",
       "test.ts",
@@ -14,7 +17,9 @@
       "packages",
       "integration",
       "benchmarks",
-      "api_compat"
+      "api_compat",
+      "CONTRIBUTING.md",
+      "CODE_OF_CONDUCT.md"
     ]
   },
   "tasks": {
@@ -23,7 +28,8 @@
     "test:unit": "deno test -A ./test.ts ./src",
     "test:sites": "deno test -A ./integration/real_sites_test.ts",
     "test:ecosystem": "deno test -A ./integration/ecosystem_compat_test.ts",
-    "test:all": "deno task test:unit && deno task test:sites",
+    "test:installed": "deno test -A ./integration/installed_product_test.ts",
+    "test:all": "deno task test:unit && deno task test:sites && deno task test:installed",
     "bench": "deno bench -A ./benchmarks",
     "bench:check": "deno run -A ./benchmarks/perf_budget.ts",
     "bench:report": "deno run -A ./benchmarks/benchmark_report.ts",

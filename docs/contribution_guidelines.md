@@ -48,11 +48,12 @@ Always ensure all tests pass before submitting a pull request:
 deno task test           # Unit tests: ./test.ts and ./src
 deno task test:sites     # Builds real-world sample sites (integration/real_sites_test.ts)
 deno task test:ecosystem # Official theme/plugin compatibility (integration/ecosystem_compat_test.ts)
-deno task test:all       # test + test:sites
+deno task test:installed # Runs the CLI from a simulated `deno publish` (integration/installed_product_test.ts)
+deno task test:all       # test + test:sites + test:installed
 ```
 
-`test:sites` and `test:ecosystem` build real projects end to end; expect them to take longer than
-the unit suite.
+`test:sites`, `test:ecosystem`, and `test:installed` build real projects end to end; expect them to
+take longer than the unit suite.
 
 ### Static Analysis
 
