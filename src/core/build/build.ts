@@ -7,6 +7,7 @@ import { runAstTransforms, runHtmlTransforms } from "../../plugins/plugins.ts";
 import { processIncludes } from "../includes.ts";
 import { buildRedirects } from "../redirects.ts";
 import { loadDataFiles } from "../data.ts";
+import { DiagnosticBag, enforceDiagnostics } from "../diagnostics.ts";
 import { buildComplete, debugBuildStart, debugPageContext } from "../../utils/output.ts";
 import {
   resolveMarkdownScanIgnorePaths,
@@ -129,7 +130,9 @@ export async function buildSite({
     for (const plugin of plugins) await plugin.beforeBuild?.(stagedConfig);
     await hooks.beforeBuild?.(stagedConfig);
 
-    const data = await loadDataFiles(contentDir);
+    const diagnostics = new DiagnosticBag();
+    const data = await loadDataFiles(contentDir, diagnostics);
+    enforceDiagnostics(diagnostics, dev);
     const globalVars = resolveConfigGlobals(config);
     const publicEnv = getPublicEnvVars(environment);
     const siteHead = config.head ? validateHeadTags(config.head) : [];
@@ -482,12 +485,15 @@ export async function buildSite({
     }
 
     if (config.redirects && Object.keys(config.redirects).length > 0) {
+      const redirectDiagnostics = new DiagnosticBag();
       buildRedirects(
         stagingDir,
         config.redirects,
         shortUrls,
         occupiedPaths,
+        redirectDiagnostics,
       );
+      enforceDiagnostics(redirectDiagnostics, dev);
     }
 
     for (const plugin of plugins) await plugin.afterBuild?.(stagedConfig);

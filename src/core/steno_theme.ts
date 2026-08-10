@@ -2,6 +2,8 @@ import { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoTheme } from "../types.ts";
 import { fromFileUrl, isAbsolute, join, toFileUrl } from "@std/path";
 import { resolveTheme, resolveThemeConfig } from "./config.ts";
+import { DiagnosticBag } from "./diagnostics.ts";
+import { errorMessage } from "../utils/text.ts";
 
 const bundledThemeSources: Record<string, URL> = {
   "jsr:@steno/theme-minimal": new URL(
@@ -101,6 +103,7 @@ async function loadBundledTheme(
 
 export async function loadTheme(
   config: SiteConfig,
+  diagnostics: DiagnosticBag = new DiagnosticBag(),
 ): Promise<Theme | undefined> {
   const themeName = resolveTheme(config);
   if (!themeName) return;
@@ -163,9 +166,15 @@ export async function loadTheme(
           }
         }
         if (!found) {
-          console.error(
-            `Failed to load theme "${themeName}": Could not find mod.ts, theme.ts, or index.ts in theme directory "${themeName}"`,
-          );
+          diagnostics.add({
+            code: "theme-load-failed",
+            severity: "error",
+            message:
+              `Could not find mod.ts, theme.ts, or index.ts in theme directory "${themeName}".`,
+            file: themeName,
+            hint:
+              "A directory-based local theme needs a theme.yaml/theme.yml, or one of mod.ts/theme.ts/index.ts exporting a StenoTheme.",
+          });
           return;
         }
       }
@@ -181,6 +190,13 @@ export async function loadTheme(
     const themeData = (themeModule.default || themeModule) as StenoTheme;
     return new Theme(themeData, themeConfig);
   } catch (error) {
-    console.error(`Failed to load theme "${themeName}":`, error);
+    diagnostics.add({
+      code: "theme-load-failed",
+      severity: "error",
+      message: `Failed to load theme "${themeName}": ${errorMessage(error)}`,
+      file: themeName,
+      hint:
+        "Check the theme specifier and that its module/directory actually exports a valid StenoTheme.",
+    });
   }
 }

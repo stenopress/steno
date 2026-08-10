@@ -2,6 +2,7 @@ import { join, resolve } from "@std/path";
 import { ensureParentDirSync } from "../utils/fs.ts";
 import { isPathInsideOrEqual } from "./path_utils.ts";
 import { escapeHtml } from "../utils/tau.ts";
+import { DiagnosticBag } from "./diagnostics.ts";
 
 function buildRedirectHtml(to: string): string {
   const safeTo = escapeHtml(to);
@@ -48,28 +49,35 @@ export function buildRedirects(
   redirects: Record<string, string>,
   shortUrls: boolean,
   occupiedPaths: Set<string> = new Set(),
+  diagnostics: DiagnosticBag = new DiagnosticBag(),
 ): void {
   for (const [from, to] of Object.entries(redirects)) {
     if (!from.startsWith("/")) {
-      console.warn(
-        `[redirects] Skipping "${from}" - redirect paths must start with "/".`,
-      );
+      diagnostics.add({
+        code: "redirect-invalid",
+        severity: "error",
+        message: `Redirect "${from}" is invalid - redirect paths must start with "/".`,
+      });
       continue;
     }
 
     if (!to) {
-      console.warn(
-        `[redirects] Skipping "${from}" - redirect target cannot be empty.`,
-      );
+      diagnostics.add({
+        code: "redirect-invalid",
+        severity: "error",
+        message: `Redirect "${from}" is invalid - its target cannot be empty.`,
+      });
       continue;
     }
 
     const outputPath = resolveRedirectOutputPath(outputDir, from, shortUrls);
     const normalizedOutputPath = resolve(outputPath);
     if (!isPathInsideOrEqual(normalizedOutputPath, resolve(outputDir))) {
-      console.warn(
-        `[redirects] Skipping "${from}" - resolves outside the output directory.`,
-      );
+      diagnostics.add({
+        code: "redirect-invalid",
+        severity: "error",
+        message: `Redirect "${from}" is invalid - it resolves outside the output directory.`,
+      });
       continue;
     }
     if (occupiedPaths.has(normalizedOutputPath)) {
