@@ -268,6 +268,9 @@ export async function buildSite({
       : {};
     // Detects stale baked-in asset hrefs on cache reuse.
     const assetsSignature = JSON.stringify(themeAssets);
+    // Any page's template could read `collections`; resolved eagerly so the
+    // per-page cache check below sees it. Skipped without a theme.
+    const collectionsSignature = theme ? JSON.stringify(await getCollections()) : "";
 
     const fireAfterPage = async (
       finalPath: string,
@@ -315,8 +318,11 @@ export async function buildSite({
 
         const needsRender = !cachedPage ||
           cachedPage.sourceText !== page.sourceText ||
+          // catches a changed {@include}d partial even when sourceText didn't change
+          cachedPage.body !== processedBody ||
           cachedPage.outputPath !== outputFilePath ||
           cachedPage.assetsSignature !== assetsSignature ||
+          cachedPage.collectionsSignature !== collectionsSignature ||
           !(await fileExists(outputFilePath));
 
         if (!needsRender) {
@@ -459,6 +465,7 @@ export async function buildSite({
         body: processedBody,
         htmlContent,
         assetsSignature,
+        collectionsSignature,
       });
     }
 

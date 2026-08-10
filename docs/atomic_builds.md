@@ -86,6 +86,11 @@ configured hook and plugin hook function (via `Function.prototype.toString`). Ed
 or plugin function invalidates the cache; editing the internals of a function called _from_ that
 hook, without changing the hook's own source text, does not.
 
+Beyond that whole-build signature, each page has its own cache entry and is re-rendered individually
+when its source text, output path, resolved theme assets, `{@include}`d partials (even though those
+live in other files), or the site's `collections` map changed since it was last cached - not only
+when the page's own frontmatter/body changed.
+
 ## Staging directory names
 
 While a build runs, Steno creates a sibling directory next to the configured output directory named

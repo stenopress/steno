@@ -2,9 +2,9 @@ import { assertEquals, assertRejects, assertStringIncludes, assertThrows } from 
 import { join } from "@std/path";
 import { Steno } from "../../../mod.ts";
 import type { SiteConfig, StenoPlugin } from "../../types.ts";
+import { fileExistsSync as fileExists } from "../../utils/fs.ts";
 import { buildSite } from "./build.ts";
 import { beginOutputTransaction, rollbackOutputTransaction } from "./output_transaction.ts";
-import { fileExistsSync as fileExists } from "../../utils/fs.ts";
 
 interface TestFixture {
   tempDir: string;
@@ -72,16 +72,10 @@ function createFixture(): TestFixture {
       );
 
       for (const [name, content] of Object.entries(layouts)) {
-        Deno.writeTextFileSync(
-          join(themeDir, "layouts", `${name}.tau`),
-          content,
-        );
+        Deno.writeTextFileSync(join(themeDir, "layouts", `${name}.tau`), content);
       }
       for (const [name, content] of Object.entries(components)) {
-        Deno.writeTextFileSync(
-          join(themeDir, "components", `${name}.tau`),
-          content,
-        );
+        Deno.writeTextFileSync(join(themeDir, "components", `${name}.tau`), content);
       }
       for (const [name, content] of Object.entries(assets)) {
         Deno.writeTextFileSync(join(themeDir, "assets", name), content);
@@ -92,10 +86,7 @@ function createFixture(): TestFixture {
   };
 }
 
-async function replacePlugins(
-  steno: Steno,
-  plugins: StenoPlugin[],
-): Promise<void> {
+async function replacePlugins(steno: Steno, plugins: StenoPlugin[]): Promise<void> {
   const internals = steno as unknown as {
     runtimeLoadingPromise: Promise<unknown>;
     plugins: StenoPlugin[];
@@ -114,10 +105,7 @@ export function registerBuildTests(): void {
       const f = createFixture();
       try {
         f.writeConfig();
-        f.writePage(
-          "index.md",
-          `---\ntitle: "Home"\n---\n# Ready\n`,
-        );
+        f.writePage("index.md", `---\ntitle: "Home"\n---\n# Ready\n`);
 
         const steno = new Steno(f.configPath, true);
         await steno.ready();
@@ -149,10 +137,7 @@ export function registerBuildTests(): void {
         f.configPath,
         `title: "My Blog"\ndescription: ""\nauthor: ""\ncontentDir: "${f.contentDir}"\noutput: "${f.outputDir}"\ncustom:\n  shortUrls: true\n  theme: "${themeDir}"\n  themeConfig:\n    brand: "Steno Test"\n`,
       );
-      f.writePage(
-        "index.md",
-        `---\ntitle: "Home"\nlayout: "layout"\n---\n# Hello E2E\n`,
-      );
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: "layout"\n---\n# Hello E2E\n`);
       f.writePage(
         "blog/first-post.md",
         `---\ntitle: "First Post"\nlayout: "layout"\n---\nWelcome to my blog.\n`,
@@ -164,22 +149,17 @@ export function registerBuildTests(): void {
       assertStringIncludes(indexHtml, "<header>Steno Test - My Blog</header>");
       assertStringIncludes(indexHtml, "<h1>Hello E2E</h1>");
 
-      const postHtml = Deno.readTextFileSync(
-        join(f.outputDir, "blog", "first-post", "index.html"),
-      );
+      const postHtml = Deno.readTextFileSync(join(f.outputDir, "blog", "first-post", "index.html"));
       assertStringIncludes(postHtml, "Welcome to my blog.");
 
-      const assetFiles = [...Deno.readDirSync(join(f.outputDir, "assets"))]
-        .map((entry) => entry.name);
+      const assetFiles = [...Deno.readDirSync(join(f.outputDir, "assets"))].map(
+        (entry) => entry.name,
+      );
       const cssFileName = assetFiles.find((name) => /^global\.[0-9a-f]{8}\.css$/.test(name));
       if (!cssFileName) {
-        throw new Error(
-          `Expected a hashed global.css asset, found: ${assetFiles.join(", ")}`,
-        );
+        throw new Error(`Expected a hashed global.css asset, found: ${assetFiles.join(", ")}`);
       }
-      const css = Deno.readTextFileSync(
-        join(f.outputDir, "assets", cssFileName),
-      );
+      const css = Deno.readTextFileSync(join(f.outputDir, "assets", cssFileName));
       assertEquals(css, "body { margin: 0; }");
 
       f.cleanup();
@@ -191,21 +171,15 @@ export function registerBuildTests(): void {
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
-      const themeDir = f.writeTheme(
-        undefined,
-        undefined,
-        { "style.css": "body { color: green; }" },
-      );
-      f.writeConfig(
-        `custom:\n  theme: "${themeDir}"\nhashAssets: false\n`,
-      );
+      const themeDir = f.writeTheme(undefined, undefined, {
+        "style.css": "body { color: green; }",
+      });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\nhashAssets: false\n`);
       f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
 
       await new Steno(f.configPath, false).build();
 
-      const css = Deno.readTextFileSync(
-        join(f.outputDir, "assets", "style.css"),
-      );
+      const css = Deno.readTextFileSync(join(f.outputDir, "assets", "style.css"));
       assertEquals(css, "body { color: green; }");
 
       f.cleanup();
@@ -223,10 +197,7 @@ export function registerBuildTests(): void {
       });
 
       f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
-      f.writePage(
-        "index.md",
-        `---\ntitle: "Error page"\nlayout: "layout"\n---\nContent\n`,
-      );
+      f.writePage("index.md", `---\ntitle: "Error page"\nlayout: "layout"\n---\nContent\n`);
 
       const layoutPath = join(themeDir, "layouts", "layout.tau");
       const steno = new Steno(f.configPath, false);
@@ -248,10 +219,7 @@ export function registerBuildTests(): void {
         "company.md",
         `---\ntitle: Company\nsteno:\n  permalink: /about/\n---\nCompany page.`,
       );
-      f.writePage(
-        "404.md",
-        `---\ntitle: Not found\n---\nThis page could not be found.`,
-      );
+      f.writePage("404.md", `---\ntitle: Not found\n---\nThis page could not be found.`);
 
       await new Steno(f.configPath, false).build();
 
@@ -263,10 +231,7 @@ export function registerBuildTests(): void {
         Deno.readTextFileSync(join(f.outputDir, "404.html")),
         "This page could not be found.",
       );
-      assertEquals(
-        fileExists(join(f.outputDir, "company", "index.html")),
-        false,
-      );
+      assertEquals(fileExists(join(f.outputDir, "company", "index.html")), false);
       assertEquals(fileExists(join(f.outputDir, "404", "index.html")), false);
       f.cleanup();
     },
@@ -280,10 +245,7 @@ export function registerBuildTests(): void {
       f.writeConfig();
 
       const mdPath = join(f.contentDir, "index.md");
-      Deno.writeTextFileSync(
-        mdPath,
-        `---\ntitle: "Error page\nbroken_yaml: : :\n---\nContent\n`,
-      );
+      Deno.writeTextFileSync(mdPath, `---\ntitle: "Error page\nbroken_yaml: : :\n---\nContent\n`);
 
       const steno = new Steno(f.configPath, false);
       const err = await assertRejects(() => steno.build());
@@ -314,18 +276,20 @@ export function registerBuildTests(): void {
         },
       });
 
-      await replacePlugins(steno, [{
-        name: "test",
-        beforeBuild: () => {
-          order.push("plugin:beforeBuild");
+      await replacePlugins(steno, [
+        {
+          name: "test",
+          beforeBuild: () => {
+            order.push("plugin:beforeBuild");
+          },
+          afterPage: () => {
+            order.push("plugin:afterPage");
+          },
+          afterBuild: () => {
+            order.push("plugin:afterBuild");
+          },
         },
-        afterPage: () => {
-          order.push("plugin:afterPage");
-        },
-        afterBuild: () => {
-          order.push("plugin:afterBuild");
-        },
-      }]);
+      ]);
 
       await steno.build();
 
@@ -373,10 +337,7 @@ export function registerBuildTests(): void {
       Deno.removeSync(join(f.contentDir, "index.md"));
       await steno.build();
       assertEquals(rendered, []);
-      assertThrows(
-        () => Deno.statSync(join(f.outputDir, "index.html")),
-        Deno.errors.NotFound,
-      );
+      assertThrows(() => Deno.statSync(join(f.outputDir, "index.html")), Deno.errors.NotFound);
 
       f.cleanup();
     },
@@ -396,10 +357,7 @@ export function registerBuildTests(): void {
       await new Steno(f.configPath, false).build();
       assertStringIncludes(Deno.readTextFileSync(cachePath), '"signature"');
 
-      f.writePage(
-        "about.md",
-        `---\ntitle: "About"\n---\nUpdated from new process.`,
-      );
+      f.writePage("about.md", `---\ntitle: "About"\n---\nUpdated from new process.`);
       const secondRendered: string[] = [];
       await new Steno(f.configPath, false, {
         afterPage: ({ path }) => {
@@ -418,10 +376,7 @@ export function registerBuildTests(): void {
 
       Deno.removeSync(join(f.contentDir, "about.md"));
       await new Steno(f.configPath, false).build();
-      assertThrows(
-        () => Deno.statSync(join(f.outputDir, "about.html")),
-        Deno.errors.NotFound,
-      );
+      assertThrows(() => Deno.statSync(join(f.outputDir, "about.html")), Deno.errors.NotFound);
 
       f.cleanup();
     },
@@ -436,18 +391,12 @@ export function registerBuildTests(): void {
         layout: `<html><body>{data.site.message}{@html content}</body></html>`,
       });
       f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
-      f.writePage(
-        "index.md",
-        `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`,
-      );
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`);
       f.writePage("_data/site.json", `{"message":"v1"}`);
 
       const steno = new Steno(f.configPath, false);
       await steno.build();
-      assertStringIncludes(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        "v1",
-      );
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "v1");
 
       // The page's own source is untouched - only the data file changes.
       // Before the build signature accounted for data, this page's cache
@@ -478,38 +427,25 @@ export function registerBuildTests(): void {
         { "style.css": "body { color: red; }" },
       );
       f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
-      f.writePage(
-        "index.md",
-        `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`,
-      );
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`);
 
       const steno = new Steno(f.configPath, false);
       await steno.build();
-      const firstHtml = Deno.readTextFileSync(
-        join(f.outputDir, "index.html"),
-      );
+      const firstHtml = Deno.readTextFileSync(join(f.outputDir, "index.html"));
       const firstHrefMatch = firstHtml.match(/href="([^"]+)"/);
       assertEquals(firstHrefMatch !== null, true);
       const firstHref = firstHrefMatch![1];
 
       // Only the theme CSS changes - page source stays same.
-      Deno.writeTextFileSync(
-        join(themeDir, "assets", "style.css"),
-        "body { color: blue; }",
-      );
+      Deno.writeTextFileSync(join(themeDir, "assets", "style.css"), "body { color: blue; }");
       await steno.build();
-      const secondHtml = Deno.readTextFileSync(
-        join(f.outputDir, "index.html"),
-      );
+      const secondHtml = Deno.readTextFileSync(join(f.outputDir, "index.html"));
       const secondHrefMatch = secondHtml.match(/href="([^"]+)"/);
       assertEquals(secondHrefMatch !== null, true);
       const secondHref = secondHrefMatch![1];
 
       assertEquals(secondHref === firstHref, false);
-      assertEquals(
-        fileExists(join(f.outputDir, secondHref.replace(/^\//, ""))),
-        true,
-      );
+      assertEquals(fileExists(join(f.outputDir, secondHref.replace(/^\//, ""))), true);
 
       f.cleanup();
     },
@@ -552,10 +488,7 @@ export function registerBuildTests(): void {
         1,
         "transformHtml should not run again when cached HTML is reused",
       );
-      assertStringIncludes(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        "Hello.",
-      );
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "Hello.");
 
       f.cleanup();
     },
@@ -570,16 +503,10 @@ export function registerBuildTests(): void {
         layout: `<html><body><p>layout-v1</p>{@html content}</body></html>`,
       });
       f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
-      f.writePage(
-        "index.md",
-        `---\ntitle: "Home"\nlayout: "layout"\n---\nHome.`,
-      );
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: "layout"\n---\nHome.`);
 
       await new Steno(f.configPath, false).build();
-      assertStringIncludes(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        "layout-v1",
-      );
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "layout-v1");
 
       Deno.writeTextFileSync(
         join(themeDir, "layouts", "layout.tau"),
@@ -594,10 +521,7 @@ export function registerBuildTests(): void {
       }).build();
 
       assertEquals(rendered, [join(f.outputDir, "index.html")]);
-      assertStringIncludes(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        "layout-v2",
-      );
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "layout-v2");
 
       f.cleanup();
     },
@@ -612,15 +536,14 @@ export function registerBuildTests(): void {
       f.writePage("index.md", `---\ntitle: "Home"\n---\nHome.`);
 
       const stenoV1 = new Steno(f.configPath, false);
-      await replacePlugins(stenoV1, [{
-        name: "sig",
-        transformHtml: (html: string) => `<div>plugin-v1</div>${html}`,
-      }]);
+      await replacePlugins(stenoV1, [
+        {
+          name: "sig",
+          transformHtml: (html: string) => `<div>plugin-v1</div>${html}`,
+        },
+      ]);
       await stenoV1.build();
-      assertStringIncludes(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        "plugin-v1",
-      );
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "plugin-v1");
 
       const rendered: string[] = [];
       const stenoV2 = new Steno(f.configPath, false, {
@@ -628,17 +551,16 @@ export function registerBuildTests(): void {
           rendered.push(path);
         },
       });
-      await replacePlugins(stenoV2, [{
-        name: "sig",
-        transformHtml: (html: string) => `<div>plugin-v2</div>${html}`,
-      }]);
+      await replacePlugins(stenoV2, [
+        {
+          name: "sig",
+          transformHtml: (html: string) => `<div>plugin-v2</div>${html}`,
+        },
+      ]);
       await stenoV2.build();
 
       assertEquals(rendered, [join(f.outputDir, "index.html")]);
-      assertStringIncludes(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        "plugin-v2",
-      );
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "plugin-v2");
 
       f.cleanup();
     },
@@ -663,26 +585,18 @@ const theme: StenoTheme = {
 export default theme;`,
       );
 
-      f.writePage(
-        "index.md",
-        `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`,
-      );
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`);
 
       f.writeConfig(`custom:\n  theme: "${themeModulePath}"\n`);
       await new Steno(f.configPath, false).build();
-      assertStringIncludes(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        "theme-plugin",
-      );
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "theme-plugin");
 
       f.writeConfig(
         `custom:\n  theme: "${themeModulePath}"\n  pluginSourcePolicy:\n    allowThemePlugins: false\n`,
       );
       await new Steno(f.configPath, false).build();
       assertEquals(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")).includes(
-          "theme-plugin",
-        ),
+        Deno.readTextFileSync(join(f.outputDir, "index.html")).includes("theme-plugin"),
         false,
       );
 
@@ -697,10 +611,7 @@ export default theme;`,
       const f = createFixture();
       f.writeConfig();
       f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
-      f.writePage(
-        "draft-post.md",
-        `---\ntitle: "Draft"\ndraft: true\n---\nThis is a draft.`,
-      );
+      f.writePage("draft-post.md", `---\ntitle: "Draft"\ndraft: true\n---\nThis is a draft.`);
 
       await new Steno(f.configPath, false).build();
 
@@ -716,10 +627,7 @@ export default theme;`,
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
-      f.writePage(
-        "draft-post.md",
-        `---\ntitle: "Draft"\ndraft: true\n---\nThis is a draft.`,
-      );
+      f.writePage("draft-post.md", `---\ntitle: "Draft"\ndraft: true\n---\nThis is a draft.`);
 
       await buildSite({
         config: {
@@ -744,10 +652,7 @@ export default theme;`,
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
-      f.writePage(
-        "about.md",
-        `---\ntitle: "About"\ndraft: false\n---\nAbout page.`,
-      );
+      f.writePage("about.md", `---\ntitle: "About"\ndraft: false\n---\nAbout page.`);
 
       await buildSite({
         config: {
@@ -783,10 +688,7 @@ export default theme;`,
       f.writeConfig(
         `custom:\n  theme: "${themeDir}"\n  globals:\n    tagline: "Ship fast"\n    company:\n      name: "Acme"\n`,
       );
-      f.writePage(
-        "index.md",
-        `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`,
-      );
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: "layout"\n---\nHello.`);
 
       await new Steno(f.configPath, false).build();
       const html = Deno.readTextFileSync(join(f.outputDir, "index.html"));
@@ -824,10 +726,7 @@ export default theme;`,
         "<p>Launch site|Launch description|Launch brand|launch|launch</p>",
       );
       const about = Deno.readTextFileSync(join(f.outputDir, "about.html"));
-      assertStringIncludes(
-        about,
-        "<p>Test|Site description|Default brand|evergreen|evergreen</p>",
-      );
+      assertStringIncludes(about, "<p>Test|Site description|Default brand|evergreen|evergreen</p>");
       assertEquals(launch.includes("[object Object]"), false);
 
       f.cleanup();
@@ -845,10 +744,7 @@ export default theme;`,
         `name: test-theme\nversion: 1.0.0\nconfigSchema:\n  columns: { type: integer, default: 2 }\n`,
       );
       f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
-      f.writePage(
-        "invalid.md",
-        `---\nsteno:\n  themeConfig:\n    columns: wide\n---\nInvalid.`,
-      );
+      f.writePage("invalid.md", `---\nsteno:\n  themeConfig:\n    columns: wide\n---\nInvalid.`);
 
       const error = await assertRejects(
         () => new Steno(f.configPath, false).build(),
@@ -880,20 +776,14 @@ export default theme;`,
 
       await new Steno(f.configPath, false).build();
       const post = Deno.readTextFileSync(join(f.outputDir, "post.html"));
-      assertStringIncludes(
-        post,
-        '<meta name="description" content="Post description">',
-      );
+      assertStringIncludes(post, '<meta name="description" content="Post description">');
       assertStringIncludes(post, '<meta property="og:type" content="article">');
       assertStringIncludes(post, '<script src="/app.js" defer></script>');
       assertEquals(post.includes("Site description"), false);
 
       const about = Deno.readTextFileSync(join(f.outputDir, "about.html"));
       assertStringIncludes(about, "Site description");
-      assertStringIncludes(
-        about,
-        '<meta property="og:type" content="website">',
-      );
+      assertStringIncludes(about, '<meta property="og:type" content="website">');
       assertEquals(about.includes(" defer"), false);
 
       f.cleanup();
@@ -933,10 +823,7 @@ export default theme;`,
         });
 
         f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
-        f.writePage(
-          "index.md",
-          `---\ntitle: "Home"\nlayout: "layout"\n---\nPage content\n`,
-        );
+        f.writePage("index.md", `---\ntitle: "Home"\nlayout: "layout"\n---\nPage content\n`);
 
         await new Steno(f.configPath, false).build();
         const html = Deno.readTextFileSync(join(f.outputDir, "index.html"));
@@ -958,10 +845,7 @@ export default theme;`,
     fn: async () => {
       const f = createFixture();
       f.writeConfig();
-      f.writePage(
-        "index.md",
-        `---\ntitle: "Home"\n---\n# Hello\n{@include "partials/cta.md"}`,
-      );
+      f.writePage("index.md", `---\ntitle: "Home"\n---\n# Hello\n{@include "partials/cta.md"}`);
       f.writePage("partials/cta.md", `Sign up today!`);
 
       await new Steno(f.configPath, false).build();
@@ -970,6 +854,67 @@ export default theme;`,
         Deno.readTextFileSync(join(f.outputDir, "index.html")),
         "Sign up today!",
       );
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name:
+      "build: an unchanged page whose {@include}d partial changed is rebuilt on the next incremental build",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const config: SiteConfig = {
+        title: "Test",
+        description: "",
+        author: "",
+        contentDir: f.contentDir,
+        output: f.outputDir,
+      };
+      f.writePage("index.md", `---\ntitle: "Home"\n---\n# Hello\n{@include "partials/cta.md"}`);
+      f.writePage("partials/cta.md", `Old CTA`);
+
+      const state = { signature: null, pages: new Map() };
+      await buildSite({ config, plugins: [], hooks: {}, dev: false, state });
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "Old CTA");
+
+      f.writePage("partials/cta.md", `New CTA`);
+      await buildSite({ config, plugins: [], hooks: {}, dev: false, state });
+
+      assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "New CTA");
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name:
+      "build: an unchanged page that lists a collection is rebuilt when the collection's membership changes",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme({
+        layout: `<html><body><ul>{#each collections.posts.items as post}` +
+          `<li>{post.frontmatter.title}</li>{/each}</ul>{@html content}</body></html>`,
+      });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: layout\n---\n# Hello`);
+      f.writePage("posts/one.md", `---\ntitle: "First"\nlayout: layout\n---\nBody`);
+
+      const steno = new Steno(f.configPath, false);
+      await steno.build();
+      assertStringIncludes(
+        Deno.readTextFileSync(join(f.outputDir, "index.html")),
+        "<li>First</li>",
+      );
+
+      f.writePage("posts/two.md", `---\ntitle: "Second"\nlayout: layout\n---\nBody`);
+      await steno.build();
+
+      const html = Deno.readTextFileSync(join(f.outputDir, "index.html"));
+      assertStringIncludes(html, "<li>First</li>");
+      assertStringIncludes(html, "<li>Second</li>");
 
       f.cleanup();
     },
@@ -990,18 +935,16 @@ export default theme;`,
       const previousCache = Deno.readTextFileSync(cachePath);
 
       f.writePage("index.md", `---\ntitle: "Home"\n---\nUnsafe update.`);
-      await replacePlugins(steno, [{
-        name: "failing-after-build",
-        afterBuild: () => {
-          throw new Error("deliberate post-build failure");
+      await replacePlugins(steno, [
+        {
+          name: "failing-after-build",
+          afterBuild: () => {
+            throw new Error("deliberate post-build failure");
+          },
         },
-      }]);
+      ]);
 
-      await assertRejects(
-        () => steno.build(),
-        Error,
-        "deliberate post-build failure",
-      );
+      await assertRejects(() => steno.build(), Error, "deliberate post-build failure");
       assertEquals(Deno.readTextFileSync(outputPath), previousOutput);
       assertEquals(Deno.readTextFileSync(cachePath), previousCache);
       assertEquals(
@@ -1026,19 +969,13 @@ export default theme;`,
       await new Steno(f.configPath, false, {
         afterBuild: (config) => {
           lifecycleOutput = config.output ?? "";
-          Deno.writeTextFileSync(
-            join(lifecycleOutput, "hook-output.txt"),
-            "committed",
-          );
+          Deno.writeTextFileSync(join(lifecycleOutput, "hook-output.txt"), "committed");
           assertEquals(fileExists(f.outputDir), false);
         },
       }).build();
 
       assertEquals(lifecycleOutput === f.outputDir, false);
-      assertEquals(
-        Deno.readTextFileSync(join(f.outputDir, "hook-output.txt")),
-        "committed",
-      );
+      assertEquals(Deno.readTextFileSync(join(f.outputDir, "hook-output.txt")), "committed");
       f.cleanup();
     },
   });
@@ -1066,12 +1003,14 @@ Body.`,
         },
       }).build();
 
-      assertEquals(pages, [{
-        slug: "post.html",
-        title: "Post",
-        description: "Feed description",
-        date: "2026-07-29",
-      }]);
+      assertEquals(pages, [
+        {
+          slug: "post.html",
+          title: "Post",
+          description: "Feed description",
+          date: "2026-07-29",
+        },
+      ]);
       f.cleanup();
     },
   });
@@ -1081,11 +1020,7 @@ Body.`,
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
-      const themeDir = f.writeTheme(
-        undefined,
-        undefined,
-        { "old.css": "old" },
-      );
+      const themeDir = f.writeTheme(undefined, undefined, { "old.css": "old" });
       f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
       f.writePage("index.md", `---\ntitle: "Home"\n---\nHome.`);
       f.writePage("old.md", `---\ntitle: "Old"\n---\nOld.`);
@@ -1109,24 +1044,12 @@ Body.`,
       f.writeConfig(`custom:\n  shortUrls: true\n`);
       f.writePage("index.md", `---\ntitle: "Home"\n---\nStable.`);
       await new Steno(f.configPath, false).build();
-      const previousOutput = Deno.readTextFileSync(
-        join(f.outputDir, "index.html"),
-      );
+      const previousOutput = Deno.readTextFileSync(join(f.outputDir, "index.html"));
 
       f.writePage("about.md", `---\ntitle: "About"\n---\nOne.`);
-      f.writePage(
-        "about/index.md",
-        `---\ntitle: "About index"\n---\nTwo.`,
-      );
-      await assertRejects(
-        () => new Steno(f.configPath, false).build(),
-        Error,
-        "Output collision",
-      );
-      assertEquals(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        previousOutput,
-      );
+      f.writePage("about/index.md", `---\ntitle: "About index"\n---\nTwo.`);
+      await assertRejects(() => new Steno(f.configPath, false).build(), Error, "Output collision");
+      assertEquals(Deno.readTextFileSync(join(f.outputDir, "index.html")), previousOutput);
       f.cleanup();
     },
   });
@@ -1139,20 +1062,11 @@ Body.`,
       f.writeConfig();
       f.writePage("index.md", `---\ntitle: "Home"\n---\nStable.`);
       await new Steno(f.configPath, false).build();
-      const previousOutput = Deno.readTextFileSync(
-        join(f.outputDir, "index.html"),
-      );
+      const previousOutput = Deno.readTextFileSync(join(f.outputDir, "index.html"));
 
       f.writeConfig(`redirects:\n  /index: /elsewhere\n`);
-      await assertRejects(
-        () => new Steno(f.configPath, false).build(),
-        Error,
-        "Output collision",
-      );
-      assertEquals(
-        Deno.readTextFileSync(join(f.outputDir, "index.html")),
-        previousOutput,
-      );
+      await assertRejects(() => new Steno(f.configPath, false).build(), Error, "Output collision");
+      assertEquals(Deno.readTextFileSync(join(f.outputDir, "index.html")), previousOutput);
       f.cleanup();
     },
   });
@@ -1162,14 +1076,10 @@ Body.`,
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
-      const themeDir = f.writeTheme(
-        undefined,
-        undefined,
-        { "style.css": "body { color: black; }" },
-      );
-      f.writeConfig(
-        `custom:\n  theme: "${themeDir}"\nredirects:\n  /old: /new\n`,
-      );
+      const themeDir = f.writeTheme(undefined, undefined, {
+        "style.css": "body { color: black; }",
+      });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\nredirects:\n  /old: /new\n`);
       f.writePage("index.md", `---\ntitle: "Home"\n---\nDeterministic.`);
 
       const snapshot = async (): Promise<Record<string, string>> => {
@@ -1184,10 +1094,7 @@ Body.`,
             if (entry.isDirectory) {
               await walk(path, relativePath);
             } else if (entry.isFile) {
-              const digest = await crypto.subtle.digest(
-                "SHA-256",
-                Deno.readFileSync(path),
-              );
+              const digest = await crypto.subtle.digest("SHA-256", Deno.readFileSync(path));
               files[relativePath] = Array.from(new Uint8Array(digest))
                 .map((byte) => byte.toString(16).padStart(2, "0"))
                 .join("");
@@ -1218,15 +1125,9 @@ Body.`,
       Deno.writeTextFileSync(join(backupDir, "index.html"), "last-good");
 
       const transaction = beginOutputTransaction(outputDir);
-      assertEquals(
-        Deno.readTextFileSync(join(outputDir, "index.html")),
-        "last-good",
-      );
+      assertEquals(Deno.readTextFileSync(join(outputDir, "index.html")), "last-good");
       rollbackOutputTransaction(transaction);
-      assertEquals(
-        Deno.readTextFileSync(join(outputDir, "index.html")),
-        "last-good",
-      );
+      assertEquals(Deno.readTextFileSync(join(outputDir, "index.html")), "last-good");
       Deno.removeSync(tempDir, { recursive: true });
     },
   });
@@ -1243,14 +1144,8 @@ Body.`,
 
       await new Steno(f.configPath, false).build();
 
-      assertEquals(
-        Deno.readTextFileSync(join(f.outputDir, "favicon.ico")),
-        "ICO",
-      );
-      assertEquals(
-        Deno.readTextFileSync(join(f.outputDir, "css", "style.css")),
-        "body {}",
-      );
+      assertEquals(Deno.readTextFileSync(join(f.outputDir, "favicon.ico")), "ICO");
+      assertEquals(Deno.readTextFileSync(join(f.outputDir, "css", "style.css")), "body {}");
       f.cleanup();
     },
   });
@@ -1270,10 +1165,7 @@ Body.`,
         Deno.readTextFileSync(join(f.outputDir, "downloads", "readme.md")),
         "# not a page",
       );
-      assertEquals(
-        fileExists(join(f.outputDir, "downloads", "readme.html")),
-        false,
-      );
+      assertEquals(fileExists(join(f.outputDir, "downloads", "readme.html")), false);
       f.cleanup();
     },
   });
@@ -1306,10 +1198,7 @@ Body.`,
 
       await new Steno(f.configPath, false).build();
 
-      assertEquals(
-        Deno.readTextFileSync(join(f.outputDir, "favicon.ico")),
-        "ICO",
-      );
+      assertEquals(Deno.readTextFileSync(join(f.outputDir, "favicon.ico")), "ICO");
       f.cleanup();
     },
   });
@@ -1323,11 +1212,7 @@ Body.`,
       f.writePage("about.md", `---\ntitle: "About"\n---\nHello.`);
       f.writePage("public/about.html", "not the real page");
 
-      await assertRejects(
-        () => new Steno(f.configPath, false).build(),
-        Error,
-        "Output collision",
-      );
+      await assertRejects(() => new Steno(f.configPath, false).build(), Error, "Output collision");
       f.cleanup();
     },
   });
