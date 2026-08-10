@@ -13,7 +13,8 @@
       "**/*_test.ts",
       "packages",
       "integration",
-      "benchmarks"
+      "benchmarks",
+      "api_compat"
     ]
   },
   "tasks": {
@@ -28,7 +29,8 @@
     "bench:report": "deno run -A ./benchmarks/benchmark_report.ts",
     "bench:trends": "deno run -A ./benchmarks/bench_trends.ts",
     "doc:check": "deno doc --lint mod.ts",
-    "check": "deno fmt --check && deno lint && deno check mod.ts && deno task doc:check && deno task test:all"
+    "check:api-compat": "deno check api_compat/theme.ts api_compat/plugin.ts api_compat/embedding.ts",
+    "check": "deno fmt --check && deno lint && deno check mod.ts && deno task doc:check && deno task check:api-compat && deno task test:all"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1.0.19",
