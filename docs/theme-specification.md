@@ -28,7 +28,8 @@ Fields support `required`, `default`, `description`, and `enum`. Strings support
 Schema defaults, `defaultConfig`, and site `themeConfig` are applied in that order, then validated.
 The top-level merge is shallow, while schema validation and defaults can be recursive. Undeclared
 top-level keys are allowed for backwards compatibility. Invalid values fail theme loading with a
-path to the offending setting.
+path to the offending setting - which fails `steno build` outright and only prints in `steno dev`;
+see [How Steno reports problems](troubleshooting.md#how-steno-reports-problems).
 
 ## Extending a bundled theme
 

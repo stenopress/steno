@@ -4,6 +4,25 @@ Stuck on an error? Find the message below (or the closest match) for what it mea
 it. If nothing here matches, run `steno doctor` first, it catches most common misconfigurations
 before you even get to a build; see [Doctor](doctor.md).
 
+## How Steno reports problems
+
+A theme, plugin, data file, redirect, or the config itself failing to load is printed as a
+`[steno:error]` or `[steno:warning]` line (for example `[theme-load-failed]`,
+`[plugin-load-failed]`, `[data-file-invalid]`, `[redirect-invalid]`, `[config-invalid]`). What
+happens next depends on the command and the severity:
+
+- `steno build` fails the build on any `error`-severity line - a build that silently drops its
+  configured theme or a plugin doesn't match its own config, which is worse than failing loudly. The
+  thrown error is a `StenoDiagnosticError` (exported from `jsr:@steno/steno`), carrying every
+  diagnostic found, not just the first.
+- `steno dev` stays permissive: every error is still printed, but the dev server keeps running, so
+  iterating on a broken theme or plugin doesn't require getting it right first.
+- Config-shape problems (wrong-typed or missing fields) are the one exception - those are fatal in
+  `dev` too, since a config that doesn't parse into its documented shape isn't something worth
+  building from even provisionally.
+- `warning`-severity lines (an unrecognized config key, a deprecated `custom.*` alias) never fail a
+  build in any mode.
+
 ## "Configuration file not found at ..."
 
 Steno looked for `content/.steno/config.yml` (or the path you gave with `--config`) and it wasn't
@@ -100,11 +119,18 @@ and no CDN purge is needed. If you're still seeing stale assets:
 
 ## A plugin failed to load
 
-- `console.error` lines like `Blocked plugin source "X": ...` mean `pluginSourcePolicy` doesn't
-  allow that specifier's source (a `file://` or `https://` plugin, for example, needs an explicit
-  opt-in). The build itself still succeeds, just without that plugin, so a silently skipped plugin
-  is often what this actually looks like from the outside. See
-  [Configuration](config_reference.md#plugin-source-policy).
+See [How Steno reports problems](#how-steno-reports-problems) above for what happens next - in
+short, this fails `steno build` outright and only prints in `steno dev`.
+
+- `[plugin-load-failed] Blocked plugin source "X": ...` means `pluginSourcePolicy` doesn't allow
+  that specifier's source (a `file://` or `https://` plugin, for example, needs an explicit opt-in).
+  See [Configuration](config_reference.md#plugin-source-policy).
+- `[plugin-load-failed] Plugin "X" does not export a default function` or
+  `... returned an invalid
+  plugin object`: the package doesn't actually implement the
+  `StenoPlugin` factory contract - check its own docs/version.
+- `[plugin-entry-invalid] Invalid plugin entry in config: ...`: a `plugins` array entry isn't a
+  package specifier string or an object with at least a `package` field.
 - `Isolated registry plugin "X" must include an explicit version`: an isolated `jsr:`/`npm:` plugin
   needs a pinned version, like `jsr:@example/plugin@1.2.3`, not just `jsr:@example/plugin`.
 - `Isolated URL plugin "X" must include a SHA-256 integrity value`: an isolated `https://` plugin
