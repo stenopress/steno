@@ -11,10 +11,10 @@ vulnerabilities.
 Because Steno is currently in active development, security updates and patches are primarily
 backported to the latest minor or major release.
 
-| Version  | Supported | Notes                                                              |
-| :------- | :-------- | :----------------------------------------------------------------- |
-| v0.7.x   | Yes       | Current active branch. All security patches are applied here.      |
-| < v0.7.0 | No        | Legacy development versions. Please upgrade to the latest release. |
+| Version   | Supported | Notes                                                              |
+| :-------- | :-------- | :----------------------------------------------------------------- |
+| v0.11.x   | Yes       | Current active branch. All security patches are applied here.      |
+| < v0.11.0 | No        | Legacy development versions. Please upgrade to the latest release. |
 
 ---
 

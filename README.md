@@ -35,7 +35,7 @@ The interactive initializer creates a configured project with your selected them
 structured content, and reusable tasks:
 
 ```sh
-deno create jsr:@steno/init@0.10.0
+deno create jsr:@steno/init
 ```
 
 The generated project is ready to run:
@@ -56,7 +56,7 @@ For a single page or a small experiment, create `my-site/content/index.md`:
 From `my-site`, build it:
 
 ```sh
-deno x jsr:@steno/steno@0.10.0 build
+deno x jsr:@steno/steno build
 ```
 
 Steno detects the single Markdown file, applies the default theme, and writes:
@@ -108,7 +108,7 @@ output: "dist"
 
 custom:
   shortUrls: true
-  theme: "jsr:@steno/theme-minimal@^0.10.0"
+  theme: "jsr:@steno/theme-minimal"
 ```
 
 Add frontmatter to `content/index.md` when the page needs metadata or a specific layout:
@@ -127,13 +127,13 @@ Welcome to a site powered by Steno and Tau.
 Run the development server:
 
 ```sh
-deno x jsr:@steno/steno@0.10.0 dev
+deno x jsr:@steno/steno dev
 ```
 
 Create production output:
 
 ```sh
-deno x jsr:@steno/steno@0.10.0 build
+deno x jsr:@steno/steno build
 ```
 
 ## Themes and Tau

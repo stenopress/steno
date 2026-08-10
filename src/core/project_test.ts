@@ -1,16 +1,14 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { buildSite } from "./build/build.ts";
-import { bundledThemeLocalPath, loadTheme } from "./steno_theme.ts";
 import { resolveProject } from "./project.ts";
+import { bundledThemeLocalPath, loadTheme } from "./steno_theme.ts";
 
 export function registerProjectTests(): void {
   Deno.test("themes: remote bundled-theme candidates use JSR fallback", () => {
     assertEquals(
       bundledThemeLocalPath(
-        new URL(
-          "https://jsr.io/@steno/steno/0.11.1/packages/theme-docs-minimal",
-        ),
+        new URL("https://jsr.io/@steno/steno/0.11.1/packages/theme-docs-minimal"),
       ),
       undefined,
     );
@@ -106,10 +104,7 @@ Plain content.
       const sourcePath = join(tempDir, "content", "index.md");
 
       Deno.mkdirSync(join(tempDir, "content"), { recursive: true });
-      Deno.writeTextFileSync(
-        sourcePath,
-        `---\ntitle: "Nested"\n---\n# Nested\n`,
-      );
+      Deno.writeTextFileSync(sourcePath, `---\ntitle: "Nested"\n---\n# Nested\n`);
 
       const project = await resolveProject(configPath, tempDir);
       assertEquals(project.mode, "single-file");
@@ -167,16 +162,10 @@ Steps.
 
       const project = await resolveProject(configPath, tempDir);
       assertEquals(project.mode, "docs");
-      assertEquals(
-        project.config.theme,
-        "jsr:@steno/theme-docs-minimal",
-      );
+      assertEquals(project.config.theme, "jsr:@steno/theme-docs-minimal");
       assertEquals(project.config.navigation?.[0].title, "Docs Home");
       assertEquals(project.config.navigation?.[0].children?.[0].title, "Guide");
-      assertEquals(
-        project.config.navigation?.[0].children?.[0].children?.[0].title,
-        "Setup",
-      );
+      assertEquals(project.config.navigation?.[0].children?.[0].children?.[0].title, "Setup");
 
       const theme = await loadTheme(project.config);
       assertEquals(theme?.name, "docs-minimal");
@@ -189,9 +178,7 @@ Steps.
         pages: project.pages,
       });
 
-      const indexHtml = Deno.readTextFileSync(
-        join(tempDir, "dist", "index.html"),
-      );
+      const indexHtml = Deno.readTextFileSync(join(tempDir, "dist", "index.html"));
       assertStringIncludes(indexHtml, "Docs Home");
       assertStringIncludes(indexHtml, "Guide");
       assertStringIncludes(indexHtml, "Setup");

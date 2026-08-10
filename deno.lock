@@ -23,12 +23,21 @@
     "jsr:@std/path@1": "1.1.6",
     "jsr:@std/path@1.1.6": "1.1.6",
     "jsr:@std/path@^1.1.5": "1.1.6",
+    "jsr:@std/path@^1.1.6": "1.1.6",
     "jsr:@std/toml@1.0.11": "1.0.11",
+    "jsr:@std/yaml@1.1.2": "1.1.2",
     "jsr:@std/yaml@1.2.0": "1.2.0",
+    "jsr:@steno/plugin-docs@*": "0.1.0",
+    "jsr:@steno/plugin-docs@0.1.0": "0.1.0",
     "jsr:@steno/plugin-image@1.0.0": "1.0.0",
+    "jsr:@steno/plugin-og@*": "0.1.0",
+    "jsr:@steno/plugin-og@0.1.0": "0.1.0",
+    "jsr:@steno/plugin-search@*": "0.2.0",
+    "jsr:@steno/plugin-search@0.2.0": "0.2.0",
     "jsr:@steno/plugin-seo@0.7.0": "0.7.0",
     "jsr:@steno/plugin-shiki@1.0.0": "1.0.0",
     "jsr:@steno/plugin-tailwind@0.3.0": "0.3.0",
+    "jsr:@steno/steno@0.10": "0.10.0",
     "npm:imagescript@*": "1.3.1",
     "npm:marked@18.0.7": "18.0.7",
     "npm:sharp@~0.33.5": "0.33.5",
@@ -129,8 +138,18 @@
         "jsr:@std/collections"
       ]
     },
+    "@std/yaml@1.1.2": {
+      "integrity": "de612653c036749ba2044165e316f52412b0f0698afffb7ee80b5331d6d2abae"
+    },
     "@std/yaml@1.2.0": {
       "integrity": "20beb41e4983ba3437dbefac62b14061ab058e8a187596f19d28ff9035f6e6cf"
+    },
+    "@steno/plugin-docs@0.1.0": {
+      "integrity": "53f89ff7e01e2c0d6925e26b7f9e0acd1672942fa5aff3b728af97ec786fd47a",
+      "dependencies": [
+        "jsr:@std/path@^1.1.6",
+        "jsr:@steno/steno"
+      ]
     },
     "@steno/plugin-image@1.0.0": {
       "integrity": "35e72ef6d532cf154256aa4c876b536be668bed643e2dd70309f67894c3fe943",
@@ -138,6 +157,20 @@
         "jsr:@std/fs@1",
         "jsr:@std/path@1",
         "npm:sharp"
+      ]
+    },
+    "@steno/plugin-og@0.1.0": {
+      "integrity": "f46ad2e40b6c71b336bfe9161e83e5471b595169f079d4ae9230c97e628040e4",
+      "dependencies": [
+        "jsr:@std/path@^1.1.6",
+        "jsr:@steno/steno"
+      ]
+    },
+    "@steno/plugin-search@0.2.0": {
+      "integrity": "1d2bf477a330c0255808c203e0a9624a40abd3669dd0eda4fa14f7370284cc37",
+      "dependencies": [
+        "jsr:@std/path@^1.1.6",
+        "jsr:@steno/steno"
       ]
     },
     "@steno/plugin-seo@0.7.0": {
@@ -158,6 +191,15 @@
       "dependencies": [
         "jsr:@std/fs@1",
         "jsr:@std/path@1"
+      ]
+    },
+    "@steno/steno@0.10.0": {
+      "integrity": "00d66f962032676df874f0fcab256746cab9f86f4eb9d3e4b121af2826d109a5",
+      "dependencies": [
+        "jsr:@std/path@1.1.6",
+        "jsr:@std/toml",
+        "jsr:@std/yaml@1.1.2",
+        "npm:marked"
       ]
     }
   },
