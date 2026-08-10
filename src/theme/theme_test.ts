@@ -4,6 +4,45 @@ import { mergeTheme, Theme } from "./theme.ts";
 import type { StenoTheme } from "../types.ts";
 
 export function registerThemeTests(): void {
+  Deno.test("theme: constructor throws on a missing/empty name", () => {
+    assertThrows(
+      () =>
+        new Theme({
+          name: "",
+          version: "1.0.0",
+          layouts: { layout: "<main>{@html content}</main>" },
+        }),
+      Error,
+      'non-empty "name"',
+    );
+  });
+
+  Deno.test("theme: constructor throws on a missing/empty version", () => {
+    assertThrows(
+      () =>
+        new Theme({
+          name: "incomplete",
+          version: "",
+          layouts: { layout: "<main>{@html content}</main>" },
+        }),
+      Error,
+      'non-empty "version"',
+    );
+  });
+
+  Deno.test("theme: constructor throws when there are no layouts at all", () => {
+    assertThrows(
+      () =>
+        new Theme({
+          name: "no-layouts",
+          version: "1.0.0",
+          layouts: {},
+        }),
+      Error,
+      "declares no layouts",
+    );
+  });
+
   Deno.test("theme: merges defaultConfig with userConfig", () => {
     const theme = new Theme(
       {

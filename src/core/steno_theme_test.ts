@@ -1,6 +1,7 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { join } from "@std/path";
 import { loadTheme, resolveThemeWatchDir } from "./steno_theme.ts";
+import { DiagnosticBag } from "./diagnostics.ts";
 import type { SiteConfig } from "../types.ts";
 
 function baseConfig(overrides: Partial<SiteConfig> = {}): SiteConfig {
@@ -67,6 +68,7 @@ Deno.test({
       `export default {
         name: "reload-test-theme",
         version: "v1",
+        layouts: { layout: "v1" },
         async renderLayout() { return "v1"; },
       };`,
     );
@@ -81,6 +83,7 @@ Deno.test({
       `export default {
         name: "reload-test-theme",
         version: "v2",
+        layouts: { layout: "v2" },
         async renderLayout() { return "v2"; },
       };`,
     );
@@ -88,6 +91,32 @@ Deno.test({
     const second = await loadTheme(config);
     assertEquals(second?.version, "v2");
     assertNotEquals(first?.version, second?.version);
+
+    Deno.removeSync(tempDir, { recursive: true });
+  },
+});
+
+Deno.test({
+  name: "loadTheme: a theme with no layouts fails to load as a theme-load-failed diagnostic",
+  permissions: { read: true, write: true },
+  fn: async () => {
+    const tempDir = Deno.makeTempDirSync();
+    await Deno.writeTextFile(
+      join(tempDir, "mod.ts"),
+      `export default {
+        name: "no-layouts-theme",
+        version: "1.0.0",
+        layouts: {},
+      };`,
+    );
+
+    const config = baseConfig({ theme: tempDir });
+    const diagnostics = new DiagnosticBag();
+    const theme = await loadTheme(config, diagnostics);
+
+    assertEquals(theme, undefined);
+    assertEquals(diagnostics.errors.length, 1);
+    assertEquals(diagnostics.errors[0].code, "theme-load-failed");
 
     Deno.removeSync(tempDir, { recursive: true });
   },
