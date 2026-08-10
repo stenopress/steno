@@ -1,6 +1,8 @@
 import { join, relative } from "@std/path";
 import { parse as parseYaml } from "@std/yaml";
 import { parse as parseToml } from "@std/toml";
+import { DiagnosticBag } from "./diagnostics.ts";
+import { errorMessage } from "../utils/text.ts";
 
 export type DataMap = Record<string, unknown>;
 
@@ -34,6 +36,7 @@ async function scanDataDir(
   currentDir: string,
   dataDir: string,
   result: DataMap,
+  diagnostics: DiagnosticBag,
 ): Promise<void> {
   const entries: Deno.DirEntry[] = [];
   try {
@@ -47,7 +50,7 @@ async function scanDataDir(
     const fullPath = join(currentDir, entry.name);
 
     if (entry.isDirectory) {
-      await scanDataDir(fullPath, dataDir, result);
+      await scanDataDir(fullPath, dataDir, result, diagnostics);
       continue;
     }
 
@@ -60,7 +63,12 @@ async function scanDataDir(
     try {
       content = await Deno.readTextFile(fullPath);
     } catch (err) {
-      console.warn(`[data] Failed to read "${fullPath}":`, err);
+      diagnostics.add({
+        code: "data-file-invalid",
+        severity: "error",
+        message: `Failed to read data file: ${errorMessage(err)}`,
+        file: fullPath,
+      });
       continue;
     }
 
@@ -68,7 +76,13 @@ async function scanDataDir(
     try {
       parsed = parseDataFile(fullPath, content);
     } catch (err) {
-      console.warn(`[data] Failed to parse "${fullPath}":`, err);
+      diagnostics.add({
+        code: "data-file-invalid",
+        severity: "error",
+        message: `Failed to parse data file: ${errorMessage(err)}`,
+        file: fullPath,
+        hint: "Check the file's JSON/YAML/TOML syntax.",
+      });
       continue;
     }
 
@@ -94,10 +108,13 @@ async function scanDataDir(
  * // content/_data/team.json → data.team
  * // content/_data/blog/authors.yaml → data.blog.authors
  */
-export async function loadDataFiles(contentDir: string): Promise<DataMap> {
+export async function loadDataFiles(
+  contentDir: string,
+  diagnostics: DiagnosticBag = new DiagnosticBag(),
+): Promise<DataMap> {
   const dataDir = join(contentDir, "_data");
   const result: DataMap = {};
-  await scanDataDir(dataDir, dataDir, result);
+  await scanDataDir(dataDir, dataDir, result, diagnostics);
   return result;
 }
 

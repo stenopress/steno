@@ -4,8 +4,8 @@
  * @module
  */
 
-import { printHelp } from "./src/utils/cli.ts";
 import { runStenoCli } from "./src/core/steno_cli.ts";
+import { printHelp } from "./src/utils/cli.ts";
 import { buildError } from "./src/utils/output.ts";
 import { formatTauError, TauError } from "./src/utils/tau_error.ts";
 
@@ -49,6 +49,11 @@ export type {
 /** Loads and renders theme instances. */
 export { mergeTheme, Theme } from "./src/theme/theme.ts";
 export type { PageRenderContext, ThemeConfig } from "./src/theme/theme.ts";
+/** Structured problems found while resolving a project's theme, plugins,
+ * data files, or redirects - and the error thrown when a production build
+ * has any of error severity. */
+export { StenoDiagnosticError } from "./src/core/diagnostics.ts";
+export type { Diagnostic } from "./src/core/diagnostics.ts";
 
 // Deliberately not `await`-ed at the top level: a top-level await here would
 // keep this module's own evaluation pending for as long as the build runs.
@@ -66,8 +71,8 @@ async function runCli(): Promise<void> {
       error instanceof TauError
         ? formatTauError(error)
         : error instanceof Error
-        ? error.message
-        : String(error),
+          ? error.message
+          : String(error),
     );
     printHelp();
     Deno.exit(1);

@@ -6,6 +6,7 @@ import { startDevServer, startPreviewServer } from "../utils/server.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
 import { resolveCachePath } from "./build/cache.ts";
 import { loadPlugins, resolveDevPort, resolvePluginSourcePolicy } from "./config.ts";
+import { DiagnosticBag, enforceDiagnostics } from "./diagnostics.ts";
 import { getEnvironmentFilePaths, loadEnvironmentFiles } from "./environment.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
 import { loadTheme, resolveThemeWatchDir } from "./steno_theme.ts";
@@ -74,15 +75,29 @@ export class Steno {
    * would mean talking to an already-terminated subprocess. Any isolated
    * entry in the config falls back to reloading every plugin, unchanged
    * from prior behavior.
+   *
+   * A theme or trusted plugin that fails to load is fatal outside `dev`
+   * (`steno build`, and the constructor's initial load when the process
+   * isn't running `steno dev`): a build that silently drops its configured
+   * theme or plugins doesn't match its own config, which is worse than
+   * failing loudly. `dev` stays permissive - every failure is still printed,
+   * it just doesn't stop the dev server, so iterating on a broken theme or
+   * plugin doesn't require getting it right first. `dev` defaults to
+   * whether the running process is actually the `dev` command, since the
+   * constructor can't otherwise know which command will call `build()`/
+   * `dev()` next; `executeBuild` always passes its own `dev` explicitly.
    */
-  private async loadRuntime(): Promise<ResolvedProject> {
+  private async loadRuntime(
+    dev: boolean = Deno.args.includes("dev"),
+  ): Promise<ResolvedProject> {
     const project = await resolveProject(
       this.configPath,
       undefined,
       this.buildState.pageCache,
     );
     this.config = project.config;
-    this.theme = await loadTheme(project.config);
+    const diagnostics = new DiagnosticBag();
+    this.theme = await loadTheme(project.config, diagnostics);
 
     const configuredPlugins = project.config.plugins ?? [];
     const hasIsolatedPlugin = configuredPlugins.some(
@@ -103,7 +118,7 @@ export class Steno {
     if (!hasIsolatedPlugin && this.sitePluginsSignature === pluginsSignature) {
       sitePlugins = this.sitePlugins;
     } else {
-      sitePlugins = await loadPlugins(project.config);
+      sitePlugins = await loadPlugins(project.config, diagnostics);
       this.sitePlugins = sitePlugins;
       this.sitePluginsSignature = hasIsolatedPlugin ? null : pluginsSignature;
     }
@@ -113,9 +128,12 @@ export class Steno {
     const themePlugins = allowThemePlugins
       ? (this.theme?.plugins ?? []).filter((plugin, index) => {
         if (!isStenoPlugin(plugin)) {
-          console.warn(
-            `Theme plugin at index ${index} is invalid and will be skipped.`,
-          );
+          diagnostics.add({
+            code: "theme-plugin-invalid",
+            severity: "error",
+            message: `Theme plugin at index ${index} is invalid.`,
+            hint: 'It must be an object with at least a "name".',
+          });
           return false;
         }
         return true;
@@ -123,18 +141,21 @@ export class Steno {
       : [];
 
     if (!allowThemePlugins && (this.theme?.plugins?.length ?? 0) > 0) {
-      console.warn(
-        "Theme plugins are disabled by `pluginSourcePolicy.allowThemePlugins: false`.",
-      );
+      diagnostics.add({
+        code: "theme-plugins-disabled",
+        severity: "warning",
+        message: "Theme plugins are disabled by `pluginSourcePolicy.allowThemePlugins: false`.",
+      });
     }
 
     this.plugins = [...themePlugins, ...sitePlugins];
+    enforceDiagnostics(diagnostics, dev);
     return project;
   }
 
   /** Core execution method for triggering a site build orchestration. */
   private async executeBuild(dev: boolean): Promise<void> {
-    const project = dev ? await this.loadRuntime() : await this.runtimeLoadingPromise;
+    const project = dev ? await this.loadRuntime(true) : await this.runtimeLoadingPromise;
 
     try {
       await buildSite({

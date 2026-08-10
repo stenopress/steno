@@ -5,6 +5,7 @@ import { isStenoPlugin } from "../plugins/plugins.ts";
 import { loadIsolatedPlugin } from "../plugins/isolated_plugin.ts";
 import { DEFAULT_DEV_PORT } from "../utils/server.ts";
 import { errorMessage } from "../utils/text.ts";
+import { DiagnosticBag } from "./diagnostics.ts";
 
 type PluginFactory = (
   options: Record<string, unknown>,
@@ -248,6 +249,7 @@ async function verifyPluginIntegrity(entry: PluginEntry): Promise<void> {
  */
 export async function loadPlugins(
   config: SiteConfig,
+  diagnostics: DiagnosticBag = new DiagnosticBag(),
 ): Promise<StenoPlugin[]> {
   if (!config.plugins?.length) return [];
 
@@ -257,7 +259,13 @@ export async function loadPlugins(
   for (const configuredEntry of config.plugins) {
     const entry = toPluginEntry(configuredEntry);
     if (!entry) {
-      console.warn("Skipping invalid plugin entry in config.");
+      diagnostics.add({
+        code: "plugin-entry-invalid",
+        severity: "error",
+        message: `Invalid plugin entry in config: ${JSON.stringify(configuredEntry)}`,
+        hint:
+          'Each entry must be a package specifier string, or an object with at least a "package" field.',
+      });
       continue;
     }
 
@@ -266,9 +274,13 @@ export async function loadPlugins(
 
     const blockedReason = getBlockedPluginReason(packageName, sourcePolicy);
     if (blockedReason) {
-      console.error(
-        `Blocked plugin source "${packageName}": ${blockedReason}`,
-      );
+      diagnostics.add({
+        code: "plugin-load-failed",
+        severity: "error",
+        message: `Blocked plugin source "${packageName}": ${blockedReason}`,
+        file: packageName,
+        hint: "Adjust pluginSourcePolicy if this source should be allowed.",
+      });
       continue;
     }
 
@@ -302,9 +314,12 @@ export async function loadPlugins(
       const factory = mod.default ?? mod;
 
       if (typeof factory !== "function") {
-        console.warn(
-          `Plugin "${packageName}" does not export a default function, skipping.`,
-        );
+        diagnostics.add({
+          code: "plugin-load-failed",
+          severity: "error",
+          message: `Plugin "${packageName}" does not export a default function.`,
+          file: packageName,
+        });
         continue;
       }
 
@@ -312,9 +327,13 @@ export async function loadPlugins(
         clonePluginOptions(options),
       );
       if (!isStenoPlugin(plugin)) {
-        console.warn(
-          `Plugin "${packageName}" returned an invalid plugin object, skipping.`,
-        );
+        diagnostics.add({
+          code: "plugin-load-failed",
+          severity: "error",
+          message: `Plugin "${packageName}" returned an invalid plugin object.`,
+          file: packageName,
+          hint: 'Its factory must return an object with at least a "name".',
+        });
         continue;
       }
 
@@ -326,7 +345,12 @@ export async function loadPlugins(
           { cause: err },
         );
       }
-      console.error(`Failed to load plugin "${packageName}":`, err);
+      diagnostics.add({
+        code: "plugin-load-failed",
+        severity: "error",
+        message: `Failed to load plugin "${packageName}": ${errorMessage(err)}`,
+        file: packageName,
+      });
     }
   }
 
