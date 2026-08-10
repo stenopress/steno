@@ -303,8 +303,25 @@ export class Theme {
    *
    * @param themeData - The base configuration/templates of the theme.
    * @param userConfig - Optional overrides for the theme defaults.
+   * @throws {Error} if `themeData` doesn't have a usable name, version, or
+   *   at least one layout. Thrown rather than deferred to render time, since
+   *   the alternative is a confusing per-page "Layout not found" error much
+   *   later - a theme this incomplete can't render anything at all. Callers
+   *   that load a theme (`loadTheme` in `steno_theme.ts`) already wrap
+   *   construction in a try/catch that turns this into a proper
+   *   `theme-load-failed` diagnostic, so this can stay a plain throw.
    */
   constructor(themeData: StenoTheme, userConfig: ThemeConfig = {}) {
+    if (typeof themeData.name !== "string" || !themeData.name.trim()) {
+      throw new Error('A theme must have a non-empty "name".');
+    }
+    if (typeof themeData.version !== "string" || !themeData.version.trim()) {
+      throw new Error(`Theme "${themeData.name}" must have a non-empty "version".`);
+    }
+    if (!isRecord(themeData.layouts) || Object.keys(themeData.layouts).length === 0) {
+      throw new Error(`Theme "${themeData.name}" declares no layouts - it needs at least one.`);
+    }
+
     this.themeData = themeData;
     this.name = themeData.name;
     this.version = themeData.version;
