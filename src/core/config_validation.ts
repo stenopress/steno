@@ -300,10 +300,16 @@ export function validateSiteConfig(
   configPath: string,
   diagnostics: DiagnosticBag = new DiagnosticBag(),
 ): Diagnostic[] {
+  // title/description/author are optional here even though SiteConfig
+  // declares them non-optional - that reflects the shape once resolved,
+  // not a requirement that a human type them into every config.yml.
+  // Configured projects fill in the same defaults zero-config mode already
+  // does (see resolveConfiguredSiteMetadata in project.ts): description/
+  // author default to "", and title is derived from content/index.md the
+  // same way a page's own title infers from its H1. Only a wrong type is
+  // an error here.
   for (const field of ["title", "description", "author"] as const) {
-    if (typeof raw[field] !== "string") {
-      invalid(diagnostics, configPath, field, "a string");
-    }
+    checkOptionalString(raw, field, diagnostics, configPath);
   }
 
   for (const field of ["contentDir", "output", "theme"] as const) {

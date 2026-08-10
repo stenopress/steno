@@ -5,10 +5,12 @@ import type { NavigationNode, SiteConfig } from "../types.ts";
 import {
   commonAncestorDir,
   humanizeSegment,
+  inferPageTitle,
   resolveMarkdownScanIgnorePaths,
   resolvePageRoute,
 } from "./path_utils.ts";
 import { fileExists as pathExists } from "../utils/fs.ts";
+import { parseFrontmatter } from "../utils/frontmatter.ts";
 
 export interface ResolvedProject {
   config: SiteConfig;
@@ -279,6 +281,45 @@ function buildZeroConfigSiteConfig(
   };
 }
 
+/**
+ * Fills `title`/`description`/`author` when a configured project's
+ * config.yml omits them, the same way zero-config mode already does for a
+ * project with no config file at all (see `buildZeroConfigSiteConfig`
+ * above): `description`/`author` default to `""`, and `title` is derived
+ * from `<contentDir>/index.md` - its frontmatter title, falling back to its
+ * first `# heading`, the same rule a page's own title infers by via
+ * `inferPageTitle` - or a humanized `contentDir` name if there's no index
+ * page to read at all. A config that already sets a field wins outright.
+ */
+async function resolveConfiguredSiteMetadata(
+  config: SiteConfig,
+): Promise<SiteConfig> {
+  const description = config.description ?? "";
+  const author = config.author ?? "";
+  if (config.title !== undefined) {
+    return { ...config, description, author };
+  }
+
+  const contentDir = config.contentDir || "content";
+  const indexPath = join(contentDir, "index.md");
+  let title: string;
+  try {
+    const sourceText = await Deno.readTextFile(indexPath);
+    const { frontmatter, body } = parseFrontmatter(sourceText, indexPath);
+    title = inferPageTitle({
+      fullPath: indexPath,
+      relPath: "index.md",
+      sourceText,
+      frontmatter,
+      body,
+    });
+  } catch {
+    title = humanizeSegment(basename(contentDir));
+  }
+
+  return { ...config, title, description, author };
+}
+
 export async function resolveProject(
   configPath: string,
   rootDir: string = Deno.cwd(),
@@ -286,7 +327,7 @@ export async function resolveProject(
 ): Promise<ResolvedProject> {
   if (await pathExists(configPath)) {
     return {
-      config: loadConfig(configPath),
+      config: await resolveConfiguredSiteMetadata(loadConfig(configPath)),
       mode: "configured",
     };
   }
