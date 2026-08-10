@@ -82,8 +82,9 @@ function checkFrontmatter(dir: string, ignorePaths: string[]): string[] {
  * Runs a series of checks on the current Steno project and prints a report.
  *
  * @param configPath - Path to the site config file.
+ * @returns `true` if any check failed, `false` if the project is clean.
  */
-export async function runDoctor(configPath: string): Promise<void> {
+export async function runDoctor(configPath: string): Promise<boolean> {
   console.log();
   console.log(
     `${c.bold}steno doctor${c.reset}  ${c.gray}checking your project...${c.reset}`,
@@ -119,7 +120,7 @@ export async function runDoctor(configPath: string): Promise<void> {
       `  ${c.red}Doctor found errors. Fix them and try again.${c.reset}`,
     );
     console.log();
-    return;
+    return true;
   }
 
   // Content directory
@@ -299,4 +300,5 @@ export async function runDoctor(configPath: string): Promise<void> {
   console.log();
 
   await Promise.resolve();
+  return hasErrors;
 }

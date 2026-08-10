@@ -1,9 +1,13 @@
+import denoConfig from "../../deno.json" with { type: "json" };
 import { c } from "./output.ts";
+
+/** The published package version, read from deno.json at build time. */
+export const STENO_VERSION: string = denoConfig.version;
 
 /** Parsed CLI state for a Steno invocation. */
 export interface CliOptions {
-  /** The command to execute, either "build", "dev", "preview", "help", or "doctor". */
-  command: "build" | "dev" | "preview" | "help" | "doctor";
+  /** The command to execute, either "build", "dev", "preview", "help", "doctor", or "version". */
+  command: "build" | "dev" | "preview" | "help" | "doctor" | "version";
   /** The path to the configuration file. */
   configPath: string;
   port?: number;
@@ -31,6 +35,10 @@ export function parseCliArgs(args: string[]): CliOptions {
 
     if (arg === "-h" || arg === "--help") {
       return { command: "help", configPath, verbose };
+    }
+
+    if (arg === "-v" || arg === "--version") {
+      return { command: "version", configPath, verbose };
     }
 
     if (arg === "-V" || arg === "--verbose") {
@@ -72,7 +80,7 @@ export function parseCliArgs(args: string[]): CliOptions {
 
     if (
       arg === "build" || arg === "dev" || arg === "doctor" || arg === "help" ||
-      arg === "preview"
+      arg === "preview" || arg === "version"
     ) {
       command = arg;
       continue;
@@ -88,6 +96,11 @@ export function parseCliArgs(args: string[]): CliOptions {
   return port === undefined
     ? { command, configPath, verbose }
     : { command, configPath, port, verbose };
+}
+
+/** Writes the CLI version to stdout. */
+export function printVersion(): void {
+  console.log(`steno ${STENO_VERSION}`);
 }
 
 /** Writes the CLI usage summary to stdout. */
@@ -108,6 +121,7 @@ ${c.bold}Commands:${c.reset}
 ${c.bold}Options:${c.reset}
   ${c.cyan}-c, --config${c.reset} ${c.gray}<path>${c.reset}  Path to config file ${c.gray}(default: content/.steno/config.yml)${c.reset}
   ${c.cyan}-h, --help${c.reset}           Show help
+  ${c.cyan}-v, --version${c.reset}        Print the installed Steno version
   ${c.cyan}-p, --port${c.reset} ${c.gray}<number>${c.reset} Port to run preview server on ${c.gray}(default: 4173)${c.reset}
   ${c.cyan}-V, --verbose${c.reset}        Print theme/plugin diagnostics and each rendered
                        page's template context ${c.gray}(build, dev)${c.reset}

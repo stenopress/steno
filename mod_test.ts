@@ -84,4 +84,74 @@ export default theme;
       }
     },
   });
+
+  Deno.test({
+    name: "mod: --version prints the package version and exits 0",
+    permissions: { read: true, run: true },
+    fn: async () => {
+      const command = new Deno.Command(Deno.execPath(), {
+        args: ["run", "-A", join(Deno.cwd(), "mod.ts"), "--version"],
+        stdout: "piped",
+        stderr: "piped",
+      });
+      const result = await command.output();
+      assertEquals(result.success, true);
+      const stdout = new TextDecoder().decode(result.stdout);
+      assertEquals(/^steno \d+\.\d+\.\d+/.test(stdout.trim()), true);
+    },
+  });
+
+  Deno.test({
+    name: "mod: `doctor` exits non-zero when the project has errors",
+    permissions: { read: true, write: true, run: true },
+    fn: async () => {
+      const tempDir = await Deno.makeTempDir();
+      try {
+        const configPath = join(tempDir, "config.yml");
+        await Deno.writeTextFile(
+          configPath,
+          `title: Test\ndescription: d\nauthor: a\ncontentDir: "${join(tempDir, "content")}"\n`,
+        );
+
+        const command = new Deno.Command(Deno.execPath(), {
+          args: ["run", "-A", join(Deno.cwd(), "mod.ts"), "doctor", "--config", configPath],
+          stdout: "piped",
+          stderr: "piped",
+        });
+        const result = await command.output();
+        assertEquals(result.success, false);
+        assertEquals(result.code, 1);
+      } finally {
+        await Deno.remove(tempDir, { recursive: true });
+      }
+    },
+  });
+
+  Deno.test({
+    name: "mod: `doctor` exits 0 for a clean project",
+    permissions: { read: true, write: true, run: true },
+    fn: async () => {
+      const tempDir = await Deno.makeTempDir();
+      try {
+        const contentDir = join(tempDir, "content");
+        await Deno.mkdir(contentDir, { recursive: true });
+        await Deno.writeTextFile(join(contentDir, "index.md"), "# Home");
+        const configPath = join(tempDir, "config.yml");
+        await Deno.writeTextFile(
+          configPath,
+          `title: Test\ndescription: d\nauthor: a\ncontentDir: "${contentDir}"\n`,
+        );
+
+        const command = new Deno.Command(Deno.execPath(), {
+          args: ["run", "-A", join(Deno.cwd(), "mod.ts"), "doctor", "--config", configPath],
+          stdout: "piped",
+          stderr: "piped",
+        });
+        const result = await command.output();
+        assertEquals(result.success, true);
+      } finally {
+        await Deno.remove(tempDir, { recursive: true });
+      }
+    },
+  });
 }

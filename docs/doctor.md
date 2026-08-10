@@ -35,7 +35,6 @@ Below is exactly what it checks and how to read the result.
 ## Exit behavior
 
 A failing check (missing config, missing content directory, missing local theme directory, or an
-unsupported plugin specifier) marks the run as having errors and prints a summary line asking you to
-fix them and try again. Any other check produces an informational or warning line but does not fail
-the run. `doctor` does not currently return a non-zero process exit code; treat the printed summary
-as the result.
+unsupported plugin specifier) marks the run as having errors, prints a summary line asking you to
+fix them and try again, and exits with process exit code `1`. Any other check produces an
+informational or warning line but does not fail the run; a clean run exits `0`.

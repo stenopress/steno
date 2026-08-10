@@ -1,5 +1,5 @@
-import { assertEquals, assertThrows } from "@std/assert";
-import { parseCliArgs } from "./cli.ts";
+import { assertEquals, assertMatch, assertThrows } from "@std/assert";
+import { parseCliArgs, printVersion, STENO_VERSION } from "./cli.ts";
 
 export function registerCliTests(): void {
   Deno.test("cli: defaults to build with default config", () => {
@@ -64,6 +64,39 @@ export function registerCliTests(): void {
       configPath: "content/.steno/config.yml",
       verbose: false,
     });
+  });
+
+  Deno.test("cli: returns version command for --version", () => {
+    const options = parseCliArgs(["--version"]);
+    assertEquals(options, {
+      command: "version",
+      configPath: "content/.steno/config.yml",
+      verbose: false,
+    });
+  });
+
+  Deno.test("cli: returns version command for -v", () => {
+    assertEquals(parseCliArgs(["-v"]).command, "version");
+  });
+
+  Deno.test("cli: returns version command for the version word", () => {
+    assertEquals(parseCliArgs(["version"]).command, "version");
+  });
+
+  Deno.test("cli: STENO_VERSION matches deno.json's version field", () => {
+    assertMatch(STENO_VERSION, /^\d+\.\d+\.\d+/);
+  });
+
+  Deno.test("cli: printVersion prints the version", () => {
+    const originalLog = console.log;
+    const lines: string[] = [];
+    console.log = (...args) => lines.push(args.join(" "));
+    try {
+      printVersion();
+    } finally {
+      console.log = originalLog;
+    }
+    assertEquals(lines, [`steno ${STENO_VERSION}`]);
   });
 
   Deno.test("cli: throws on unknown command", () => {

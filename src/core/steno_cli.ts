@@ -1,4 +1,4 @@
-import { parseCliArgs, printHelp } from "../utils/cli.ts";
+import { parseCliArgs, printHelp, printVersion } from "../utils/cli.ts";
 import { Steno } from "./steno.ts";
 import { runDoctor } from "./doctor.ts";
 
@@ -11,8 +11,14 @@ export async function runStenoCli(args: string[]): Promise<void> {
     return;
   }
 
+  if (options.command === "version") {
+    printVersion();
+    return;
+  }
+
   if (options.command === "doctor") {
-    await runDoctor(options.configPath);
+    const hasErrors = await runDoctor(options.configPath);
+    if (hasErrors) throw new Error("Doctor found errors.");
     return;
   }
 
