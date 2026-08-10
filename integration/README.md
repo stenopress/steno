@@ -50,3 +50,15 @@ its published assets.
 
 These network-dependent checks run in the release CI gate. There is currently no published
 `@steno/theme-citrine` package to pin; add it here once a release or repository commit exists.
+
+## Installed product
+
+`deno task test:installed` does not exercise the repository checkout. It runs a real
+`deno publish --dry-run` to get the exact file set that would ship to JSR, copies only those files
+into a clean temporary directory, and runs `steno build`/`steno doctor` from that copy against a
+minimal fixture project - including once per bundled theme. It also asserts the manifest still
+contains the runtime files the CLI needs (`mod.ts`, `src/core/steno_cli.ts`, `src/theme/theme.ts`,
+...) and no longer contains contributor-only files (`.claude/`, `.devcontainer/`, `CONTRIBUTING.md`,
+...). A `publish.exclude` change in `deno.json` that accidentally drops a required file, or a
+theme/plugin whose dynamic import can't resolve outside the source tree, fails here even when every
+other suite in this repository still passes.

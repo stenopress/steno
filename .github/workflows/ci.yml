@@ -61,6 +61,9 @@ jobs:
       - name: Test official ecosystem compatibility
         run: deno task test:ecosystem
 
+      - name: Test installed product (simulated publish)
+        run: deno task test:installed
+
       - name: Run performance benchmarks
         run: deno bench -A --json benchmarks > benchmark-results.json
 

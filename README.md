@@ -267,13 +267,15 @@ The default configuration path is `content/.steno/config.yml`. See the
 
 ## Contributing
 
-The repository includes unit, conformance, security, real-site, ecosystem, and performance tests:
+The repository includes unit, conformance, security, real-site, ecosystem, installed-product, and
+performance tests:
 
 ```sh
 deno task dev
 deno task test
 deno task test:sites
 deno task test:ecosystem
+deno task test:installed
 deno task check
 deno task bench:check
 ```
