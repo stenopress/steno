@@ -5,10 +5,16 @@ picked from the file extension: `.yml`/`.yaml` for YAML, `.toml` for TOML - so
 `--config content/.steno/config.toml` reads the same fields written as TOML instead.
 
 Every field below is validated against its documented type as soon as the file loads - a wrong type
-(a string `devPort`, a `collections` entry that isn't an object, ...) or a missing required field
-(`title`/`description`/`author`) fails immediately with a precise `[config-invalid]` message naming
-the exact field, in every command including `dev`. An unrecognized top-level key is a warning, not
-an error - check for a typo, or nest project-specific fields under `custom`.
+(a string `devPort`, a `collections` entry that isn't an object, ...) fails immediately with a
+precise `[config-invalid]` message naming the exact field, in every command including `dev`. An
+unrecognized top-level key is a warning, not an error - check for a typo, or nest project-specific
+fields under `custom`.
+
+`title`, `description`, and `author` can all be omitted. `description`/`author` default to `""`;
+`title` is derived from `content/index.md` the same way a page's own title infers when its
+frontmatter doesn't set one - an explicit `title:` in its frontmatter, falling back to its first `#`
+heading, falling back to a humanized `contentDir` name if there's no index page at all. Set `title`
+explicitly in config.yml to skip that lookup.
 
 ```yaml
 title: My site
