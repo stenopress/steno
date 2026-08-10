@@ -212,7 +212,7 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   assertEquals(typeof denoJson.tasks.dev, "string");
   assertEquals(
     denoJson.imports["@steno/steno"],
-    "jsr:@steno/steno@^0.10.0",
+    "jsr:@steno/steno@^0.11.2",
   );
   assertMatch(denoJson.tasks.build, /--allow-read=\./);
   assertMatch(denoJson.tasks.build, /--allow-write=\./);
@@ -250,7 +250,7 @@ Deno.test("onboarding: config.yml has no plugins section when none selected", as
 
 Deno.test("onboarding: config.yml includes all official plugins", async () => {
   const dir = await scaffold({
-    plugins: ["tailwind", "shiki", "seo", "docs", "search", "og"],
+    plugins: ["tailwind", "shiki", "seo", "docs", "search", "og", "image"],
   });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
@@ -260,7 +260,8 @@ Deno.test("onboarding: config.yml includes all official plugins", async () => {
   assertMatch(config, /package: "jsr:@steno\/plugin-docs/);
   assertMatch(config, /package: "jsr:@steno\/plugin-search/);
   assertMatch(config, /package: "jsr:@steno\/plugin-og/);
-  assertEquals(config.match(/mode: trusted/g)?.length, 6);
+  assertMatch(config, /package: "jsr:@steno\/plugin-image/);
+  assertEquals(config.match(/mode: trusted/g)?.length, 7);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -368,6 +369,6 @@ Deno.test("onboarding: rejects unknown plugin choices", () => {
   assertThrows(
     () => parsePluginChoices("not-a-plugin"),
     OnboardingError,
-    "Available plugins: tailwind, shiki, seo, docs, search, og",
+    "Available plugins: tailwind, shiki, seo, docs, search, og, image",
   );
 });

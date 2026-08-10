@@ -44,8 +44,8 @@ my-site/
 
 Themes and plugins are loaded directly from JSR (or wherever the community package specifier
 points) - no local theme or plugin files are created unless you choose a local theme path. The
-generated project pins `@steno/steno` and official themes to `^0.10.0` by default; override with
-`--advanced` or the `--steno-version`/`--theme-version` flags.
+generated project pins `@steno/steno` to `^0.11.2` and official themes to `^0.10.0` by default;
+override with `--advanced` or the `--steno-version`/`--theme-version` flags.
 
 ## Themes
 
@@ -68,6 +68,7 @@ a **community theme**, or a path inside your project as a **local theme**.
 | `docs`     | `jsr:@steno/plugin-docs`     | Mirrors markdown from an external directory into `contentDir`  |
 | `search`   | `jsr:@steno/plugin-search`   | Generates a JSON search index from rendered HTML               |
 | `og`       | `jsr:@steno/plugin-og`       | Auto-generates Open Graph preview images and `og:image` tags   |
+| `image`    | `jsr:@steno/plugin-image`    | Resizes and optimizes images referenced by your theme's assets |
 
 Official plugins are declared as `mode: trusted` and run in-process with the permissions granted to
 Steno. **Community plugins** (any package specifier you type in) are declared as `mode: isolated`

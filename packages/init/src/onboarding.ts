@@ -36,7 +36,7 @@ export interface ProjectOptions {
    * and local themes. */
   themeVersion?: string;
   /** Version range applied to `@steno/steno` in the generated `deno.json`
-   * (default: `^0.10.0`). */
+   * (default: `^0.11.2`). */
   stenoVersion?: string;
   /** Content directory written to configuration and scaffolded into
    * (default: `content`). */
@@ -57,7 +57,8 @@ export interface ProjectOptions {
 /** Official theme choices supported by the onboarding CLI. */
 export type ThemeChoice = "minimal" | "docs-minimal" | "marketing-minimal";
 
-const DEFAULT_STENO_VERSION = "^0.10.0";
+const DEFAULT_STENO_VERSION = "^0.11.2";
+const DEFAULT_THEME_VERSION = "^0.10.0";
 
 const AVAILABLE_THEMES: Record<ThemeChoice, {
   label: string;
@@ -69,19 +70,19 @@ const AVAILABLE_THEMES: Record<ThemeChoice, {
     label: "Minimal",
     description: "A clean, simple theme for personal sites and blogs",
     packageBase: "jsr:@steno/theme-minimal",
-    version: DEFAULT_STENO_VERSION,
+    version: DEFAULT_THEME_VERSION,
   },
   "docs-minimal": {
     label: "Docs Minimal",
     description: "A minimal theme optimised for documentation sites",
     packageBase: "jsr:@steno/theme-docs-minimal",
-    version: DEFAULT_STENO_VERSION,
+    version: DEFAULT_THEME_VERSION,
   },
   "marketing-minimal": {
     label: "Marketing Minimal",
     description: "A polished landing-page theme for products and campaigns",
     packageBase: "jsr:@steno/theme-marketing-minimal",
-    version: DEFAULT_STENO_VERSION,
+    version: DEFAULT_THEME_VERSION,
   },
 };
 
@@ -97,7 +98,8 @@ export type PluginChoice =
   | "seo"
   | "docs"
   | "search"
-  | "og";
+  | "og"
+  | "image";
 
 const OFFICIAL_PLUGINS: Record<PluginChoice, {
   label: string;
@@ -135,6 +137,11 @@ const OFFICIAL_PLUGINS: Record<PluginChoice, {
     description:
       "Auto-generates an SVG Open Graph preview image per page and injects og:image tags",
     package: "jsr:@steno/plugin-og",
+  },
+  image: {
+    label: "Image optimization",
+    description: "Resizes and optimizes images referenced by your theme's assets",
+    package: "jsr:@steno/plugin-image",
   },
 };
 

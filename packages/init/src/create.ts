@@ -66,7 +66,7 @@ Advanced options (also unlocked interactively with --advanced, -a):
   --advanced, -a              Prompt for the extra settings below instead of using defaults
   --local-theme <path>        Use a theme path inside this project instead of a package, e.g. ./theme
   --theme-version <range>     Version range pinned for an official --theme (default: ^0.10.0)
-  --steno-version <range>     Version range for @steno/steno in deno.json (default: ^0.10.0)
+  --steno-version <range>     Version range for @steno/steno in deno.json (default: ^0.11.2)
   --content-dir <name>        Content directory (default: content)
   --output-dir <name>         Build output directory (default: dist)
   --dev-port <number>         Dev server port (default: 5735)
