@@ -32,7 +32,7 @@ jobs:
             ${{ runner.os }}-deno-
 
       - name: Check formatting
-        run: deno fmt --check
+        run: deno task fmt:check
 
       - name: Lint
         run: deno lint
