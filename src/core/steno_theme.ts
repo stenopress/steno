@@ -121,18 +121,14 @@ export async function loadTheme(
     if (isLocalThemePath(themeName)) {
       const themeDir = resolveLocalThemeDir(themeName);
 
-      let hasThemeYaml = false;
-      try {
-        Deno.statSync(join(themeDir, "theme.yaml"));
-        hasThemeYaml = true;
-      } catch {
+      const hasThemeYaml = ["theme.yaml", "theme.yml"].some((fileName) => {
         try {
-          Deno.statSync(join(themeDir, "theme.yml"));
-          hasThemeYaml = true;
+          Deno.statSync(join(themeDir, fileName));
+          return true;
         } catch {
-          // ignore
+          return false;
         }
-      }
+      });
 
       if (hasThemeYaml) {
         return await Theme.loadFromDirectory(themeDir, themeConfig);

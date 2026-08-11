@@ -11,6 +11,7 @@ import {
   STENO_DIR,
 } from "./path_utils.ts";
 import { resolveShortUrls } from "./config.ts";
+import { mapWithConcurrency } from "../utils/concurrency.ts";
 
 /** A page captured as part of a collection. */
 export interface CollectionItem {
@@ -54,25 +55,6 @@ export interface Collection {
 /** A lookup table of collection names to collection data. */
 export type CollectionMap = Record<string, Collection>;
 const FILE_READ_CONCURRENCY = 128;
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  concurrency: number,
-  mapFn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let currentIndex = 0;
-  const workerCount = Math.min(concurrency, Math.max(items.length, 1));
-  const workers = Array.from({ length: workerCount }, async () => {
-    while (true) {
-      const index = currentIndex++;
-      if (index >= items.length) return;
-      results[index] = await mapFn(items[index]);
-    }
-  });
-  await Promise.all(workers);
-  return results;
-}
 
 /**
  * Scans the content directory and parses all markdown pages.

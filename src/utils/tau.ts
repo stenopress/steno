@@ -1,6 +1,6 @@
 import { type Node, TauParser } from "./tau_parser.ts";
 import { TauError } from "./tau_error.ts";
-import { errorMessage, utf8ByteLength } from "./text.ts";
+import { errorMessage, hasControlCharacters, utf8ByteLength } from "./text.ts";
 import { BLOCKED_EXPRESSION_NAMES, compileExpression } from "./tau_expr.ts";
 
 /** Options accepted by the Tau template renderer. */
@@ -81,14 +81,6 @@ interface RenderState {
   outputBytes: number;
   includeStack: string[];
   componentStack: string[];
-}
-
-function hasControlCharacters(value: string): boolean {
-  for (let index = 0; index < value.length; index++) {
-    const code = value.charCodeAt(index);
-    if (code <= 0x1F || code === 0x7F) return true;
-  }
-  return false;
 }
 
 function resolveLimits(overrides?: Partial<TauLimits>): TauLimits {

@@ -23,33 +23,20 @@ function isIgnored(path: string, ignorePaths: string[]): boolean {
   return ignorePaths.some((ignorePath) => isPathInsideOrEqual(path, ignorePath));
 }
 
-function countMarkdownFiles(dir: string, ignorePaths: string[]): number {
-  let count = 0;
-  try {
-    for (const entry of Deno.readDirSync(dir)) {
-      const fullPath = join(dir, entry.name);
-      if (isIgnored(fullPath, ignorePaths)) continue;
-      if (entry.isDirectory && entry.name !== STENO_DIR) {
-        count += countMarkdownFiles(fullPath, ignorePaths);
-      } else if (entry.isFile && entry.name.endsWith(".md")) {
-        count++;
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return count;
-}
-
 /**
- * Parses every markdown file's frontmatter so a malformed page (bad YAML/
- * TOML indentation, a stray colon) surfaces here instead of deep inside a
- * real build. Skips the same paths `collectMarkdownPages` would (public/,
- * output/, `.steno/`) so this never flags a file the real build wouldn't
- * even treat as a page. Returns one message per file that failed to parse.
+ * Walks the content tree once, counting markdown pages and parsing each
+ * one's frontmatter so a malformed page (bad YAML/TOML indentation, a
+ * stray colon) surfaces here instead of deep inside a real build. Skips
+ * the same paths `collectMarkdownPages` would (public/, output/,
+ * `.steno/`) so this never flags a file the real build wouldn't even
+ * treat as a page.
  */
-function checkFrontmatter(dir: string, ignorePaths: string[]): string[] {
-  const errors: string[] = [];
+function scanMarkdownFiles(
+  dir: string,
+  ignorePaths: string[],
+): { count: number; frontmatterErrors: string[] } {
+  let count = 0;
+  const frontmatterErrors: string[] = [];
 
   const walk = (currentDir: string) => {
     let entries: Deno.DirEntry[];
@@ -65,17 +52,18 @@ function checkFrontmatter(dir: string, ignorePaths: string[]): string[] {
       if (entry.isDirectory) {
         if (entry.name !== STENO_DIR) walk(fullPath);
       } else if (entry.isFile && entry.name.endsWith(".md")) {
+        count++;
         try {
           parseFrontmatter(Deno.readTextFileSync(fullPath), fullPath);
         } catch (error) {
-          errors.push(errorMessage(error));
+          frontmatterErrors.push(errorMessage(error));
         }
       }
     }
   };
 
   walk(dir);
-  return errors;
+  return { count, frontmatterErrors };
 }
 
 /**
@@ -140,11 +128,13 @@ export async function runDoctor(configPath: string): Promise<boolean> {
   );
 
   // Markdown pages
-  const pageCount = countMarkdownFiles(contentDir, scanIgnorePaths);
+  const { count: pageCount, frontmatterErrors } = scanMarkdownFiles(
+    contentDir,
+    scanIgnorePaths,
+  );
   if (pageCount > 0) {
     ok(`${pageCount} page${pageCount === 1 ? "" : "s"} found`);
 
-    const frontmatterErrors = checkFrontmatter(contentDir, scanIgnorePaths);
     if (frontmatterErrors.length === 0) {
       ok(
         `Frontmatter parses cleanly in all ${pageCount} page${pageCount === 1 ? "" : "s"}`,
@@ -299,6 +289,5 @@ export async function runDoctor(configPath: string): Promise<boolean> {
   }
   console.log();
 
-  await Promise.resolve();
   return hasErrors;
 }

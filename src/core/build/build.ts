@@ -371,9 +371,10 @@ export async function buildSite({
         try {
           pageThemeConfig = theme?.resolveConfig(pageOverrides.themeConfig);
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
           throw new Error(
-            `Invalid per-page configuration in "${page.relPath}": ${message}`,
+            `Invalid per-page configuration in "${page.relPath}": ${
+              errorMessage(error)
+            }`,
           );
         }
 

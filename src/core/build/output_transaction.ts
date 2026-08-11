@@ -1,5 +1,6 @@
 import { basename, dirname, join, resolve } from "@std/path";
 import { errorMessage } from "../../utils/text.ts";
+import { ensureParentDirSync } from "../../utils/fs.ts";
 
 export interface OutputTransaction {
   outputDir: string;
@@ -55,7 +56,7 @@ export function beginOutputTransaction(
     );
   }
 
-  Deno.mkdirSync(parent, { recursive: true });
+  ensureParentDirSync(absoluteOutput);
   const name = basename(absoluteOutput);
   const backupDir = join(parent, `.${name}.steno-backup`);
 

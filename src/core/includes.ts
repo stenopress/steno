@@ -1,13 +1,8 @@
 import { dirname, isAbsolute, join } from "@std/path";
+import { fileExists } from "../utils/fs.ts";
+import { hasControlCharacters } from "../utils/text.ts";
 
 const INCLUDE_PATTERN_SOURCE = String.raw`\{@include\s+"([^"]+)"\}`;
-
-function hasControlCharacters(value: string): boolean {
-  for (let i = 0; i < value.length; i++) {
-    if (value.charCodeAt(i) < 0x20) return true;
-  }
-  return false;
-}
 
 function isUnsafeIncludePath(includePath: string): boolean {
   return isAbsolute(includePath) ||
@@ -16,15 +11,6 @@ function isUnsafeIncludePath(includePath: string): boolean {
     includePath.split("/").includes("..") ||
     /^[A-Za-z][A-Za-z\d+.-]*:/.test(includePath) ||
     hasControlCharacters(includePath);
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    return (await Deno.stat(path)).isFile;
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return false;
-    throw error;
-  }
 }
 
 async function resolveIncludePath(
