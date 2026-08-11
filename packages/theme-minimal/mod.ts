@@ -8,8 +8,7 @@ import type { StenoTheme } from "@steno/steno";
 
 // fetch() works universally: file:// for local/bundled imports,
 // https:// for direct JSR imports (jsr:@steno/theme-minimal@x.y.z).
-const layout = await fetch(new URL("./layouts/layout.tau", import.meta.url))
-  .then((r) => r.text());
+const layout = await fetch(new URL("./layouts/layout.tau", import.meta.url)).then((r) => r.text());
 
 /** Minimal official Steno theme. */
 const theme: StenoTheme = {

@@ -29,20 +29,14 @@ export function validateHeadTags(value: unknown, path = "head"): HeadTag[] {
 
     const tag = entry.tag ?? "meta";
     if (tag === "meta") {
-      for (
-        const field of ["name", "property", "httpEquiv", "charset", "content"]
-      ) {
+      for (const field of ["name", "property", "httpEquiv", "charset", "content"]) {
         if (entry[field] !== undefined && typeof entry[field] !== "string") {
           headError(`${entryPath}.${field}`, "expected a string");
         }
       }
-      const selectors = [
-        entry.name,
-        entry.property,
-        entry.httpEquiv,
-        entry.charset,
-      ]
-        .filter((item) => item !== undefined);
+      const selectors = [entry.name, entry.property, entry.httpEquiv, entry.charset].filter(
+        (item) => item !== undefined,
+      );
       if (selectors.length !== 1) {
         headError(
           entryPath,
@@ -62,15 +56,7 @@ export function validateHeadTags(value: unknown, path = "head"): HeadTag[] {
       if (typeof entry.href !== "string") {
         headError(`${entryPath}.href`, "expected a string");
       }
-      for (
-        const field of [
-          "type",
-          "media",
-          "sizes",
-          "crossOrigin",
-          "referrerPolicy",
-        ]
-      ) {
+      for (const field of ["type", "media", "sizes", "crossOrigin", "referrerPolicy"]) {
         if (entry[field] !== undefined && typeof entry[field] !== "string") {
           headError(`${entryPath}.${field}`, "expected a string");
         }
@@ -82,16 +68,14 @@ export function validateHeadTags(value: unknown, path = "head"): HeadTag[] {
       if (entry.src === undefined && entry.content === undefined) {
         headError(entryPath, "script tags require src or content");
       }
-      for (
-        const field of [
-          "src",
-          "content",
-          "type",
-          "integrity",
-          "crossOrigin",
-          "referrerPolicy",
-        ]
-      ) {
+      for (const field of [
+        "src",
+        "content",
+        "type",
+        "integrity",
+        "crossOrigin",
+        "referrerPolicy",
+      ]) {
         if (entry[field] !== undefined && typeof entry[field] !== "string") {
           headError(`${entryPath}.${field}`, "expected a string");
         }
@@ -127,10 +111,7 @@ function tagIdentity(tag: HeadTag): string | undefined {
 }
 
 /** Merges page tags over matching site tags while preserving stable order. */
-export function mergeHeadTags(
-  siteTags: HeadTag[] = [],
-  pageTags: HeadTag[] = [],
-): HeadTag[] {
+export function mergeHeadTags(siteTags: HeadTag[] = [], pageTags: HeadTag[] = []): HeadTag[] {
   const merged = [...siteTags];
   const positions = new Map<string, number>();
   merged.forEach((tag, index) => {
@@ -151,10 +132,11 @@ export function mergeHeadTags(
 }
 
 function escapeAttribute(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(
-    /</g,
-    "&lt;",
-  ).replace(/>/g, "&gt;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function attribute(name: string, value: string | undefined): string {
@@ -162,28 +144,35 @@ function attribute(name: string, value: string | undefined): string {
 }
 
 export function renderHeadTags(tags: HeadTag[]): string {
-  return tags.map((tag) => {
-    if (isMetaTag(tag)) {
-      return `<meta${attribute("name", tag.name)}${attribute("property", tag.property)}${
-        attribute("http-equiv", tag.httpEquiv)
-      }${attribute("charset", tag.charset)}${attribute("content", tag.content)}>`;
-    }
-    if (isLinkTag(tag)) {
-      return `<link${attribute("rel", tag.rel)}${attribute("href", tag.href)}${
-        attribute("type", tag.type)
-      }${attribute("media", tag.media)}${attribute("sizes", tag.sizes)}${
-        attribute("crossorigin", tag.crossOrigin)
-      }${attribute("referrerpolicy", tag.referrerPolicy)}>`;
-    }
-    const body = (tag.content ?? "").replace(/<\/script/gi, "<\\/script");
-    return `<script${attribute("src", tag.src)}${attribute("type", tag.type)}${
-      tag.async ? " async" : ""
-    }${tag.defer ? " defer" : ""}${tag.noModule ? " nomodule" : ""}${
-      attribute("integrity", tag.integrity)
-    }${attribute("crossorigin", tag.crossOrigin)}${
-      attribute("referrerpolicy", tag.referrerPolicy)
-    }>${body}</script>`;
-  }).join("\n");
+  return tags
+    .map((tag) => {
+      if (isMetaTag(tag)) {
+        return `<meta${attribute("name", tag.name)}${attribute("property", tag.property)}${attribute(
+          "http-equiv",
+          tag.httpEquiv,
+        )}${attribute("charset", tag.charset)}${attribute("content", tag.content)}>`;
+      }
+      if (isLinkTag(tag)) {
+        return `<link${attribute("rel", tag.rel)}${attribute("href", tag.href)}${attribute(
+          "type",
+          tag.type,
+        )}${attribute("media", tag.media)}${attribute("sizes", tag.sizes)}${attribute(
+          "crossorigin",
+          tag.crossOrigin,
+        )}${attribute("referrerpolicy", tag.referrerPolicy)}>`;
+      }
+      const body = (tag.content ?? "").replace(/<\/script/gi, "<\\/script");
+      return `<script${attribute("src", tag.src)}${attribute("type", tag.type)}${
+        tag.async ? " async" : ""
+      }${tag.defer ? " defer" : ""}${tag.noModule ? " nomodule" : ""}${attribute(
+        "integrity",
+        tag.integrity,
+      )}${attribute("crossorigin", tag.crossOrigin)}${attribute(
+        "referrerpolicy",
+        tag.referrerPolicy,
+      )}>${body}</script>`;
+    })
+    .join("\n");
 }
 
 /** Injects managed tags before `</head>`, creating a head when necessary. */

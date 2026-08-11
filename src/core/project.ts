@@ -40,14 +40,7 @@ function createNavTreeNode(name: string): NavTreeNode {
 }
 
 function isProjectMarker(name: string): boolean {
-  return [
-    "deno.json",
-    "deno.jsonc",
-    "mod.ts",
-    "mod.js",
-    "mod.mts",
-    "mod.mjs",
-  ].includes(name);
+  return ["deno.json", "deno.jsonc", "mod.ts", "mod.js", "mod.mts", "mod.mjs"].includes(name);
 }
 
 async function scanRoot(rootDir: string): Promise<RootScanResult> {
@@ -66,10 +59,7 @@ async function scanRoot(rootDir: string): Promise<RootScanResult> {
   return { hasProjectMarkers: false, docsDir };
 }
 
-function buildNavigationTree(
-  pages: MarkdownPage[],
-  shortUrls: boolean,
-): NavigationNode[] {
+function buildNavigationTree(pages: MarkdownPage[], shortUrls: boolean): NavigationNode[] {
   const root = createNavTreeNode("");
 
   for (const page of pages) {
@@ -99,21 +89,15 @@ function buildNavigationTree(
     if (fileName === "index.md") {
       cursor.page = navNode;
     } else {
-      cursor.children.set(
-        fileName.replace(/\.md$/, ""),
-        {
-          name: fileName.replace(/\.md$/, ""),
-          page: navNode,
-          children: new Map(),
-        },
-      );
+      cursor.children.set(fileName.replace(/\.md$/, ""), {
+        name: fileName.replace(/\.md$/, ""),
+        page: navNode,
+        children: new Map(),
+      });
     }
   }
 
-  const toNavigationNodes = (
-    node: NavTreeNode,
-    isRoot = false,
-  ): NavigationNode[] => {
+  const toNavigationNodes = (node: NavTreeNode, isRoot = false): NavigationNode[] => {
     const children = [...node.children.values()].flatMap((child) => toNavigationNodes(child));
 
     if (node.page) {
@@ -124,10 +108,12 @@ function buildNavigationTree(
     if (isRoot) return children;
     if (!children.length) return [];
 
-    return [{
-      title: humanizeSegment(node.name),
-      children,
-    }];
+    return [
+      {
+        title: humanizeSegment(node.name),
+        children,
+      },
+    ];
   };
 
   return toNavigationNodes(root, true);
@@ -147,8 +133,7 @@ function buildZeroConfigSiteTitle(
     return normalized === "index.md" || normalized.endsWith("/index.md");
   });
 
-  return indexPage?.title ?? pages[0]?.title ??
-    humanizeSegment(basename(contentDir));
+  return indexPage?.title ?? pages[0]?.title ?? humanizeSegment(basename(contentDir));
 }
 
 function getZeroConfigTheme(mode: ZeroConfigDiscovery["mode"]): string {
@@ -222,49 +207,43 @@ async function discoverZeroConfigProject(
   };
 }
 
-function buildZeroConfigSiteConfig(
-  discovery: ZeroConfigDiscovery,
-  rootDir: string,
-): SiteConfig {
+function buildZeroConfigSiteConfig(discovery: ZeroConfigDiscovery, rootDir: string): SiteConfig {
   const pages = discovery.pages.map(stripReservedStenoNamespace);
   const shortUrls = true;
   const navigation = buildNavigationTree(pages, shortUrls);
-  const siteTitle = buildZeroConfigSiteTitle(
-    discovery.mode,
-    discovery.contentDir,
-    pages,
-  );
+  const siteTitle = buildZeroConfigSiteTitle(discovery.mode, discovery.contentDir, pages);
   const theme = getZeroConfigTheme(discovery.mode);
 
   if (discovery.mode === "single-file") {
-    const stenoConfig = extractStenoNamespaceConfig(
-      discovery.pages[0]?.frontmatter ?? {},
-    );
+    const stenoConfig = extractStenoNamespaceConfig(discovery.pages[0]?.frontmatter ?? {});
 
     return {
-      title: typeof stenoConfig.title === "string" && stenoConfig.title.trim()
-        ? stenoConfig.title.trim()
-        : siteTitle,
+      title:
+        typeof stenoConfig.title === "string" && stenoConfig.title.trim()
+          ? stenoConfig.title.trim()
+          : siteTitle,
       description: typeof stenoConfig.description === "string" ? stenoConfig.description : "",
       author: typeof stenoConfig.author === "string" ? stenoConfig.author : "",
       contentDir: discovery.contentDir,
-      output: typeof stenoConfig.output === "string" && stenoConfig.output.trim()
-        ? (isAbsolute(stenoConfig.output.trim())
-          ? stenoConfig.output.trim()
-          : join(rootDir, stenoConfig.output.trim()))
-        : join(rootDir, "dist"),
+      output:
+        typeof stenoConfig.output === "string" && stenoConfig.output.trim()
+          ? isAbsolute(stenoConfig.output.trim())
+            ? stenoConfig.output.trim()
+            : join(rootDir, stenoConfig.output.trim())
+          : join(rootDir, "dist"),
       navigation: buildNavigationTree(pages, stenoConfig.shortUrls !== false),
       shortUrls: stenoConfig.shortUrls !== false,
-      theme: typeof stenoConfig.theme === "string" &&
-          stenoConfig.theme.trim()
-        ? stenoConfig.theme.trim()
-        : theme,
-      themeConfig: stenoConfig.themeConfig &&
-          typeof stenoConfig.themeConfig === "object" &&
-          stenoConfig.themeConfig !== null &&
-          !Array.isArray(stenoConfig.themeConfig)
-        ? stenoConfig.themeConfig as Record<string, unknown>
-        : {},
+      theme:
+        typeof stenoConfig.theme === "string" && stenoConfig.theme.trim()
+          ? stenoConfig.theme.trim()
+          : theme,
+      themeConfig:
+        stenoConfig.themeConfig &&
+        typeof stenoConfig.themeConfig === "object" &&
+        stenoConfig.themeConfig !== null &&
+        !Array.isArray(stenoConfig.themeConfig)
+          ? (stenoConfig.themeConfig as Record<string, unknown>)
+          : {},
     };
   }
 
@@ -291,9 +270,7 @@ function buildZeroConfigSiteConfig(
  * `inferPageTitle` - or a humanized `contentDir` name if there's no index
  * page to read at all. A config that already sets a field wins outright.
  */
-async function resolveConfiguredSiteMetadata(
-  config: SiteConfig,
-): Promise<SiteConfig> {
+async function resolveConfiguredSiteMetadata(config: SiteConfig): Promise<SiteConfig> {
   const description = config.description ?? "";
   const author = config.author ?? "";
   if (config.title !== undefined) {
@@ -338,15 +315,9 @@ export async function resolveProject(
     throw new Error(`Configuration file not found at "${configPath}".`);
   }
 
-  const discovery = await discoverZeroConfigProject(
-    rootDir,
-    rootScan,
-    pageCache,
-  );
+  const discovery = await discoverZeroConfigProject(rootDir, rootScan, pageCache);
   if (!discovery) {
-    throw new Error(
-      `No markdown files found for zero-config fallback in "${rootDir}".`,
-    );
+    throw new Error(`No markdown files found for zero-config fallback in "${rootDir}".`);
   }
 
   return {

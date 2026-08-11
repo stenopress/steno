@@ -15,10 +15,7 @@ const simpleTemplate = `
 
 const simpleContext = {
   title: "Steno Bench",
-  description: "A small benchmark focused on the core Tau render path. "
-    .repeat(
-      4,
-    ),
+  description: "A small benchmark focused on the core Tau render path. ".repeat(4),
 };
 
 const layoutTemplate = `
@@ -106,17 +103,13 @@ const unclosedTemplate = `
 </main>
 `;
 
-Deno.bench(
-  "tau render (simple)",
-  { group: "tau", baseline: true },
-  async () => {
-    await render({
-      template: simpleTemplate,
-      context: simpleContext,
-      components: {},
-    });
-  },
-);
+Deno.bench("tau render (simple)", { group: "tau", baseline: true }, async () => {
+  await render({
+    template: simpleTemplate,
+    context: simpleContext,
+    components: {},
+  });
+});
 
 Deno.bench("tau render (components + loops)", { group: "tau" }, async () => {
   await render({
@@ -126,31 +119,23 @@ Deno.bench("tau render (components + loops)", { group: "tau" }, async () => {
   });
 });
 
-Deno.bench(
-  "tau render (list of 1000 items)",
-  { group: "tau-scale", baseline: true },
-  async () => {
-    await render({
-      template: largeListTemplate,
-      context: { items: thousandItems },
-      components: {
-        Row: "<article><h4>{title}</h4><p>{excerpt | truncate(60)}</p></article>",
-      },
-    });
-  },
-);
+Deno.bench("tau render (list of 1000 items)", { group: "tau-scale", baseline: true }, async () => {
+  await render({
+    template: largeListTemplate,
+    context: { items: thousandItems },
+    components: {
+      Row: "<article><h4>{title}</h4><p>{excerpt | truncate(60)}</p></article>",
+    },
+  });
+});
 
-Deno.bench(
-  "tau render (4-level nested loops)",
-  { group: "tau-scale" },
-  async () => {
-    await render({
-      template: nestedTemplate,
-      context: { sections: deepTree },
-      components: deepComponents,
-    });
-  },
-);
+Deno.bench("tau render (4-level nested loops)", { group: "tau-scale" }, async () => {
+  await render({
+    template: nestedTemplate,
+    context: { sections: deepTree },
+    components: deepComponents,
+  });
+});
 
 Deno.bench(
   "tau render (unclosed tag fails fast)",

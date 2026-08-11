@@ -70,10 +70,7 @@ function checkDevPort(
 ): void {
   const value = config.devPort;
   if (value === undefined) return;
-  if (
-    typeof value !== "number" || !Number.isInteger(value) || value < 1 ||
-    value > 65535
-  ) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 65535) {
     invalid(diagnostics, configPath, "devPort", "an integer between 1 and 65535");
   }
 }
@@ -111,15 +108,12 @@ function checkCollections(
     if (entry.sortBy !== undefined && typeof entry.sortBy !== "string") {
       invalid(diagnostics, configPath, `${base}.sortBy`, "a string");
     }
-    if (
-      entry.order !== undefined && entry.order !== "asc" && entry.order !== "desc"
-    ) {
+    if (entry.order !== undefined && entry.order !== "asc" && entry.order !== "desc") {
       invalid(diagnostics, configPath, `${base}.order`, '"asc" or "desc"');
     }
     if (
       entry.limit !== undefined &&
-      (typeof entry.limit !== "number" || !Number.isInteger(entry.limit) ||
-        entry.limit < 0)
+      (typeof entry.limit !== "number" || !Number.isInteger(entry.limit) || entry.limit < 0)
     ) {
       invalid(diagnostics, configPath, `${base}.limit`, "a non-negative integer");
     }
@@ -137,10 +131,7 @@ function checkCollections(
             continue;
           }
           const type = fieldSchema.type;
-          if (
-            type !== "string" && type !== "number" && type !== "boolean" &&
-            type !== "array"
-          ) {
+          if (type !== "string" && type !== "number" && type !== "boolean" && type !== "array") {
             invalid(
               diagnostics,
               configPath,
@@ -148,10 +139,7 @@ function checkCollections(
               '"string", "number", "boolean", or "array"',
             );
           }
-          if (
-            fieldSchema.required !== undefined &&
-            typeof fieldSchema.required !== "boolean"
-          ) {
+          if (fieldSchema.required !== undefined && typeof fieldSchema.required !== "boolean") {
             invalid(diagnostics, configPath, `${fieldBase}.required`, "a boolean");
           }
         }
@@ -205,12 +193,8 @@ function checkNavigationEntries(
       ok = false;
     }
     if (entry.children !== undefined) {
-      ok = checkNavigationEntries(
-        entry.children,
-        diagnostics,
-        configPath,
-        `${path}.children`,
-      ) && ok;
+      ok =
+        checkNavigationEntries(entry.children, diagnostics, configPath, `${path}.children`) && ok;
     }
   });
   return ok;
@@ -227,14 +211,12 @@ function checkPluginSourcePolicy(
     invalid(diagnostics, configPath, "pluginSourcePolicy", "an object");
     return;
   }
-  for (
-    const field of [
-      "allowLocal",
-      "allowRemoteHttp",
-      "allowNodeBuiltins",
-      "allowThemePlugins",
-    ] as const
-  ) {
+  for (const field of [
+    "allowLocal",
+    "allowRemoteHttp",
+    "allowNodeBuiltins",
+    "allowThemePlugins",
+  ] as const) {
     const field_value = value[field];
     if (field_value !== undefined && typeof field_value !== "boolean") {
       invalid(diagnostics, configPath, `pluginSourcePolicy.${field}`, "a boolean");
@@ -344,9 +326,9 @@ export function validateSiteConfig(
     diagnostics.add({
       code: "config-unknown-key",
       severity: "warning",
-      message: `Unrecognized key${unknownKeys.length === 1 ? "" : "s"}: ${
-        unknownKeys.map((key) => `"${key}"`).join(", ")
-      }. Check for a typo, or nest project-specific fields under "custom".`,
+      message: `Unrecognized key${unknownKeys.length === 1 ? "" : "s"}: ${unknownKeys
+        .map((key) => `"${key}"`)
+        .join(", ")}. Check for a typo, or nest project-specific fields under "custom".`,
       file: configPath,
     });
   }

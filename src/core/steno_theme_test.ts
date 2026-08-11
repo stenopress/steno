@@ -22,10 +22,7 @@ Deno.test({
       resolveThemeWatchDir(baseConfig({ theme: "jsr:@steno/theme-minimal" })),
       undefined,
     );
-    assertEquals(
-      resolveThemeWatchDir(baseConfig({ theme: "npm:some-theme" })),
-      undefined,
-    );
+    assertEquals(resolveThemeWatchDir(baseConfig({ theme: "npm:some-theme" })), undefined);
   },
 });
 
@@ -50,9 +47,7 @@ Deno.test({
   permissions: { read: true, write: true },
   fn: () => {
     const tempDir = Deno.makeTempDirSync();
-    const dir = resolveThemeWatchDir(
-      baseConfig({ theme: `file://${tempDir}` }),
-    );
+    const dir = resolveThemeWatchDir(baseConfig({ theme: `file://${tempDir}` }));
     assertEquals(dir, tempDir);
     Deno.removeSync(tempDir, { recursive: true });
   },

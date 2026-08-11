@@ -15,40 +15,43 @@ export function registerPluginTests(): void {
     assertEquals(result, tokens);
   });
 
-  Deno.test("plugins: MarkdownTokens is compile-time compatible with marked.lexer()'s real output", async () => {
-    // This assignment is itself the compatibility check: if marked's Token
-    // shape ever drops `type`/`raw`/`links`, this file fails to type-check
-    // in CI - see MarkdownToken's docs in types.ts for why the public type
-    // stays this minimal on purpose.
-    const source =
-      "# Heading\n\nA paragraph with a [link](https://example.com).\n\n- one\n- two\n\n```ts\nconst x = 1;\n```\n";
-    const tokens: MarkdownTokens = marked.lexer(source);
+  Deno.test(
+    "plugins: MarkdownTokens is compile-time compatible with marked.lexer()'s real output",
+    async () => {
+      // This assignment is itself the compatibility check: if marked's Token
+      // shape ever drops `type`/`raw`/`links`, this file fails to type-check
+      // in CI - see MarkdownToken's docs in types.ts for why the public type
+      // stays this minimal on purpose.
+      const source =
+        "# Heading\n\nA paragraph with a [link](https://example.com).\n\n- one\n- two\n\n```ts\nconst x = 1;\n```\n";
+      const tokens: MarkdownTokens = marked.lexer(source);
 
-    for (const token of tokens) {
-      assertEquals(typeof token.type, "string");
-      assertEquals(typeof token.raw, "string");
-    }
+      for (const token of tokens) {
+        assertEquals(typeof token.type, "string");
+        assertEquals(typeof token.raw, "string");
+      }
 
-    // The same tokens, unmodified, must still render correctly through
-    // marked.parser() after a round trip through a transformAst plugin -
-    // proving real (not minimal) token fidelity survives the hook.
-    let sawTokens: MarkdownTokens | undefined;
-    const identityPlugin: StenoPlugin = {
-      name: "identity",
-      transformAst: (t) => {
-        sawTokens = t;
-        return t;
-      },
-    };
-    const result = await runAstTransforms(tokens, [identityPlugin]);
-    assertEquals(sawTokens, tokens);
+      // The same tokens, unmodified, must still render correctly through
+      // marked.parser() after a round trip through a transformAst plugin -
+      // proving real (not minimal) token fidelity survives the hook.
+      let sawTokens: MarkdownTokens | undefined;
+      const identityPlugin: StenoPlugin = {
+        name: "identity",
+        transformAst: (t) => {
+          sawTokens = t;
+          return t;
+        },
+      };
+      const result = await runAstTransforms(tokens, [identityPlugin]);
+      assertEquals(sawTokens, tokens);
 
-    const html = marked.parser(result);
-    assertStringIncludes(html, "<h1>Heading</h1>");
-    assertStringIncludes(html, '<a href="https://example.com">link</a>');
-    assertStringIncludes(html, "<li>one</li>");
-    assertStringIncludes(html, "const x = 1;");
-  });
+      const html = marked.parser(result);
+      assertStringIncludes(html, "<h1>Heading</h1>");
+      assertStringIncludes(html, '<a href="https://example.com">link</a>');
+      assertStringIncludes(html, "<li>one</li>");
+      assertStringIncludes(html, "const x = 1;");
+    },
+  );
 
   Deno.test("plugins: runAstTransforms runs transforms in order", async () => {
     const log: number[] = [];
@@ -75,34 +78,43 @@ export function registerPluginTests(): void {
 
   Deno.test("plugins: runAstTransforms skips plugins without transformAst", async () => {
     const tokens = marked.lexer("hello");
-    const plugins: StenoPlugin[] = [{
-      name: "html-only",
-      transformHtml: (h) => h,
-    }];
+    const plugins: StenoPlugin[] = [
+      {
+        name: "html-only",
+        transformHtml: (h) => h,
+      },
+    ];
     const result = await runAstTransforms(tokens, plugins);
     assertEquals(result, tokens);
   });
 
-  Deno.test("plugins: runAstTransforms names the plugin when it returns the wrong shape", async () => {
-    const plugins: StenoPlugin[] = [{
-      name: "broken-ast-plugin",
-      // deno-lint-ignore no-explicit-any
-      transformAst: (() => undefined) as any,
-    }];
-    await assertRejects(
-      () => runAstTransforms(marked.lexer("hello"), plugins),
-      Error,
-      'Plugin "broken-ast-plugin"\'s transformAst must return an array of markdown tokens, got undefined.',
-    );
-  });
+  Deno.test(
+    "plugins: runAstTransforms names the plugin when it returns the wrong shape",
+    async () => {
+      const plugins: StenoPlugin[] = [
+        {
+          name: "broken-ast-plugin",
+          // deno-lint-ignore no-explicit-any
+          transformAst: (() => undefined) as any,
+        },
+      ];
+      await assertRejects(
+        () => runAstTransforms(marked.lexer("hello"), plugins),
+        Error,
+        'Plugin "broken-ast-plugin"\'s transformAst must return an array of markdown tokens, got undefined.',
+      );
+    },
+  );
 
   Deno.test("plugins: runAstTransforms names the plugin when its hook throws", async () => {
-    const plugins: StenoPlugin[] = [{
-      name: "throwing-ast-plugin",
-      transformAst: () => {
-        throw new Error("boom");
+    const plugins: StenoPlugin[] = [
+      {
+        name: "throwing-ast-plugin",
+        transformAst: () => {
+          throw new Error("boom");
+        },
       },
-    }];
+    ];
     await assertRejects(
       () => runAstTransforms(marked.lexer("hello"), plugins),
       Error,
@@ -127,46 +139,57 @@ export function registerPluginTests(): void {
   });
 
   Deno.test("plugins: runHtmlTransforms skips plugins without transformHtml", async () => {
-    const plugins: StenoPlugin[] = [{
-      name: "ast-only",
-      transformAst: (t) => t,
-    }];
+    const plugins: StenoPlugin[] = [
+      {
+        name: "ast-only",
+        transformAst: (t) => t,
+      },
+    ];
     const result = await runHtmlTransforms("<p>hello</p>", plugins);
     assertEquals(result, "<p>hello</p>");
   });
 
   Deno.test("plugins: runHtmlTransforms supports async transforms", async () => {
-    const plugins: StenoPlugin[] = [{
-      name: "async",
-      transformHtml: async (h) => {
-        await new Promise((r) => setTimeout(r, 1));
-        return h + "<!-- async -->";
+    const plugins: StenoPlugin[] = [
+      {
+        name: "async",
+        transformHtml: async (h) => {
+          await new Promise((r) => setTimeout(r, 1));
+          return h + "<!-- async -->";
+        },
       },
-    }];
+    ];
     const result = await runHtmlTransforms("<p>hi</p>", plugins);
     assertEquals(result, "<p>hi</p><!-- async -->");
   });
 
-  Deno.test("plugins: runHtmlTransforms names the plugin when it returns the wrong shape", async () => {
-    const plugins: StenoPlugin[] = [{
-      name: "broken-html-plugin",
-      // deno-lint-ignore no-explicit-any
-      transformHtml: ((h: string) => ({ notHtml: h })) as any,
-    }];
-    await assertRejects(
-      () => runHtmlTransforms("<p>hi</p>", plugins),
-      Error,
-      'Plugin "broken-html-plugin"\'s transformHtml must return a string, got object.',
-    );
-  });
+  Deno.test(
+    "plugins: runHtmlTransforms names the plugin when it returns the wrong shape",
+    async () => {
+      const plugins: StenoPlugin[] = [
+        {
+          name: "broken-html-plugin",
+          // deno-lint-ignore no-explicit-any
+          transformHtml: ((h: string) => ({ notHtml: h })) as any,
+        },
+      ];
+      await assertRejects(
+        () => runHtmlTransforms("<p>hi</p>", plugins),
+        Error,
+        'Plugin "broken-html-plugin"\'s transformHtml must return a string, got object.',
+      );
+    },
+  );
 
   Deno.test("plugins: runHtmlTransforms names the plugin when its hook throws", async () => {
-    const plugins: StenoPlugin[] = [{
-      name: "throwing-html-plugin",
-      transformHtml: () => {
-        throw new Error("boom");
+    const plugins: StenoPlugin[] = [
+      {
+        name: "throwing-html-plugin",
+        transformHtml: () => {
+          throw new Error("boom");
+        },
       },
-    }];
+    ];
     await assertRejects(
       () => runHtmlTransforms("<p>hi</p>", plugins),
       Error,
@@ -174,25 +197,28 @@ export function registerPluginTests(): void {
     );
   });
 
-  Deno.test("plugins: runHtmlTransforms stops at the offending plugin, doesn't run later ones", async () => {
-    const ran: string[] = [];
-    const plugins: StenoPlugin[] = [
-      {
-        name: "broken",
-        // deno-lint-ignore no-explicit-any
-        transformHtml: (() => undefined) as any,
-      },
-      {
-        name: "never-runs",
-        transformHtml: (h) => {
-          ran.push("never-runs");
-          return h;
+  Deno.test(
+    "plugins: runHtmlTransforms stops at the offending plugin, doesn't run later ones",
+    async () => {
+      const ran: string[] = [];
+      const plugins: StenoPlugin[] = [
+        {
+          name: "broken",
+          // deno-lint-ignore no-explicit-any
+          transformHtml: (() => undefined) as any,
         },
-      },
-    ];
-    await assertRejects(() => runHtmlTransforms("<p>hi</p>", plugins));
-    assertEquals(ran, []);
-  });
+        {
+          name: "never-runs",
+          transformHtml: (h) => {
+            ran.push("never-runs");
+            return h;
+          },
+        },
+      ];
+      await assertRejects(() => runHtmlTransforms("<p>hi</p>", plugins));
+      assertEquals(ran, []);
+    },
+  );
 
   // loadPlugins
 
@@ -268,10 +294,12 @@ export function registerPluginTests(): void {
             allowLocal: true,
           },
         },
-        plugins: [{
-          package: `file://${pluginPath}`,
-          options: { name: "my-plugin" },
-        }],
+        plugins: [
+          {
+            package: `file://${pluginPath}`,
+            options: { name: "my-plugin" },
+          },
+        ],
       });
 
       assertEquals(result.length, 1);
@@ -302,7 +330,10 @@ export function registerPluginTests(): void {
         plugins: [`file://${pluginPath}`],
       });
 
-      assertEquals(result.map((plugin) => plugin.name), ["legacy-policy"]);
+      assertEquals(
+        result.map((plugin) => plugin.name),
+        ["legacy-policy"],
+      );
     },
   });
 
@@ -384,10 +415,7 @@ export function registerPluginTests(): void {
     fn: async () => {
       const tempDir = Deno.makeTempDirSync();
       const pluginPath = join(tempDir, "bad-plugin.ts");
-      Deno.writeTextFileSync(
-        pluginPath,
-        `export default { name: "not-a-function" };`,
-      );
+      Deno.writeTextFileSync(pluginPath, `export default { name: "not-a-function" };`);
 
       const result = await loadPlugins({
         title: "",
@@ -461,11 +489,7 @@ export function registerPluginTests(): void {
 
       let result: Awaited<ReturnType<typeof loadPlugins>>;
       try {
-        result = await loadPlugins(
-          malformedConfig as unknown as Parameters<
-            typeof loadPlugins
-          >[0],
-        );
+        result = await loadPlugins(malformedConfig as unknown as Parameters<typeof loadPlugins>[0]);
       } finally {
         console.warn = originalWarn;
       }
@@ -569,11 +593,6 @@ export function registerPluginTests(): void {
     await plugin.afterPage!({ path: "/dist/index.html", html: "<p>hi</p>" });
     await plugin.afterBuild!({ title: "", description: "", author: "" });
 
-    assertEquals(order, [
-      "beforeBuild",
-      "transformHtml",
-      "afterPage",
-      "afterBuild",
-    ]);
+    assertEquals(order, ["beforeBuild", "transformHtml", "afterPage", "afterBuild"]);
   });
 }

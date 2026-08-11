@@ -6,14 +6,8 @@ import { DiagnosticBag } from "./diagnostics.ts";
 import { errorMessage } from "../utils/text.ts";
 
 const bundledThemeSources: Record<string, URL> = {
-  "jsr:@steno/theme-minimal": new URL(
-    "../../packages/theme-minimal",
-    import.meta.url,
-  ),
-  "jsr:@steno/theme-docs-minimal": new URL(
-    "../../packages/theme-docs-minimal",
-    import.meta.url,
-  ),
+  "jsr:@steno/theme-minimal": new URL("../../packages/theme-minimal", import.meta.url),
+  "jsr:@steno/theme-docs-minimal": new URL("../../packages/theme-docs-minimal", import.meta.url),
   "jsr:@steno/theme-marketing-minimal": new URL(
     "../../packages/theme-marketing-minimal",
     import.meta.url,
@@ -27,14 +21,15 @@ export function bundledThemeLocalPath(source: URL): string | undefined {
 
 /** Whether `themeName` refers to a local filesystem path, not a package specifier. */
 function isLocalThemePath(themeName: string): boolean {
-  return themeName.startsWith(".") || themeName.startsWith("/") ||
-    themeName.startsWith("file://");
+  return themeName.startsWith(".") || themeName.startsWith("/") || themeName.startsWith("file://");
 }
 
 function resolveLocalThemeDir(themeName: string): string {
   return themeName.startsWith("file://")
     ? fromFileUrl(new URL(themeName))
-    : (isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName));
+    : isAbsolute(themeName)
+      ? themeName
+      : join(Deno.cwd(), themeName);
 }
 
 /**
@@ -60,8 +55,7 @@ export function resolveThemeWatchDir(config: SiteConfig): string | undefined {
 async function importFresh(specifierUrl: string): Promise<unknown> {
   let cacheBuster = "";
   try {
-    const mtime = (await Deno.stat(fromFileUrl(specifierUrl))).mtime
-      ?.getTime();
+    const mtime = (await Deno.stat(fromFileUrl(specifierUrl))).mtime?.getTime();
     if (mtime !== undefined) cacheBuster = `?mtime=${mtime}`;
   } catch {
     // Not a statable local file:// path — import without busting the cache.
@@ -110,10 +104,7 @@ export async function loadTheme(
   const themeConfig = resolveThemeConfig(config);
 
   try {
-    const bundledTheme = await loadBundledTheme(
-      themeName,
-      themeConfig,
-    );
+    const bundledTheme = await loadBundledTheme(themeName, themeConfig);
     if (bundledTheme) {
       return bundledTheme;
     }
@@ -134,9 +125,9 @@ export async function loadTheme(
         return await Theme.loadFromDirectory(themeDir, themeConfig);
       }
 
-      let resolvedPath = themeName.startsWith("file://") ? themeName : toFileUrl(
-        isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName),
-      ).href;
+      let resolvedPath = themeName.startsWith("file://")
+        ? themeName
+        : toFileUrl(isAbsolute(themeName) ? themeName : join(Deno.cwd(), themeName)).href;
 
       let stat: Deno.FileInfo | undefined;
       try {
@@ -165,17 +156,15 @@ export async function loadTheme(
           diagnostics.add({
             code: "theme-load-failed",
             severity: "error",
-            message:
-              `Could not find mod.ts, theme.ts, or index.ts in theme directory "${themeName}".`,
+            message: `Could not find mod.ts, theme.ts, or index.ts in theme directory "${themeName}".`,
             file: themeName,
-            hint:
-              "A directory-based local theme needs a theme.yaml/theme.yml, or one of mod.ts/theme.ts/index.ts exporting a StenoTheme.",
+            hint: "A directory-based local theme needs a theme.yaml/theme.yml, or one of mod.ts/theme.ts/index.ts exporting a StenoTheme.",
           });
           return;
         }
       }
 
-      const themeModule = await importFresh(resolvedPath) as {
+      const themeModule = (await importFresh(resolvedPath)) as {
         default?: StenoTheme;
       };
       const themeData = (themeModule.default || themeModule) as StenoTheme;
@@ -191,8 +180,7 @@ export async function loadTheme(
       severity: "error",
       message: `Failed to load theme "${themeName}": ${errorMessage(error)}`,
       file: themeName,
-      hint:
-        "Check the theme specifier and that its module/directory actually exports a valid StenoTheme.",
+      hint: "Check the theme specifier and that its module/directory actually exports a valid StenoTheme.",
     });
   }
 }

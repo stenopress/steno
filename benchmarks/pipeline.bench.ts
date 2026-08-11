@@ -70,8 +70,12 @@ Deno.bench(
   },
 );
 
-Deno.bench("pipeline (large page parse->markdown->tau)", {
-  group: "pipeline",
-}, async () => {
-  await runPagePipeline(largePageTemplate);
-});
+Deno.bench(
+  "pipeline (large page parse->markdown->tau)",
+  {
+    group: "pipeline",
+  },
+  async () => {
+    await runPagePipeline(largePageTemplate);
+  },
+);

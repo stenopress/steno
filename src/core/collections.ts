@@ -39,10 +39,7 @@ export interface MarkdownPage {
  * Callers own the map's lifetime — e.g. the dev server keeps one alive
  * across rebuilds so only edited files pay the read+parse cost.
  */
-export type MarkdownPageCache = Map<
-  string,
-  { mtimeMs: number; page: MarkdownPage }
->;
+export type MarkdownPageCache = Map<string, { mtimeMs: number; page: MarkdownPage }>;
 
 /** A named collection of content items. */
 export interface Collection {
@@ -77,9 +74,7 @@ export async function collectMarkdownPages(
       const fullPath = join(currentDir, entry.name);
       const entryRelPath = relPath ? join(relPath, entry.name) : entry.name;
 
-      if (
-        ignorePaths.some((ignorePath) => isPathInsideOrEqual(fullPath, ignorePath))
-      ) {
+      if (ignorePaths.some((ignorePath) => isPathInsideOrEqual(fullPath, ignorePath))) {
         continue;
       }
 
@@ -128,10 +123,7 @@ export async function collectMarkdownPages(
   return pages;
 }
 
-async function readMarkdownPage(
-  fullPath: string,
-  relPath: string,
-): Promise<MarkdownPage> {
+async function readMarkdownPage(fullPath: string, relPath: string): Promise<MarkdownPage> {
   const sourceText = await Deno.readTextFile(fullPath);
   const { frontmatter, body } = parseFrontmatter(sourceText, fullPath);
   return {
@@ -144,10 +136,7 @@ async function readMarkdownPage(
   };
 }
 
-function sortItems(
-  items: CollectionItem[],
-  collectionConfig?: CollectionConfig,
-): CollectionItem[] {
+function sortItems(items: CollectionItem[], collectionConfig?: CollectionConfig): CollectionItem[] {
   let result = [...items];
 
   if (collectionConfig?.sortBy) {
@@ -194,17 +183,15 @@ function validateCollectionItem(
 
     const actualType = Array.isArray(value) ? "array" : typeof value;
     if (actualType !== rule.type) {
-      errors.push(
-        `  - "${field}" must be of type "${rule.type}", got "${actualType}"`,
-      );
+      errors.push(`  - "${field}" must be of type "${rule.type}", got "${actualType}"`);
     }
   }
 
   if (errors.length > 0) {
     throw new Error(
-      `Schema validation failed for "${pageRelPath}" in collection "${collectionName}":\n${
-        errors.join("\n")
-      }`,
+      `Schema validation failed for "${pageRelPath}" in collection "${collectionName}":\n${errors.join(
+        "\n",
+      )}`,
     );
   }
 }
@@ -232,7 +219,7 @@ export async function buildCollections(
   const collections: CollectionMap = {};
   const shortUrls = resolveShortUrls(config);
   const collectionConfigs = config.collections ?? {};
-  const markdownPages = pages ?? await collectMarkdownPages(contentDir);
+  const markdownPages = pages ?? (await collectMarkdownPages(contentDir));
 
   for (const page of markdownPages) {
     const parts = page.relPath.replace(/\\/g, "/").split("/");
@@ -264,9 +251,7 @@ export async function buildCollections(
     const schema = collectionConfigs[collectionName]?.schema;
     if (schema) {
       validateCollectionItem(
-        collections[collectionName].items[
-          collections[collectionName].items.length - 1
-        ],
+        collections[collectionName].items[collections[collectionName].items.length - 1],
         schema,
         page.relPath,
         collectionName,
@@ -281,9 +266,7 @@ export async function buildCollections(
 
     if (config?.filter) {
       items = items.filter((item) =>
-        Object.entries(config.filter!).every(
-          ([key, val]) => item.frontmatter[key] === val,
-        )
+        Object.entries(config.filter!).every(([key, val]) => item.frontmatter[key] === val),
       );
     }
 

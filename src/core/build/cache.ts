@@ -91,12 +91,12 @@ export async function loadPersistentBuildCache(
       sourceText: typedEntry.sourceText,
       body: typeof typedEntry.body === "string" ? typedEntry.body : undefined,
       htmlContent: typeof typedEntry.htmlContent === "string" ? typedEntry.htmlContent : undefined,
-      assetsSignature: typeof typedEntry.assetsSignature === "string"
-        ? typedEntry.assetsSignature
-        : undefined,
-      collectionsSignature: typeof typedEntry.collectionsSignature === "string"
-        ? typedEntry.collectionsSignature
-        : undefined,
+      assetsSignature:
+        typeof typedEntry.assetsSignature === "string" ? typedEntry.assetsSignature : undefined,
+      collectionsSignature:
+        typeof typedEntry.collectionsSignature === "string"
+          ? typedEntry.collectionsSignature
+          : undefined,
     });
   }
 

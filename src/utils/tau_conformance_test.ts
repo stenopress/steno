@@ -12,10 +12,7 @@ interface ConformanceCase {
 }
 
 function loadCases(version: string): ConformanceCase[] {
-  const url = new URL(
-    `./fixtures/tau/${version}.json`,
-    import.meta.url,
-  );
+  const url = new URL(`./fixtures/tau/${version}.json`, import.meta.url);
   return JSON.parse(Deno.readTextFileSync(url)) as ConformanceCase[];
 }
 
@@ -24,9 +21,7 @@ function loadCases(version: string): ConformanceCase[] {
 // expressed declaratively like every other fixture.
 const ASYNC_HELLO_SENTINEL = "__async_hello__";
 
-function resolveContext(
-  context: Record<string, unknown>,
-): Record<string, unknown> {
+function resolveContext(context: Record<string, unknown>): Record<string, unknown> {
   const resolved: Record<string, unknown> = { ...context };
   for (const [key, value] of Object.entries(resolved)) {
     if (value === ASYNC_HELLO_SENTINEL) {

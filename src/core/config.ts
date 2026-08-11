@@ -13,7 +13,8 @@ type PluginFactory = (options: Record<string, unknown>) => StenoPlugin | Promise
 type ResolvedPluginSourcePolicy = Required<PluginSourcePolicy>;
 
 export function resolvePluginSourcePolicy(config: SiteConfig): ResolvedPluginSourcePolicy {
-  const policy = config.pluginSourcePolicy ??
+  const policy =
+    config.pluginSourcePolicy ??
     config.custom?.pluginSourcePolicy ??
     config.custom?.pluginSecurity ??
     {};
@@ -256,8 +257,7 @@ export async function loadPlugins(
         code: "plugin-entry-invalid",
         severity: "error",
         message: `Invalid plugin entry in config.`,
-        hint:
-          'Each entry must be a package specifier string, or an object with at least a "package" field.',
+        hint: 'Each entry must be a package specifier string, or an object with at least a "package" field.',
       });
       continue;
     }
@@ -353,11 +353,12 @@ export async function loadPlugins(
  */
 export function loadConfig(configPath: string): SiteConfig {
   const fileContents = Deno.readTextFileSync(configPath);
-  const parser = configPath.endsWith(".yaml") || configPath.endsWith(".yml")
-    ? parseYaml
-    : configPath.endsWith(".toml")
-    ? parseToml
-    : undefined;
+  const parser =
+    configPath.endsWith(".yaml") || configPath.endsWith(".yml")
+      ? parseYaml
+      : configPath.endsWith(".toml")
+        ? parseToml
+        : undefined;
 
   if (!parser) {
     throw new Error(

@@ -66,14 +66,7 @@ layout: layout
 
 async function build(root: string): Promise<string> {
   const result = await new Deno.Command(Deno.execPath(), {
-    args: [
-      "run",
-      "-A",
-      stenoEntry,
-      "build",
-      "--config",
-      "content/.steno/config.yml",
-    ],
+    args: ["run", "-A", stenoEntry, "build", "--config", "content/.steno/config.yml"],
     cwd: root,
     stdout: "piped",
     stderr: "piped",
@@ -123,9 +116,7 @@ Deno.test({
     });
     try {
       await build(root);
-      const sitemap = await Deno.readTextFile(
-        join(root, "dist", "sitemap.xml"),
-      );
+      const sitemap = await Deno.readTextFile(join(root, "dist", "sitemap.xml"));
       const rss = await Deno.readTextFile(join(root, "dist", "feed.xml"));
       const atom = await Deno.readTextFile(join(root, "dist", "atom.xml"));
       assertStringIncludes(sitemap, "https://example.com/posts/hello.html");
@@ -172,9 +163,7 @@ Deno.test({
       await Deno.writeFile(join(themeDir, "assets", "pixel.png"), png);
 
       await build(root);
-      assert(
-        (await Deno.stat(join(root, "dist", "assets", "pixel-1.webp"))).isFile,
-      );
+      assert((await Deno.stat(join(root, "dist", "assets", "pixel-1.webp"))).isFile);
       const html = await Deno.readTextFile(join(root, "dist", "index.html"));
       assertStringIncludes(html, 'loading="lazy"');
       assertStringIncludes(html, 'width="1"');
@@ -196,9 +185,7 @@ Deno.test({
     });
     try {
       await build(root);
-      const css = await Deno.readTextFile(
-        join(root, "dist", "assets", "tailwind.css"),
-      );
+      const css = await Deno.readTextFile(join(root, "dist", "assets", "tailwind.css"));
       assertStringIncludes(css, ".font-bold");
       assertStringIncludes(css, ".text-red-500");
     } finally {
@@ -224,9 +211,7 @@ Deno.test({
     });
     try {
       await build(root);
-      const html = await Deno.readTextFile(
-        join(root, "dist", "docs", "getting-started.html"),
-      );
+      const html = await Deno.readTextFile(join(root, "dist", "docs", "getting-started.html"));
       assertStringIncludes(html, "Install the CLI");
     } finally {
       await removeFixture(root);
@@ -245,9 +230,7 @@ Deno.test({
     });
     try {
       await build(root);
-      const index = JSON.parse(
-        await Deno.readTextFile(join(root, "dist", "search-index.json")),
-      );
+      const index = JSON.parse(await Deno.readTextFile(join(root, "dist", "search-index.json")));
       assert(Array.isArray(index));
       const home = index.find((entry: { route: string }) => entry.route === "/");
       assert(home, "expected an index entry for the home page");
@@ -281,9 +264,7 @@ Deno.test({
       );
 
       await build(root);
-      assert(
-        (await Deno.stat(join(root, "dist", "og", "home.svg"))).isFile,
-      );
+      assert((await Deno.stat(join(root, "dist", "og", "home.svg"))).isFile);
       const html = await Deno.readTextFile(join(root, "dist", "index.html"));
       assertStringIncludes(html, 'property="og:image"');
       assertStringIncludes(html, "https://example.com/og/home.svg");
@@ -293,16 +274,11 @@ Deno.test({
   },
 });
 
-for (
-  const [name, assets] of [
-    ["theme-minimal", ["style.css"]],
-    ["theme-docs-minimal", ["style.css"]],
-    [
-      "theme-marketing-minimal",
-      ["style.css", "site.js", "steno-logo.svg", "tau.svg"],
-    ],
-  ] as const
-) {
+for (const [name, assets] of [
+  ["theme-minimal", ["style.css"]],
+  ["theme-docs-minimal", ["style.css"]],
+  ["theme-marketing-minimal", ["style.css", "site.js", "steno-logo.svg", "tau.svg"]],
+] as const) {
   Deno.test({
     name: `ecosystem: bundled ${name} builds with assets`,
     permissions: { env: true, read: true, run: true, write: true },
@@ -314,8 +290,9 @@ for (
         await build(root);
         const html = await Deno.readTextFile(join(root, "dist", "index.html"));
         assertStringIncludes(html, "Compatibility");
-        const outputFiles = [...Deno.readDirSync(join(root, "dist", "assets"))]
-          .map((entry) => entry.name);
+        const outputFiles = [...Deno.readDirSync(join(root, "dist", "assets"))].map(
+          (entry) => entry.name,
+        );
         for (const asset of assets) {
           const isHashable = /\.m?js$|\.css$/i.test(asset);
           if (!isHashable) {
@@ -327,9 +304,9 @@ for (
           }
           const dotIndex = asset.lastIndexOf(".");
           const pattern = new RegExp(
-            `^${asset.slice(0, dotIndex)}\\.[0-9a-f]{8}${
-              asset.slice(dotIndex).replace(".", "\\.")
-            }$`,
+            `^${asset.slice(0, dotIndex)}\\.[0-9a-f]{8}${asset
+              .slice(dotIndex)
+              .replace(".", "\\.")}$`,
           );
           assert(
             outputFiles.some((fileName) => pattern.test(fileName)),

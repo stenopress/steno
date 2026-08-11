@@ -1,9 +1,7 @@
 import type { SiteConfig } from "../../types.ts";
 import { resolveGlobals } from "../config.ts";
 
-export function getPublicEnvVars(
-  fileValues: Record<string, string> = {},
-): Record<string, string> {
+export function getPublicEnvVars(fileValues: Record<string, string> = {}): Record<string, string> {
   const publicVars: Record<string, string> = Object.fromEntries(
     Object.entries(fileValues).filter(([key]) => key.startsWith("PUBLIC_")),
   );
@@ -19,9 +17,7 @@ export function getPublicEnvVars(
   return publicVars;
 }
 
-export function resolveConfigGlobals(
-  config: SiteConfig,
-): Record<string, unknown> {
+export function resolveConfigGlobals(config: SiteConfig): Record<string, unknown> {
   const globals = resolveGlobals(config);
   if (globals === undefined) return {};
   if (!globals || typeof globals !== "object" || Array.isArray(globals)) {

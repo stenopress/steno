@@ -1,8 +1,9 @@
 /** A restrained editorial marketing theme for Steno. @module */
 import type { StenoTheme, ThemeConfigField } from "@steno/steno";
 
-const layout = await fetch(new URL("./layouts/layout.tau", import.meta.url))
-  .then((response) => response.text());
+const layout = await fetch(new URL("./layouts/layout.tau", import.meta.url)).then((response) =>
+  response.text(),
+);
 
 const defaultConfig = {
   accent: "#7760a9",
@@ -23,10 +24,7 @@ const defaultConfig = {
 };
 
 const configSchema = Object.fromEntries(
-  Object.entries(defaultConfig).map(([key, value]) => [
-    key,
-    { type: "string", default: value },
-  ]),
+  Object.entries(defaultConfig).map(([key, value]) => [key, { type: "string", default: value }]),
 ) as Record<string, ThemeConfigField>;
 
 /** Marketing-focused official Steno theme. */
@@ -39,10 +37,7 @@ const theme: StenoTheme = {
     "site.js": new URL("./assets/site.js", import.meta.url),
     "steno-logo.svg": new URL("./assets/steno-logo.svg", import.meta.url),
     "tau.svg": new URL("./assets/tau.svg", import.meta.url),
-    "phosphor-icons.svg": new URL(
-      "./assets/phosphor-icons.svg",
-      import.meta.url,
-    ),
+    "phosphor-icons.svg": new URL("./assets/phosphor-icons.svg", import.meta.url),
   },
   defaultConfig,
   configSchema,

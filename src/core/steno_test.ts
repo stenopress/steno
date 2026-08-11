@@ -34,10 +34,7 @@ function createFixture(): Fixture {
     join(contentDir, "theme", "theme.yaml"),
     `name: "counting-test-theme"\nversion: "1.0.0"\n`,
   );
-  Deno.writeTextFileSync(
-    join(contentDir, "index.md"),
-    `---\ntitle: "Home"\n---\n# Hello\n`,
-  );
+  Deno.writeTextFileSync(join(contentDir, "index.md"), `---\ntitle: "Home"\n---\n# Hello\n`);
   Deno.writeTextFileSync(countFile, "");
   Deno.writeTextFileSync(
     pluginPath,
@@ -88,28 +85,25 @@ function callCount(f: Fixture): number {
  * path without spinning up a real dev server and file watcher.
  */
 function reloadRuntime(steno: Steno): Promise<unknown> {
-  return (steno as unknown as { loadRuntime: () => Promise<unknown> })
-    .loadRuntime();
+  return (steno as unknown as { loadRuntime: () => Promise<unknown> }).loadRuntime();
 }
 
 /** Same as {@link reloadRuntime}, but forces `dev` mode explicitly - the
  * permissive path a real `steno dev` rebuild takes. */
 function reloadRuntimeDev(steno: Steno): Promise<unknown> {
-  return (
-    steno as unknown as { loadRuntime: (dev: boolean) => Promise<unknown> }
-  ).loadRuntime(true);
+  return (steno as unknown as { loadRuntime: (dev: boolean) => Promise<unknown> }).loadRuntime(
+    true,
+  );
 }
 
 /** Waits for the constructor's initial `loadRuntime()` call to settle. */
 function initialLoad(steno: Steno): Promise<unknown> {
-  return (steno as unknown as { runtimeLoadingPromise: Promise<unknown> })
-    .runtimeLoadingPromise;
+  return (steno as unknown as { runtimeLoadingPromise: Promise<unknown> }).runtimeLoadingPromise;
 }
 
 export function registerStenoTests(): void {
   Deno.test({
-    name:
-      "Steno: reuses a trusted plugin instance across rebuilds when config.plugins is unchanged",
+    name: "Steno: reuses a trusted plugin instance across rebuilds when config.plugins is unchanged",
     permissions: { read: true, write: true, run: true, env: true },
     fn: async () => {
       const f = createFixture();
@@ -147,11 +141,7 @@ export function registerStenoTests(): void {
 
         f.writeConfig('tag: "v2"');
         await reloadRuntime(steno);
-        assertEquals(
-          callCount(f),
-          2,
-          "changing plugin options should force a reload",
-        );
+        assertEquals(callCount(f), 2, "changing plugin options should force a reload");
 
         await reloadRuntime(steno);
         assertEquals(
@@ -166,18 +156,14 @@ export function registerStenoTests(): void {
   });
 
   Deno.test({
-    name:
-      "Steno: a production build throws StenoDiagnosticError when the configured theme fails to load",
+    name: "Steno: a production build throws StenoDiagnosticError when the configured theme fails to load",
     permissions: { read: true, write: true, run: true, env: true },
     fn: async () => {
       const tempDir = Deno.makeTempDirSync();
       const contentDir = join(tempDir, "content");
       const configPath = join(contentDir, ".steno", "config.yml");
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
-      Deno.writeTextFileSync(
-        join(contentDir, "index.md"),
-        `---\ntitle: "Home"\n---\n# Hello\n`,
-      );
+      Deno.writeTextFileSync(join(contentDir, "index.md"), `---\ntitle: "Home"\n---\n# Hello\n`);
       // A local theme directory with no theme.yaml and no mod.ts/theme.ts/
       // index.ts - resolvable as a path, but nothing loadable inside it.
       Deno.mkdirSync(join(contentDir, "broken-theme"), { recursive: true });
@@ -207,8 +193,7 @@ theme: "${join(contentDir, "broken-theme")}"
   });
 
   Deno.test({
-    name:
-      "Steno: a production build throws StenoDiagnosticError when a configured plugin fails to load",
+    name: "Steno: a production build throws StenoDiagnosticError when a configured plugin fails to load",
     permissions: { read: true, write: true, run: true, env: true },
     fn: async () => {
       const tempDir = Deno.makeTempDirSync();
@@ -216,10 +201,7 @@ theme: "${join(contentDir, "broken-theme")}"
       const configPath = join(contentDir, ".steno", "config.yml");
       const pluginPath = join(tempDir, "broken-plugin.ts");
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
-      Deno.writeTextFileSync(
-        join(contentDir, "index.md"),
-        `---\ntitle: "Home"\n---\n# Hello\n`,
-      );
+      Deno.writeTextFileSync(join(contentDir, "index.md"), `---\ntitle: "Home"\n---\n# Hello\n`);
       // Exports a default that isn't a function.
       Deno.writeTextFileSync(pluginPath, `export default { not: "a factory" };\n`);
       Deno.writeTextFileSync(
@@ -258,10 +240,7 @@ plugins:
       const contentDir = join(tempDir, "content");
       const configPath = join(contentDir, ".steno", "config.yml");
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
-      Deno.writeTextFileSync(
-        join(contentDir, "index.md"),
-        `---\ntitle: "Home"\n---\n# Hello\n`,
-      );
+      Deno.writeTextFileSync(join(contentDir, "index.md"), `---\ntitle: "Home"\n---\n# Hello\n`);
       Deno.mkdirSync(join(contentDir, "broken-theme"), { recursive: true });
       Deno.writeTextFileSync(
         configPath,
@@ -300,10 +279,7 @@ theme: "${join(contentDir, "broken-theme")}"
       const configPath = join(contentDir, ".steno", "config.yml");
       const pluginPath = join(tempDir, "dup-plugin.ts");
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
-      Deno.writeTextFileSync(
-        join(contentDir, "index.md"),
-        `---\ntitle: "Home"\n---\n# Hello\n`,
-      );
+      Deno.writeTextFileSync(join(contentDir, "index.md"), `---\ntitle: "Home"\n---\n# Hello\n`);
       Deno.writeTextFileSync(
         pluginPath,
         `import type { StenoPlugin } from "${import.meta.resolve("../types.ts")}";

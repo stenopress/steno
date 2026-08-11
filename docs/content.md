@@ -159,7 +159,7 @@ Use a collection from a layout like any other list:
 
 ```html
 {#each collections.posts.items as post}
-  <a href="{post.url}">{post.frontmatter.title}</a>
+<a href="{post.url}">{post.frontmatter.title}</a>
 {/each}
 ```
 

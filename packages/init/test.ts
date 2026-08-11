@@ -9,9 +9,7 @@ import {
 
 // helpers
 
-async function scaffold(
-  opts: Parameters<typeof runOnboarding>[1] = {},
-): Promise<string> {
+async function scaffold(opts: Parameters<typeof runOnboarding>[1] = {}): Promise<string> {
   const dir = await Deno.makeTempDir({ prefix: "steno_init_test_" });
   await runOnboarding(dir, {
     title: "Test Site",
@@ -42,11 +40,7 @@ function fileExists(dir: string, ...segments: string[]): boolean {
 Deno.test("onboarding: scaffolds all expected files", async () => {
   const dir = await scaffold();
 
-  const expected = [
-    ["content", ".steno", "config.yml"],
-    ["content", "index.md"],
-    ["deno.json"],
-  ];
+  const expected = [["content", ".steno", "config.yml"], ["content", "index.md"], ["deno.json"]];
 
   for (const segments of expected) {
     assertEquals(
@@ -57,18 +51,10 @@ Deno.test("onboarding: scaffolds all expected files", async () => {
   }
 
   // local theme dir should NOT be created anymore
-  assertEquals(
-    fileExists(dir, "themes"),
-    false,
-    "themes/ directory should not be scaffolded",
-  );
+  assertEquals(fileExists(dir, "themes"), false, "themes/ directory should not be scaffolded");
 
   // mod.ts should NOT be created anymore
-  assertEquals(
-    fileExists(dir, "mod.ts"),
-    false,
-    "mod.ts should not be scaffolded",
-  );
+  assertEquals(fileExists(dir, "mod.ts"), false, "mod.ts should not be scaffolded");
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -170,26 +156,26 @@ Deno.test("onboarding: config.yml uses a community theme package when set", asyn
   await Deno.remove(dir, { recursive: true });
 });
 
-Deno.test("onboarding: official theme takes priority over community theme when both set", async () => {
-  const dir = await scaffold({
-    theme: "minimal",
-    communityTheme: "jsr:@user/theme-custom",
-  });
+Deno.test(
+  "onboarding: official theme takes priority over community theme when both set",
+  async () => {
+    const dir = await scaffold({
+      theme: "minimal",
+      communityTheme: "jsr:@user/theme-custom",
+    });
 
-  const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.10\.0"/);
+    const config = readFile(dir, "content", ".steno", "config.yml");
+    assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.10\.0"/);
 
-  await Deno.remove(dir, { recursive: true });
-});
+    await Deno.remove(dir, { recursive: true });
+  },
+);
 
 Deno.test("onboarding: config.yml uses JSR theme package for marketing-minimal", async () => {
   const dir = await scaffold({ theme: "marketing-minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(
-    config,
-    /theme: "jsr:@steno\/theme-marketing-minimal@\^0\.10\.0"/,
-  );
+  assertMatch(config, /theme: "jsr:@steno\/theme-marketing-minimal@\^0\.10\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -210,19 +196,13 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   const denoJson = JSON.parse(readFile(dir, "deno.json"));
   assertEquals(typeof denoJson.tasks.build, "string");
   assertEquals(typeof denoJson.tasks.dev, "string");
-  assertEquals(
-    denoJson.imports["@steno/steno"],
-    "jsr:@steno/steno@^0.11.2",
-  );
+  assertEquals(denoJson.imports["@steno/steno"], "jsr:@steno/steno@^0.11.2");
   assertMatch(denoJson.tasks.build, /--allow-read=\./);
   assertMatch(denoJson.tasks.build, /--allow-write=\./);
   assertMatch(denoJson.tasks.build, /--allow-net=jsr\.io/);
   assertEquals(denoJson.tasks.build.includes("--allow-env"), true);
   assertMatch(denoJson.tasks.build, /@steno\/steno build/);
-  assertMatch(
-    denoJson.tasks.dev,
-    /--allow-net=127\.0\.0\.1,0\.0\.0\.0,jsr\.io/,
-  );
+  assertMatch(denoJson.tasks.dev, /--allow-net=127\.0\.0\.1,0\.0\.0\.0,jsr\.io/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -341,10 +321,7 @@ Deno.test("onboarding: parses theme choices", () => {
   assertEquals(parseThemeChoice(undefined), undefined);
   assertEquals(parseThemeChoice("minimal"), "minimal");
   assertEquals(parseThemeChoice(" DOCS-MINIMAL "), "docs-minimal");
-  assertEquals(
-    parseThemeChoice("marketing-minimal"),
-    "marketing-minimal",
-  );
+  assertEquals(parseThemeChoice("marketing-minimal"), "marketing-minimal");
 });
 
 Deno.test("onboarding: rejects unknown themes", () => {
@@ -359,10 +336,7 @@ Deno.test("onboarding: parses plugin choices", () => {
   assertEquals(parsePluginChoices(undefined), []);
   assertEquals(parsePluginChoices("tailwind"), ["tailwind"]);
   assertEquals(parsePluginChoices("tailwind, shiki"), ["tailwind", "shiki"]);
-  assertEquals(
-    parsePluginChoices("seo,docs,search,og"),
-    ["seo", "docs", "search", "og"],
-  );
+  assertEquals(parsePluginChoices("seo,docs,search,og"), ["seo", "docs", "search", "og"]);
 });
 
 Deno.test("onboarding: rejects unknown plugin choices", () => {

@@ -22,8 +22,10 @@ export function inferPageTitle(page: MarkdownPage): string {
 
   for (const token of marked.lexer(page.body)) {
     if (
-      token.type === "heading" && token.depth === 1 &&
-      typeof token.text === "string" && token.text.trim()
+      token.type === "heading" &&
+      token.depth === 1 &&
+      typeof token.text === "string" &&
+      token.text.trim()
     ) {
       return token.text.trim();
     }
@@ -55,28 +57,24 @@ export interface PageRoute {
 
 function readPermalink(page: MarkdownPage): string | undefined {
   const namespace = page.frontmatter.steno;
-  const namespacedPermalink = namespace &&
-      typeof namespace === "object" &&
-      !Array.isArray(namespace)
-    ? (namespace as Record<string, unknown>).permalink
-    : undefined;
+  const namespacedPermalink =
+    namespace && typeof namespace === "object" && !Array.isArray(namespace)
+      ? (namespace as Record<string, unknown>).permalink
+      : undefined;
   const candidate = namespacedPermalink ?? page.frontmatter.permalink;
   if (candidate === undefined) return;
   if (typeof candidate !== "string" || !candidate.trim()) {
-    throw new Error(
-      `Invalid permalink in "${page.relPath}": expected a non-empty string.`,
-    );
+    throw new Error(`Invalid permalink in "${page.relPath}": expected a non-empty string.`);
   }
   return candidate.trim();
 }
 
-function normalizePermalink(
-  permalink: string,
-  pageRelPath: string,
-): string {
+function normalizePermalink(permalink: string, pageRelPath: string): string {
   if (
-    permalink.includes("\\") || permalink.includes("?") ||
-    permalink.includes("#") || permalink.includes("\0") ||
+    permalink.includes("\\") ||
+    permalink.includes("?") ||
+    permalink.includes("#") ||
+    permalink.includes("\0") ||
     /^[A-Za-z][A-Za-z\d+.-]*:/.test(permalink)
   ) {
     throw new Error(
@@ -100,10 +98,7 @@ function normalizePermalink(
  * A `permalink` field, or `steno.permalink`, overrides the file-derived route.
  * Root `404.md` is always emitted as `/404.html` for static-host compatibility.
  */
-export function resolvePageRoute(
-  page: MarkdownPage,
-  shortUrls: boolean,
-): PageRoute {
+export function resolvePageRoute(page: MarkdownPage, shortUrls: boolean): PageRoute {
   const normalizedRelPath = page.relPath.replaceAll("\\", "/");
   if (normalizedRelPath === "404.md" && readPermalink(page) === undefined) {
     return { url: "/404.html", outputPath: "404.html" };
@@ -114,17 +109,16 @@ export function resolvePageRoute(
     const stem = normalizedRelPath.replace(/\.md$/, "");
     const isIndex = stem === "index" || stem.endsWith("/index");
     const indexDir = stem === "index" ? "" : stem.slice(0, -"index".length);
-    const url = shortUrls ? isIndex ? `/${indexDir}` : `/${stem}` : `/${stem}.html`;
+    const url = shortUrls ? (isIndex ? `/${indexDir}` : `/${stem}`) : `/${stem}.html`;
     const outputPath = shortUrls
-      ? isIndex ? `${indexDir}index.html` : `${stem}/index.html`
+      ? isIndex
+        ? `${indexDir}index.html`
+        : `${stem}/index.html`
       : `${stem}.html`;
     return { url, outputPath };
   }
 
-  const permalink = normalizePermalink(
-    configuredPermalink,
-    normalizedRelPath,
-  );
+  const permalink = normalizePermalink(configuredPermalink, normalizedRelPath);
   if (permalink === "/") {
     return { url: "/", outputPath: "index.html" };
   }
@@ -154,10 +148,7 @@ export function resolvePageOutputPath(
   return join(outputDir, resolvePageRoute(page, shortUrls).outputPath);
 }
 
-export function isPathInsideOrEqual(
-  candidate: string,
-  parent: string,
-): boolean {
+export function isPathInsideOrEqual(candidate: string, parent: string): boolean {
   const rel = relative(parent, candidate);
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }

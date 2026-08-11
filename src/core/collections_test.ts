@@ -42,10 +42,7 @@ export function registerCollectionTests(): void {
       const contentDir = join(tempDir, "content");
       Deno.mkdirSync(contentDir, { recursive: true });
 
-      Deno.writeTextFileSync(
-        join(contentDir, "index.md"),
-        `---\ntitle: "Home"\n---\nWelcome.`,
-      );
+      Deno.writeTextFileSync(join(contentDir, "index.md"), `---\ntitle: "Home"\n---\nWelcome.`);
 
       const collections = await buildCollections(contentDir, makeConfig(), []);
 
@@ -130,10 +127,7 @@ export function registerCollectionTests(): void {
       Deno.mkdirSync(join(contentDir, "blog"), { recursive: true });
       Deno.mkdirSync(join(contentDir, "projects"), { recursive: true });
 
-      Deno.writeTextFileSync(
-        join(contentDir, "blog", "post.md"),
-        `---\ntitle: "Post"\n---\nBlog.`,
-      );
+      Deno.writeTextFileSync(join(contentDir, "blog", "post.md"), `---\ntitle: "Post"\n---\nBlog.`);
       Deno.writeTextFileSync(
         join(contentDir, "projects", "steno.md"),
         `---\ntitle: "Steno"\n---\nProject.`,
@@ -247,14 +241,9 @@ export function registerCollectionTests(): void {
         transformHtml: (html: string) => html + "<!-- transformed -->",
       };
 
-      const collections = await buildCollections(contentDir, makeConfig(), [
-        plugin,
-      ]);
+      const collections = await buildCollections(contentDir, makeConfig(), [plugin]);
 
-      assertStringIncludes(
-        collections.blog.items[0].content,
-        "<!-- transformed -->",
-      );
+      assertStringIncludes(collections.blog.items[0].content, "<!-- transformed -->");
     },
   });
 
@@ -304,10 +293,7 @@ custom:
 `,
       );
 
-      Deno.writeTextFileSync(
-        join(themeDir, "theme.yaml"),
-        `name: "test"\nversion: "1.0.0"\n`,
-      );
+      Deno.writeTextFileSync(join(themeDir, "theme.yaml"), `name: "test"\nversion: "1.0.0"\n`);
 
       Deno.writeTextFileSync(
         join(themeDir, "layouts", "layout.tau"),

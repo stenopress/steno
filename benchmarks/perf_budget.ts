@@ -24,9 +24,7 @@ function readBudgetMultiplier(): number {
 
   const multiplier = Number(raw);
   if (!Number.isFinite(multiplier) || multiplier <= 0) {
-    throw new Error(
-      `${BUDGET_MULTIPLIER_ENV} must be a positive number, received "${raw}".`,
-    );
+    throw new Error(`${BUDGET_MULTIPLIER_ENV} must be a positive number, received "${raw}".`);
   }
   return multiplier;
 }
@@ -37,9 +35,7 @@ const failures: string[] = [];
 const budgetMultiplier = readBudgetMultiplier();
 
 if (budgetMultiplier !== 1) {
-  console.log(
-    `Applying benchmark budget multiplier: ${budgetMultiplier.toFixed(2)}x`,
-  );
+  console.log(`Applying benchmark budget multiplier: ${budgetMultiplier.toFixed(2)}x`);
 }
 
 for (const [name, baseBudgetNs] of Object.entries(BENCH_BUDGETS_NS)) {
@@ -55,13 +51,9 @@ for (const [name, baseBudgetNs] of Object.entries(BENCH_BUDGETS_NS)) {
     continue;
   }
   if (metrics.avg > budgetNs) {
-    failures.push(
-      `${name}: avg ${formatNs(metrics.avg)} exceeds budget ${formatNs(budgetNs)}`,
-    );
+    failures.push(`${name}: avg ${formatNs(metrics.avg)} exceeds budget ${formatNs(budgetNs)}`);
   } else {
-    console.log(
-      `${name}: ${formatNs(metrics.avg)} (budget ${formatNs(budgetNs)})`,
-    );
+    console.log(`${name}: ${formatNs(metrics.avg)} (budget ${formatNs(budgetNs)})`);
   }
 }
 

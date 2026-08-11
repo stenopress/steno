@@ -26,10 +26,7 @@ Deno.test({
     const tempDir = Deno.makeTempDirSync();
     buildRedirects(tempDir, { "/old-post": "/new-post" }, true);
 
-    assertEquals(
-      fileExists(join(tempDir, "old-post", "index.html")),
-      true,
-    );
+    assertEquals(fileExists(join(tempDir, "old-post", "index.html")), true);
 
     Deno.removeSync(tempDir, { recursive: true });
   },
@@ -40,11 +37,7 @@ Deno.test({
   permissions: { read: true, write: true },
   fn: () => {
     const tempDir = Deno.makeTempDirSync();
-    buildRedirects(
-      tempDir,
-      { "/a": "/b", "/c": "/d" },
-      false,
-    );
+    buildRedirects(tempDir, { "/a": "/b", "/c": "/d" }, false);
 
     assertEquals(fileExists(join(tempDir, "a.html")), true);
     assertEquals(fileExists(join(tempDir, "c.html")), true);
@@ -85,9 +78,7 @@ Deno.test({
     const tempDir = Deno.makeTempDirSync();
     buildRedirects(tempDir, { "/blog/old-post": "/blog/new-post" }, false);
 
-    const html = Deno.readTextFileSync(
-      join(tempDir, "blog", "old-post.html"),
-    );
+    const html = Deno.readTextFileSync(join(tempDir, "blog", "old-post.html"));
     assertStringIncludes(html, `url=/blog/new-post`);
 
     Deno.removeSync(tempDir, { recursive: true });

@@ -22,7 +22,8 @@ const hookNames: IsolatedPluginHook[] = [
 if (import.meta.main) {
   for (const method of ["log", "info", "warn", "error", "debug"] as const) {
     console[method] = (...args: unknown[]) => {
-      const text = args.map((value) => typeof value === "string" ? value : JSON.stringify(value))
+      const text = args
+        .map((value) => (typeof value === "string" ? value : JSON.stringify(value)))
         .join(" ");
       Deno.stderr.writeSync(encoder.encode(`${text}\n`));
     };
@@ -31,10 +32,7 @@ if (import.meta.main) {
 
 let plugin: StenoPlugin | undefined;
 
-export function errorResponse(
-  id: number,
-  error: unknown,
-): IsolatedPluginResponse {
+export function errorResponse(id: number, error: unknown): IsolatedPluginResponse {
   const normalized = error instanceof Error ? error : new Error(String(error));
   return {
     id,
@@ -61,9 +59,7 @@ export async function handleRequest(
     if (typeof factory !== "function") {
       throw new Error("Plugin must default-export a factory function.");
     }
-    const candidate = await factory(
-      Object.freeze(structuredClone(request.options ?? {})),
-    );
+    const candidate = await factory(Object.freeze(structuredClone(request.options ?? {})));
     if (!isStenoPlugin(candidate)) {
       throw new Error("Plugin factory returned an invalid plugin object.");
     }
@@ -84,9 +80,7 @@ export async function handleRequest(
     throw new Error("Unknown plugin hook.");
   }
 
-  const hook = plugin[request.hook] as
-    | ((payload: never) => unknown | Promise<unknown>)
-    | undefined;
+  const hook = plugin[request.hook] as ((payload: never) => unknown | Promise<unknown>) | undefined;
   const result = hook ? await hook(request.payload as never) : request.payload;
   return {
     id: request.id,

@@ -109,20 +109,16 @@ await runBuild(warmFixture.config, warmFixture.state);
 
 let changedRevision = 0;
 
-Deno.bench(
-  "build (cold, 250 pages)",
-  { group: "build-cold", baseline: true },
-  async (b) => {
-    removePathIfPresent(coldFixture.outputDir);
-    removePathIfPresent(coldFixture.cachePath);
-    coldFixture.state.signature = null;
-    coldFixture.state.pages.clear();
+Deno.bench("build (cold, 250 pages)", { group: "build-cold", baseline: true }, async (b) => {
+  removePathIfPresent(coldFixture.outputDir);
+  removePathIfPresent(coldFixture.cachePath);
+  coldFixture.state.signature = null;
+  coldFixture.state.pages.clear();
 
-    b.start();
-    await runBuild(coldFixture.config, coldFixture.state);
-    b.end();
-  },
-);
+  b.start();
+  await runBuild(coldFixture.config, coldFixture.state);
+  b.end();
+});
 
 Deno.bench("build (cold, 1000 pages)", { group: "build-cold" }, async (b) => {
   removePathIfPresent(coldLargeFixture.outputDir);
@@ -161,10 +157,7 @@ Deno.bench(
   { group: "build-warm" },
   async (b) => {
     changedRevision++;
-    Deno.writeTextFileSync(
-      warmFixture.mutablePagePath,
-      createPageMarkdown(0, changedRevision),
-    );
+    Deno.writeTextFileSync(warmFixture.mutablePagePath, createPageMarkdown(0, changedRevision));
 
     b.start();
     await runBuild(warmFixture.config, warmFixture.state);

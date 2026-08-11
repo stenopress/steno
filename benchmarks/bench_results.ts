@@ -43,13 +43,12 @@ export function getMetrics(
     typeof metrics.avg !== "number" ||
     typeof metrics.p75 !== "number" ||
     typeof metrics.p99 !== "number"
-  ) return;
+  )
+    return;
   return metrics as BenchMetrics;
 }
 
-export async function readOrRunBenchmarks(
-  inputPath?: string,
-): Promise<BenchJson> {
+export async function readOrRunBenchmarks(inputPath?: string): Promise<BenchJson> {
   if (inputPath) {
     return JSON.parse(await Deno.readTextFile(inputPath)) as BenchJson;
   }

@@ -192,8 +192,7 @@ export function registerBuildTests(): void {
     fn: async () => {
       const f = createFixture();
       const themeDir = f.writeTheme({
-        layout:
-          `<html>\n<body>\n{#each items as item}\n  <p>{item}</p>\n<!-- Missing closing each tag -->\n</body>\n</html>`,
+        layout: `<html>\n<body>\n{#each items as item}\n  <p>{item}</p>\n<!-- Missing closing each tag -->\n</body>\n</html>`,
       });
 
       f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
@@ -413,15 +412,13 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
-    name:
-      "build: a theme asset content change forces a rebuild of pages that embed its hashed path",
+    name: "build: a theme asset content change forces a rebuild of pages that embed its hashed path",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
       const themeDir = f.writeTheme(
         {
-          layout:
-            `<html><head><link rel="stylesheet" href="/assets/{assets["style.css"]}"></head><body>{@html content}</body></html>`,
+          layout: `<html><head><link rel="stylesheet" href="/assets/{assets["style.css"]}"></head><body>{@html content}</body></html>`,
         },
         {},
         { "style.css": "body { color: red; }" },
@@ -452,8 +449,7 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
-    name:
-      "build: reuses cached HTML across processes when output is missing but content is unchanged",
+    name: "build: reuses cached HTML across processes when output is missing but content is unchanged",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
@@ -679,8 +675,7 @@ export default theme;`,
       const f = createFixture();
       const themeDir = f.writeTheme(
         {
-          layout:
-            `<html><body><Header /><p>{tagline} - {globals.company.name}</p>{@html content}</body></html>`,
+          layout: `<html><body><Header /><p>{tagline} - {globals.company.name}</p>{@html content}</body></html>`,
         },
         { header: `<header>{tagline}::{globals.company.name}</header>` },
       );
@@ -705,8 +700,7 @@ export default theme;`,
     fn: async () => {
       const f = createFixture();
       const themeDir = f.writeTheme({
-        layout:
-          `<p>{site.title}|{site.description}|{theme.brand}|{globals.campaign}|{campaign}</p>{@html content}`,
+        layout: `<p>{site.title}|{site.description}|{theme.brand}|{globals.campaign}|{campaign}</p>{@html content}`,
       });
       Deno.writeTextFileSync(
         f.configPath,
@@ -818,8 +812,7 @@ export default theme;`,
 
       try {
         const themeDir = f.writeTheme({
-          layout:
-            `<html><body><div id="flat">{PUBLIC_ANALYTICS_ID}</div><div id="namespace">{env.PUBLIC_ANALYTICS_ID}</div><div id="secret">{STRIPE_SECRET_KEY}</div>{@html content}</body></html>`,
+          layout: `<html><body><div id="flat">{PUBLIC_ANALYTICS_ID}</div><div id="namespace">{env.PUBLIC_ANALYTICS_ID}</div><div id="secret">{STRIPE_SECRET_KEY}</div>{@html content}</body></html>`,
         });
 
         f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
@@ -860,8 +853,7 @@ export default theme;`,
   });
 
   Deno.test({
-    name:
-      "build: an unchanged page whose {@include}d partial changed is rebuilt on the next incremental build",
+    name: "build: an unchanged page whose {@include}d partial changed is rebuilt on the next incremental build",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
@@ -889,13 +881,13 @@ export default theme;`,
   });
 
   Deno.test({
-    name:
-      "build: an unchanged page that lists a collection is rebuilt when the collection's membership changes",
+    name: "build: an unchanged page that lists a collection is rebuilt when the collection's membership changes",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
       const themeDir = f.writeTheme({
-        layout: `<html><body><ul>{#each collections.posts.items as post}` +
+        layout:
+          `<html><body><ul>{#each collections.posts.items as post}` +
           `<li>{post.frontmatter.title}</li>{/each}</ul>{@html content}</body></html>`,
       });
       f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
@@ -949,7 +941,7 @@ export default theme;`,
       assertEquals(Deno.readTextFileSync(cachePath), previousCache);
       assertEquals(
         [...Deno.readDirSync(f.tempDir)].some((entry) =>
-          entry.name.startsWith(".dist.steno-stage-")
+          entry.name.startsWith(".dist.steno-stage-"),
         ),
         false,
       );
@@ -1086,7 +1078,7 @@ Body.`,
         const files: Record<string, string> = {};
         const walk = async (directory: string, prefix = ""): Promise<void> => {
           const entries = [...Deno.readDirSync(directory)].sort((a, b) =>
-            a.name.localeCompare(b.name)
+            a.name.localeCompare(b.name),
           );
           for (const entry of entries) {
             const path = join(directory, entry.name);

@@ -51,13 +51,9 @@ title: Missing close
 author: Steno
 # no closing delimiter`;
 
-Deno.bench(
-  "parseFrontmatter (yaml)",
-  { group: "frontmatter", baseline: true },
-  () => {
-    parseFrontmatter(yamlDocument);
-  },
-);
+Deno.bench("parseFrontmatter (yaml)", { group: "frontmatter", baseline: true }, () => {
+  parseFrontmatter(yamlDocument);
+});
 
 Deno.bench("parseFrontmatter (toml)", { group: "frontmatter" }, () => {
   parseFrontmatter(tomlDocument);
@@ -83,10 +79,6 @@ Deno.bench(
   },
 );
 
-Deno.bench(
-  "parseFrontmatter (missing closing delimiter)",
-  { group: "frontmatter-errors" },
-  () => {
-    parseFrontmatter(missingClosingDelimiterDocument);
-  },
-);
+Deno.bench("parseFrontmatter (missing closing delimiter)", { group: "frontmatter-errors" }, () => {
+  parseFrontmatter(missingClosingDelimiterDocument);
+});

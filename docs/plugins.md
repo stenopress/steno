@@ -61,9 +61,7 @@ object describing which parts of the build it wants to hook into:
 ```ts
 import type { StenoPlugin } from "jsr:@steno/steno";
 
-export default function createPlugin(
-  options: Record<string, unknown>,
-): StenoPlugin {
+export default function createPlugin(options: Record<string, unknown>): StenoPlugin {
   return {
     name: "example",
     transformHtml: (html) => html.replaceAll("TODO", String(options.label ?? "Done")),

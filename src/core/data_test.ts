@@ -46,9 +46,11 @@ export function registerDataTests(): void {
       "blog/authors.json": `[{"name":"Bob"}]`,
     });
     const result = await loadDataFiles(dir);
-    assertEquals((result.blog as Record<string, unknown>).authors, [{
-      name: "Bob",
-    }]);
+    assertEquals((result.blog as Record<string, unknown>).authors, [
+      {
+        name: "Bob",
+      },
+    ]);
   });
 
   Deno.test("data: multiple files are merged", async () => {

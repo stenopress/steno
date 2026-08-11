@@ -204,10 +204,7 @@ Steps.
         join(contentDir, "index.md"),
         `---\ntitle: "From Frontmatter"\n---\n# A different heading\n`,
       );
-      Deno.writeTextFileSync(
-        configPath,
-        `contentDir: ${JSON.stringify(contentDir)}\n`,
-      );
+      Deno.writeTextFileSync(configPath, `contentDir: ${JSON.stringify(contentDir)}\n`);
 
       const project = await resolveProject(configPath);
       assertEquals(project.mode, "configured");
@@ -228,10 +225,7 @@ Steps.
       const configPath = join(contentDir, ".steno", "config.yml");
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
       Deno.writeTextFileSync(join(contentDir, "index.md"), `# Heading Title\n`);
-      Deno.writeTextFileSync(
-        configPath,
-        `contentDir: ${JSON.stringify(contentDir)}\n`,
-      );
+      Deno.writeTextFileSync(configPath, `contentDir: ${JSON.stringify(contentDir)}\n`);
 
       const project = await resolveProject(configPath);
       assertEquals(project.config.title, "Heading Title");
@@ -248,10 +242,7 @@ Steps.
       const contentDir = join(tempDir, "my-cool_site");
       const configPath = join(contentDir, ".steno", "config.yml");
       Deno.mkdirSync(join(contentDir, ".steno"), { recursive: true });
-      Deno.writeTextFileSync(
-        configPath,
-        `contentDir: ${JSON.stringify(contentDir)}\n`,
-      );
+      Deno.writeTextFileSync(configPath, `contentDir: ${JSON.stringify(contentDir)}\n`);
 
       const project = await resolveProject(configPath);
       assertEquals(project.config.title, "My Cool Site");

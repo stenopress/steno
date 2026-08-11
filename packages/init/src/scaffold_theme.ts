@@ -31,10 +31,7 @@ function toIdentifier(name: string): string {
  *
  * @throws {OnboardingError} if files already exist and `force` is not true.
  */
-export function scaffoldTheme(
-  name: string,
-  options: ThemeScaffoldOptions = {},
-): void {
+export function scaffoldTheme(name: string, options: ThemeScaffoldOptions = {}): void {
   const themeName = toIdentifier(name);
   const root = options.targetDir ?? join(Deno.cwd(), themeName);
   const modPath = join(root, "mod.ts");
@@ -178,12 +175,8 @@ Once published, reference it by package specifier instead, e.g.
 
   console.log(`  ${paint(c.green, "✔")} Theme    → ${paint(c.gray, root)}`);
   console.log();
-  console.log(
-    `${paint(c.purpleBold, "◆")} ${paint(c.whiteBold, "Theme scaffolded!")}`,
-  );
+  console.log(`${paint(c.purpleBold, "◆")} ${paint(c.whiteBold, "Theme scaffolded!")}`);
   console.log();
-  console.log(
-    `  Point a site at it: ${paint(c.cyanBold, `theme: ./${themeName}`)}`,
-  );
+  console.log(`  Point a site at it: ${paint(c.cyanBold, `theme: ./${themeName}`)}`);
   console.log();
 }

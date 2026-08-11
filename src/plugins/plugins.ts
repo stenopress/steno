@@ -4,9 +4,7 @@ import { errorMessage } from "../utils/text.ts";
 /** Shared plugin contract used throughout the build pipeline. */
 export type { StenoPlugin } from "../types.ts";
 
-function isHookFunction(
-  value: unknown,
-): value is (...args: unknown[]) => unknown {
+function isHookFunction(value: unknown): value is (...args: unknown[]) => unknown {
   return typeof value === "function";
 }
 
@@ -50,10 +48,9 @@ export async function runAstTransforms(
     try {
       result = await plugin.transformAst(tokens);
     } catch (error) {
-      throw new Error(
-        `Plugin "${plugin.name}"'s transformAst threw: ${errorMessage(error)}`,
-        { cause: error },
-      );
+      throw new Error(`Plugin "${plugin.name}"'s transformAst threw: ${errorMessage(error)}`, {
+        cause: error,
+      });
     }
 
     // Catches wrong-shape returns before they fail deep in markdown rendering.
@@ -74,10 +71,7 @@ export async function runAstTransforms(
  * @param plugins An array of Steno plugins.
  * @returns A promise that resolves to the transformed HTML string.
  */
-export async function runHtmlTransforms(
-  html: string,
-  plugins: StenoPlugin[],
-): Promise<string> {
+export async function runHtmlTransforms(html: string, plugins: StenoPlugin[]): Promise<string> {
   for (const plugin of plugins) {
     if (!plugin.transformHtml) continue;
 
@@ -85,10 +79,9 @@ export async function runHtmlTransforms(
     try {
       result = await plugin.transformHtml(html);
     } catch (error) {
-      throw new Error(
-        `Plugin "${plugin.name}"'s transformHtml threw: ${errorMessage(error)}`,
-        { cause: error },
-      );
+      throw new Error(`Plugin "${plugin.name}"'s transformHtml threw: ${errorMessage(error)}`, {
+        cause: error,
+      });
     }
 
     // Catches a plugin forgetting `return`, which would write "undefined" into HTML.

@@ -82,9 +82,7 @@ export class StenoDiagnosticError extends Error {
   /** Builds the aggregate error message from `diagnostics` and stores them
    * on the instance for a caller to inspect individually. */
   constructor(diagnostics: Diagnostic[]) {
-    const summary = diagnostics
-      .map((d) => `  - ${formatDiagnostic(d)}`)
-      .join("\n");
+    const summary = diagnostics.map((d) => `  - ${formatDiagnostic(d)}`).join("\n");
     super(
       `Build failed: ${diagnostics.length} configured input(s) could not be honored.\n${summary}`,
     );

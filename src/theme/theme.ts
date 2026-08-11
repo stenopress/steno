@@ -53,9 +53,8 @@ const ASSET_COPY_CONCURRENCY = 32;
 const HASHABLE_ASSET_PATTERN = /\.m?js$|\.css$/i;
 
 async function hashContent(content: string | Uint8Array): Promise<string> {
-  const bytes = typeof content === "string"
-    ? new TextEncoder().encode(content)
-    : new Uint8Array(content);
+  const bytes =
+    typeof content === "string" ? new TextEncoder().encode(content) : new Uint8Array(content);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest))
     .map((byte) => byte.toString(16).padStart(2, "0"))
@@ -85,9 +84,7 @@ function valuesEqual(left: unknown, right: unknown): boolean {
 }
 
 function configError(themeName: string, path: string, message: string): never {
-  throw new Error(
-    `Invalid configuration for theme "${themeName}" at "${path}": ${message}`,
-  );
+  throw new Error(`Invalid configuration for theme "${themeName}" at "${path}": ${message}`);
 }
 
 function validateThemeConfigField(
@@ -96,44 +93,27 @@ function validateThemeConfigField(
   value: unknown,
   path: string,
 ): void {
-  if (
-    field.enum && !field.enum.some((candidate) => valuesEqual(candidate, value))
-  ) {
-    configError(
-      themeName,
-      path,
-      `must be one of ${JSON.stringify(field.enum)}.`,
-    );
+  if (field.enum && !field.enum.some((candidate) => valuesEqual(candidate, value))) {
+    configError(themeName, path, `must be one of ${JSON.stringify(field.enum)}.`);
   }
 
   const actualType = Array.isArray(value) ? "array" : value === null ? "null" : typeof value;
-  const validType = field.type === "integer"
-    ? typeof value === "number" && Number.isInteger(value)
-    : field.type === "object"
-    ? isRecord(value)
-    : field.type === actualType;
+  const validType =
+    field.type === "integer"
+      ? typeof value === "number" && Number.isInteger(value)
+      : field.type === "object"
+        ? isRecord(value)
+        : field.type === actualType;
   if (!validType) {
-    configError(
-      themeName,
-      path,
-      `expected ${field.type}, received ${actualType}.`,
-    );
+    configError(themeName, path, `expected ${field.type}, received ${actualType}.`);
   }
 
   if (typeof value === "string") {
     if (field.minLength !== undefined && value.length < field.minLength) {
-      configError(
-        themeName,
-        path,
-        `must contain at least ${field.minLength} characters.`,
-      );
+      configError(themeName, path, `must contain at least ${field.minLength} characters.`);
     }
     if (field.maxLength !== undefined && value.length > field.maxLength) {
-      configError(
-        themeName,
-        path,
-        `must contain at most ${field.maxLength} characters.`,
-      );
+      configError(themeName, path, `must contain at most ${field.maxLength} characters.`);
     }
     if (field.pattern !== undefined) {
       let expression: RegExp;
@@ -147,11 +127,7 @@ function validateThemeConfigField(
         );
       }
       if (!expression.test(value)) {
-        configError(
-          themeName,
-          path,
-          `must match pattern ${JSON.stringify(field.pattern)}.`,
-        );
+        configError(themeName, path, `must match pattern ${JSON.stringify(field.pattern)}.`);
       }
     }
   }
@@ -170,27 +146,14 @@ function validateThemeConfigField(
 
   if (Array.isArray(value)) {
     if (field.minItems !== undefined && value.length < field.minItems) {
-      configError(
-        themeName,
-        path,
-        `must contain at least ${field.minItems} items.`,
-      );
+      configError(themeName, path, `must contain at least ${field.minItems} items.`);
     }
     if (field.maxItems !== undefined && value.length > field.maxItems) {
-      configError(
-        themeName,
-        path,
-        `must contain at most ${field.maxItems} items.`,
-      );
+      configError(themeName, path, `must contain at most ${field.maxItems} items.`);
     }
     if (field.items) {
       value.forEach((item, index) =>
-        validateThemeConfigField(
-          themeName,
-          field.items!,
-          item,
-          `${path}[${index}]`,
-        )
+        validateThemeConfigField(themeName, field.items!, item, `${path}[${index}]`),
       );
     }
   }
@@ -201,11 +164,7 @@ function validateThemeConfigField(
       const properties = field.properties ?? {};
       const extra = Object.keys(value).find((key) => !(key in properties));
       if (extra) {
-        configError(
-          themeName,
-          `${path}.${extra}`,
-          "property is not declared by the schema.",
-        );
+        configError(themeName, `${path}.${extra}`, "property is not declared by the schema.");
       }
     }
   }
@@ -235,9 +194,7 @@ function resolveFieldDefault(field: ThemeConfigField): unknown {
   return Object.keys(nested).length ? nested : undefined;
 }
 
-function resolveSchemaDefaults(
-  schema?: Record<string, ThemeConfigField>,
-): ThemeConfig {
+function resolveSchemaDefaults(schema?: Record<string, ThemeConfigField>): ThemeConfig {
   if (!schema) return {};
   const defaults: ThemeConfig = {};
   for (const [key, field] of Object.entries(schema)) {
@@ -265,10 +222,7 @@ interface ThemeDirectoryMetadata {
  * bundled theme - a plain `{ ...base, layouts: { ...only-the-new-ones } }`
  * silently drops any base layout not re-listed.
  */
-export function mergeTheme(
-  base: StenoTheme,
-  overrides: Partial<StenoTheme>,
-): StenoTheme {
+export function mergeTheme(base: StenoTheme, overrides: Partial<StenoTheme>): StenoTheme {
   return {
     name: overrides.name ?? base.name,
     version: overrides.version ?? base.version,
@@ -356,33 +310,30 @@ export class Theme {
    * @param userConfig - Optional overrides for the theme configuration.
    * @returns A new {@link Theme} instance.
    */
-  public static async loadFromDirectory(
-    dir: string,
-    userConfig: ThemeConfig = {},
-  ): Promise<Theme> {
+  public static async loadFromDirectory(dir: string, userConfig: ThemeConfig = {}): Promise<Theme> {
     const metadata = Theme.loadMetadata(dir);
     const name = metadata.name || "unnamed";
     const version = metadata.version || "1.0.0";
 
     const { layouts, layoutPaths } = Theme.loadLayouts(dir);
-    const { components, componentPaths } = Theme.loadComponents(
-      dir,
-      metadata.components,
-    );
+    const { components, componentPaths } = Theme.loadComponents(dir, metadata.components);
     const assets = {
       ...Theme.loadAssets(dir),
       ...(await Theme.loadScripts(dir)),
     };
 
-    const themeInstance = new Theme({
-      name,
-      version,
-      layouts,
-      components,
-      assets,
-      defaultConfig: metadata.defaultConfig || {},
-      configSchema: metadata.configSchema,
-    }, userConfig);
+    const themeInstance = new Theme(
+      {
+        name,
+        version,
+        layouts,
+        components,
+        assets,
+        defaultConfig: metadata.defaultConfig || {},
+        configSchema: metadata.configSchema,
+      },
+      userConfig,
+    );
 
     themeInstance.layoutPaths = layoutPaths;
     themeInstance.componentPaths = componentPaths;
@@ -411,9 +362,7 @@ export class Theme {
   }
 
   /** Loads layout templates and their source paths from a theme directory. */
-  private static loadLayouts(
-    dir: string,
-  ): {
+  private static loadLayouts(dir: string): {
     layouts: Record<string, string>;
     layoutPaths: Record<string, string>;
   } {
@@ -431,7 +380,9 @@ export class Theme {
           }
         }
       }
-    } catch { /* Layouts missing is fine */ }
+    } catch {
+      /* Layouts missing is fine */
+    }
 
     return { layouts, layoutPaths };
   }
@@ -455,10 +406,7 @@ export class Theme {
           components[capKey] = Deno.readTextFileSync(fullPath);
           componentPaths[capKey] = fullPath;
         } catch (err) {
-          console.error(
-            `Failed to load component "${capKey}" from "${fullPath}":`,
-            err,
-          );
+          console.error(`Failed to load component "${capKey}" from "${fullPath}":`, err);
         }
       }
     }
@@ -484,7 +432,9 @@ export class Theme {
         };
         walk(assetsDir);
       }
-    } catch { /* Assets missing is fine */ }
+    } catch {
+      /* Assets missing is fine */
+    }
 
     return assets;
   }
@@ -495,9 +445,7 @@ export class Theme {
    * directory level (`scripts/sub/foo.ts` -> `foo.js`) so themes can
    * reference compiled scripts the same way they reference `assets/*.js`.
    */
-  private static async loadScripts(
-    dir: string,
-  ): Promise<Record<string, string>> {
+  private static async loadScripts(dir: string): Promise<Record<string, string>> {
     const scripts: Record<string, string> = {};
     const scriptsDir = join(dir, "scripts");
 
@@ -508,17 +456,16 @@ export class Theme {
           for (const entry of Deno.readDirSync(currentDir)) {
             const fullPath = join(currentDir, entry.name);
             if (entry.isDirectory) walk(fullPath);
-            else if (
-              entry.isFile &&
-              /\.(ts|tsx|js|jsx)$/.test(entry.name)
-            ) {
+            else if (entry.isFile && /\.(ts|tsx|js|jsx)$/.test(entry.name)) {
               sourcePaths.push(fullPath);
             }
           }
         };
         walk(scriptsDir);
       }
-    } catch { /* Scripts directory missing is fine */ }
+    } catch {
+      /* Scripts directory missing is fine */
+    }
 
     for (const fullPath of sourcePaths) {
       const outName = basename(fullPath).replace(/\.(ts|tsx)$/, ".js");
@@ -571,9 +518,9 @@ export class Theme {
     const template = this.themeData.layouts[layoutName];
     if (!template) {
       throw new Error(
-        `Layout "${layoutName}" not found in theme "${this.name}". Available layouts: ${
-          Object.keys(this.themeData.layouts).join(", ")
-        }`,
+        `Layout "${layoutName}" not found in theme "${this.name}". Available layouts: ${Object.keys(
+          this.themeData.layouts,
+        ).join(", ")}`,
       );
     }
     return await this.executeRender(
@@ -592,15 +539,9 @@ export class Theme {
   ): Promise<string> {
     const template = this.themeData.components?.[componentName];
     if (!template) {
-      throw new Error(
-        `Component "${componentName}" not found in theme "${this.name}".`,
-      );
+      throw new Error(`Component "${componentName}" not found in theme "${this.name}".`);
     }
-    return await this.executeRender(
-      template,
-      variables,
-      this.componentPaths[componentName],
-    );
+    return await this.executeRender(template, variables, this.componentPaths[componentName]);
   }
 
   /**
@@ -642,30 +583,30 @@ export class Theme {
     if (!this.themeData.assets) return manifest;
     const assetsDir = join(outputDir, "assets");
 
-    const assets = Object.entries(this.themeData.assets).sort((
-      [left],
-      [right],
-    ) => left.localeCompare(right));
+    const assets = Object.entries(this.themeData.assets).sort(([left], [right]) =>
+      left.localeCompare(right),
+    );
 
-    const resolved = new Array<
-      { relPath: string; destRelPath: string; content: string | Uint8Array }
-    >(assets.length);
+    const resolved = new Array<{
+      relPath: string;
+      destRelPath: string;
+      content: string | Uint8Array;
+    }>(assets.length);
 
     await mapWithConcurrency(
       assets.map((entry, index) => ({ entry, index })),
       ASSET_COPY_CONCURRENCY,
       async ({ entry: [relPath, source], index }) => {
         const content = await Theme.resolveAssetContent(relPath, source);
-        const destRelPath = hashAssets && HASHABLE_ASSET_PATTERN.test(relPath)
-          ? insertAssetHash(relPath, await hashContent(content))
-          : relPath;
+        const destRelPath =
+          hashAssets && HASHABLE_ASSET_PATTERN.test(relPath)
+            ? insertAssetHash(relPath, await hashContent(content))
+            : relPath;
         resolved[index] = { relPath, destRelPath, content };
       },
     );
 
-    const writeJobs: Array<
-      { destPath: string; content: string | Uint8Array }
-    > = [];
+    const writeJobs: Array<{ destPath: string; content: string | Uint8Array }> = [];
     for (const { relPath, destRelPath, content } of resolved) {
       const destPath = join(assetsDir, destRelPath);
       const normalizedDestPath = resolve(destPath);
@@ -680,17 +621,13 @@ export class Theme {
       writeJobs.push({ destPath, content });
     }
 
-    await mapWithConcurrency(
-      writeJobs,
-      ASSET_COPY_CONCURRENCY,
-      async ({ destPath, content }) => {
-        if (typeof content === "string") {
-          await Deno.writeTextFile(destPath, content);
-        } else {
-          await Deno.writeFile(destPath, content);
-        }
-      },
-    );
+    await mapWithConcurrency(writeJobs, ASSET_COPY_CONCURRENCY, async ({ destPath, content }) => {
+      if (typeof content === "string") {
+        await Deno.writeTextFile(destPath, content);
+      } else {
+        await Deno.writeFile(destPath, content);
+      }
+    });
 
     return manifest;
   }
@@ -705,9 +642,7 @@ export class Theme {
     }
     const response = await fetch(source);
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch theme asset "${relPath}": ${source.href}`,
-      );
+      throw new Error(`Failed to fetch theme asset "${relPath}": ${source.href}`);
     }
     return new Uint8Array(await response.arrayBuffer());
   }

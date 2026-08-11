@@ -24,10 +24,7 @@ const defaultFileSystem: OutputTransactionFileSystem = {
   renameSync: (oldpath, newpath) => Deno.renameSync(oldpath, newpath),
 };
 
-function pathExists(
-  path: string,
-  fs: OutputTransactionFileSystem,
-): boolean {
+function pathExists(path: string, fs: OutputTransactionFileSystem): boolean {
   try {
     fs.lstatSync(path);
     return true;
@@ -51,9 +48,7 @@ export function beginOutputTransaction(
     throw new Error("The filesystem root cannot be used as a Steno output.");
   }
   if (absoluteOutput === resolve(Deno.cwd())) {
-    throw new Error(
-      "The project working directory cannot be used as a Steno output.",
-    );
+    throw new Error("The project working directory cannot be used as a Steno output.");
   }
 
   ensureParentDirSync(absoluteOutput);
@@ -72,9 +67,7 @@ export function beginOutputTransaction(
   return { outputDir: absoluteOutput, stagingDir, backupDir, fs };
 }
 
-export function commitOutputTransaction(
-  transaction: OutputTransaction,
-): void {
+export function commitOutputTransaction(transaction: OutputTransaction): void {
   const { outputDir, stagingDir, backupDir, fs } = transaction;
   const hadOutput = pathExists(outputDir, fs);
   const previousBackup = pathExists(backupDir, fs)
@@ -95,10 +88,7 @@ export function commitOutputTransaction(
     fs.renameSync(stagingDir, outputDir);
   } catch (error) {
     const recoveryErrors: unknown[] = [];
-    if (
-      outputBackedUp && !pathExists(outputDir, fs) &&
-      pathExists(backupDir, fs)
-    ) {
+    if (outputBackedUp && !pathExists(outputDir, fs) && pathExists(backupDir, fs)) {
       try {
         fs.renameSync(backupDir, outputDir);
         outputBackedUp = false;
@@ -106,10 +96,7 @@ export function commitOutputTransaction(
         recoveryErrors.push(recoveryError);
       }
     }
-    if (
-      previousBackup && previousBackupRetired &&
-      !pathExists(backupDir, fs)
-    ) {
+    if (previousBackup && previousBackupRetired && !pathExists(backupDir, fs)) {
       try {
         fs.renameSync(previousBackup, backupDir);
         previousBackupRetired = false;
@@ -131,23 +118,18 @@ export function commitOutputTransaction(
       fs.removeSync(previousBackup, { recursive: true });
     } catch (error) {
       console.warn(
-        `Build committed, but failed to remove retired backup "${previousBackup}": ${
-          errorMessage(error)
-        }`,
+        `Build committed, but failed to remove retired backup "${previousBackup}": ${errorMessage(
+          error,
+        )}`,
       );
     }
   }
 }
 
-export function rollbackOutputTransaction(
-  transaction: OutputTransaction,
-): void {
+export function rollbackOutputTransaction(transaction: OutputTransaction): void {
   const { fs } = transaction;
   removeTree(transaction.stagingDir, fs);
-  if (
-    !pathExists(transaction.outputDir, fs) &&
-    pathExists(transaction.backupDir, fs)
-  ) {
+  if (!pathExists(transaction.outputDir, fs) && pathExists(transaction.backupDir, fs)) {
     fs.renameSync(transaction.backupDir, transaction.outputDir);
   }
 }

@@ -5,12 +5,14 @@ import { hasControlCharacters } from "../utils/text.ts";
 const INCLUDE_PATTERN_SOURCE = String.raw`\{@include\s+"([^"]+)"\}`;
 
 function isUnsafeIncludePath(includePath: string): boolean {
-  return isAbsolute(includePath) ||
+  return (
+    isAbsolute(includePath) ||
     includePath.startsWith("/") ||
     includePath.includes("\\") ||
     includePath.split("/").includes("..") ||
     /^[A-Za-z][A-Za-z\d+.-]*:/.test(includePath) ||
-    hasControlCharacters(includePath);
+    hasControlCharacters(includePath)
+  );
 }
 
 async function resolveIncludePath(
@@ -60,11 +62,7 @@ export async function processIncludes(
     result += body.slice(lastIndex, match.index);
     lastIndex = match.index + fullMatch.length;
 
-    const resolvedPath = await resolveIncludePath(
-      includePath,
-      currentFile,
-      contentDir,
-    );
+    const resolvedPath = await resolveIncludePath(includePath, currentFile, contentDir);
 
     if (!resolvedPath) {
       throw new Error(
@@ -86,12 +84,7 @@ export async function processIncludes(
     const newStack = new Set([...stack, resolvedPath]);
 
     // recursively process includes in the included file
-    result += await processIncludes(
-      included,
-      resolvedPath,
-      contentDir,
-      newStack,
-    );
+    result += await processIncludes(included, resolvedPath, contentDir, newStack);
   }
 
   result += body.slice(lastIndex);

@@ -12,7 +12,7 @@ function noColorRequested(): boolean {
 }
 
 export function createColors(noColor = noColorRequested()) {
-  const color = (code: string): string => noColor ? "" : `\x1b[${code}m`;
+  const color = (code: string): string => (noColor ? "" : `\x1b[${code}m`);
 
   return {
     reset: color("0"),
@@ -62,12 +62,11 @@ export function success(msg: string): void {
 }
 
 export function buildComplete(pageCount?: number): void {
-  const detail = pageCount !== undefined
-    ? `  ${c.gray}(${pageCount} page${pageCount === 1 ? "" : "s"})${c.reset}`
-    : "";
-  console.log(
-    `  ${c.green}${symbols.ok}${c.reset}  ${c.bold}Build complete${c.reset}${detail}`,
-  );
+  const detail =
+    pageCount !== undefined
+      ? `  ${c.gray}(${pageCount} page${pageCount === 1 ? "" : "s"})${c.reset}`
+      : "";
+  console.log(`  ${c.green}${symbols.ok}${c.reset}  ${c.bold}Build complete${c.reset}${detail}`);
 }
 
 export function buildError(msg: string): void {
@@ -77,9 +76,7 @@ export function buildError(msg: string): void {
 }
 
 export function changeDetected(): void {
-  console.log(
-    `  ${c.gray}${symbols.change}  change detected, rebuilding...${c.reset}`,
-  );
+  console.log(`  ${c.gray}${symbols.change}  change detected, rebuilding...${c.reset}`);
 }
 
 /**
@@ -116,9 +113,7 @@ export function debugPageContext(
       layout ?? "none"
     })${c.reset}`,
   );
-  console.log(
-    Deno.inspect(context, { depth: 6, colors: !noColorRequested() }),
-  );
+  console.log(Deno.inspect(context, { depth: 6, colors: !noColorRequested() }));
   console.log();
 }
 

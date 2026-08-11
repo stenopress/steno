@@ -51,11 +51,7 @@ Deno.test("includes: processes nested includes", async () => {
     "b.md": `B`,
   });
 
-  const result = await processIncludes(
-    `{@include "a.md"}`,
-    join(dir, "index.md"),
-    dir,
-  );
+  const result = await processIncludes(`{@include "a.md"}`, join(dir, "index.md"), dir);
 
   assertStringIncludes(result, "A");
   assertStringIncludes(result, "B");
@@ -70,11 +66,7 @@ Deno.test("includes: throws on circular include", async () => {
 
   let threw = false;
   try {
-    await processIncludes(
-      `{@include "a.md"}`,
-      join(dir, "index.md"),
-      dir,
-    );
+    await processIncludes(`{@include "a.md"}`, join(dir, "index.md"), dir);
   } catch (e) {
     threw = true;
     assertStringIncludes((e as Error).message, "Circular include");
@@ -91,11 +83,7 @@ Deno.test("includes: throws with clear message when file not found", async () =>
 
   let threw = false;
   try {
-    await processIncludes(
-      `{@include "nonexistent.md"}`,
-      join(dir, "index.md"),
-      dir,
-    );
+    await processIncludes(`{@include "nonexistent.md"}`, join(dir, "index.md"), dir);
   } catch (e) {
     threw = true;
     assertStringIncludes((e as Error).message, "Include not found");
@@ -109,11 +97,7 @@ Deno.test("includes: throws with clear message when file not found", async () =>
 Deno.test("includes: no-op when no includes present", async () => {
   const dir = makeContentDir({ "index.md": `Hello world` });
 
-  const result = await processIncludes(
-    `Hello world`,
-    join(dir, "index.md"),
-    dir,
-  );
+  const result = await processIncludes(`Hello world`, join(dir, "index.md"), dir);
 
   assertEquals(result, "Hello world");
   Deno.removeSync(dir, { recursive: true });

@@ -2,15 +2,7 @@ import { TauError, type TauErrorCode } from "./tau_error.ts";
 import { hasControlCharacters } from "./text.ts";
 
 export interface Node {
-  type:
-    | "text"
-    | "expression"
-    | "html"
-    | "if"
-    | "each"
-    | "let"
-    | "component"
-    | "include";
+  type: "text" | "expression" | "html" | "if" | "each" | "let" | "component" | "include";
   value?: string;
   expression?: string;
   filters?: { name: string; args: string[] }[];
@@ -32,10 +24,7 @@ export interface Node {
 
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
 
-function splitTopLevel(
-  value: string,
-  delimiter: "|" | ",",
-): string[] {
+function splitTopLevel(value: string, delimiter: "|" | ","): string[] {
   const parts: string[] = [];
   let start = 0;
   let quote = "";
@@ -63,8 +52,7 @@ function splitTopLevel(
       char === delimiter &&
       roundDepth === 0 &&
       squareDepth === 0 &&
-      !(delimiter === "|" &&
-        (value[index - 1] === "|" || value[index + 1] === "|"))
+      !(delimiter === "|" && (value[index - 1] === "|" || value[index + 1] === "|"))
     ) {
       parts.push(value.substring(start, index));
       start = index + 1;
@@ -106,20 +94,17 @@ function trimLeadingWhitespace(nodes: Node[]): void {
   }
 }
 
-function extractTrimSuffix(
-  raw: string,
-): { content: string; trimAfter: boolean } {
+function extractTrimSuffix(raw: string): {
+  content: string;
+  trimAfter: boolean;
+} {
   if (raw.endsWith("-")) {
     return { content: raw.slice(0, -1).trim(), trimAfter: true };
   }
   return { content: raw, trimAfter: false };
 }
 
-function assertIdentifier(
-  value: string,
-  label: string,
-  fail: (message: string) => never,
-): void {
+function assertIdentifier(value: string, label: string, fail: (message: string) => never): void {
   if (!IDENTIFIER_PATTERN.test(value)) {
     fail(`Invalid ${label} "${value}". Expected a JavaScript identifier.`);
   }
@@ -146,22 +131,13 @@ export function parseProps(attrString: string): Record<string, string> {
       }
       const propName = attrString.substring(start, i).trim();
       if (braceCount !== 0) {
-        throw new TauError(
-          "TAU_PARSE_UNCLOSED_BLOCK",
-          "Unclosed shorthand component prop.",
-        );
+        throw new TauError("TAU_PARSE_UNCLOSED_BLOCK", "Unclosed shorthand component prop.");
       }
       if (!IDENTIFIER_PATTERN.test(propName)) {
-        throw new TauError(
-          "TAU_INVALID_IDENTIFIER",
-          `Invalid component prop "${propName}".`,
-        );
+        throw new TauError("TAU_INVALID_IDENTIFIER", `Invalid component prop "${propName}".`);
       }
       if (["__proto__", "constructor", "prototype"].includes(propName)) {
-        throw new TauError(
-          "TAU_UNSAFE_PROP",
-          `Tau component prop "${propName}" is not allowed.`,
-        );
+        throw new TauError("TAU_UNSAFE_PROP", `Tau component prop "${propName}" is not allowed.`);
       }
       props[propName] = propName;
       i++;
@@ -176,10 +152,7 @@ export function parseProps(attrString: string): Record<string, string> {
       continue;
     }
     if (["__proto__", "constructor", "prototype"].includes(name)) {
-      throw new TauError(
-        "TAU_UNSAFE_PROP",
-        `Tau component prop "${name}" is not allowed.`,
-      );
+      throw new TauError("TAU_UNSAFE_PROP", `Tau component prop "${name}" is not allowed.`);
     }
 
     while (i < attrString.length && /\s/.test(attrString[i])) i++;
@@ -244,10 +217,7 @@ export class TauParser {
     this.filePath = filePath;
   }
 
-  private throwError(
-    message: string,
-    code: TauErrorCode = "TAU_PARSE_EXPECTED_TOKEN",
-  ): never {
+  private throwError(message: string, code: TauErrorCode = "TAU_PARSE_EXPECTED_TOKEN"): never {
     const textBefore = this.input.substring(0, this.pos);
     const lines = textBefore.split("\n");
     throw new TauError(code, message, {
@@ -280,10 +250,7 @@ export class TauParser {
     this.consume("{#");
     while (this.pos < this.input.length && !this.match("#}")) this.pos++;
     if (!this.match("#}")) {
-      this.throwError(
-        'Unclosed comment. Expected "#}".',
-        "TAU_PARSE_UNCLOSED_BLOCK",
-      );
+      this.throwError('Unclosed comment. Expected "#}".', "TAU_PARSE_UNCLOSED_BLOCK");
     }
     this.consume("#}");
   }
@@ -301,9 +268,7 @@ export class TauParser {
       while (this.pos < this.input.length) {
         if (this.pendingTrimStart) {
           this.pendingTrimStart = false;
-          while (
-            this.pos < this.input.length && /\s/.test(this.input[this.pos])
-          ) this.pos++;
+          while (this.pos < this.input.length && /\s/.test(this.input[this.pos])) this.pos++;
         }
         if (endTags.some((tag) => this.match(tag))) break;
 
@@ -324,9 +289,8 @@ export class TauParser {
         else if (this.match("{@children}")) {
           this.consume("{@children}");
           nodes.push({ type: "html", expression: "children" });
-        } else if (
-          this.peek() === "{" && !["#", "/", ":", "@"].includes(this.peek(1))
-        ) nodes.push(this.parseVariableBlock());
+        } else if (this.peek() === "{" && !["#", "/", ":", "@"].includes(this.peek(1)))
+          nodes.push(this.parseVariableBlock());
         else if (this.peek() === "<" && /[A-Z]/.test(this.peek(1))) {
           nodes.push(this.parseComponentBlock());
         } else nodes.push(this.parseTextNode(endTags));
@@ -355,9 +319,7 @@ export class TauParser {
     }
     const raw = this.input.substring(start, this.pos).trim();
     this.consume("}");
-    const { content: condition, trimAfter: trimAfterOpen } = extractTrimSuffix(
-      raw,
-    );
+    const { content: condition, trimAfter: trimAfterOpen } = extractTrimSuffix(raw);
     if (!condition) {
       this.throwError("If condition cannot be empty.", "TAU_PARSE_EMPTY");
     }
@@ -365,11 +327,7 @@ export class TauParser {
     const elseIfPrefixes = prefixVariants("{:else if ");
     const elseVariants = tagVariants("{:else}");
     const closeVariants = tagVariants("{/if}");
-    const consequent = this.parseBlock([
-      ...elseIfPrefixes,
-      ...elseVariants,
-      ...closeVariants,
-    ]);
+    const consequent = this.parseBlock([...elseIfPrefixes, ...elseVariants, ...closeVariants]);
     if (trimAfterOpen) trimLeadingWhitespace(consequent);
 
     let alternate: Node[] = [];
@@ -392,10 +350,7 @@ export class TauParser {
       if (elseMatch.endsWith("-}")) trimLeadingWhitespace(alternate);
       const innerClose = innerCloseVariants.find((v) => this.match(v));
       if (!innerClose) {
-        this.throwError(
-          'Unclosed if block. Expected "{/if}".',
-          "TAU_PARSE_UNCLOSED_BLOCK",
-        );
+        this.throwError('Unclosed if block. Expected "{/if}".', "TAU_PARSE_UNCLOSED_BLOCK");
       }
       if (innerClose.startsWith("{-")) trimTrailingWhitespace(alternate);
       this.pos += innerClose.length;
@@ -405,10 +360,7 @@ export class TauParser {
       this.pos += closeMatch.length;
       trimAfter = closeMatch.endsWith("-}");
     } else {
-      this.throwError(
-        'Unclosed if block. Expected "{/if}".',
-        "TAU_PARSE_UNCLOSED_BLOCK",
-      );
+      this.throwError('Unclosed if block. Expected "{/if}".', "TAU_PARSE_UNCLOSED_BLOCK");
     }
     return {
       type: "if",
@@ -428,9 +380,7 @@ export class TauParser {
     }
     const raw = this.input.substring(start, this.pos).trim();
     this.consume("}");
-    const { content: rawEach, trimAfter: trimAfterOpen } = extractTrimSuffix(
-      raw,
-    );
+    const { content: rawEach, trimAfter: trimAfterOpen } = extractTrimSuffix(raw);
 
     const asIndex = rawEach.indexOf(" as ");
     if (asIndex === -1) {
@@ -443,21 +393,14 @@ export class TauParser {
     const itemPart = rawEach.substring(asIndex + 4).trim();
     const [item, indexVar = ""] = itemPart.split(",").map((s) => s.trim());
     if (!array) {
-      this.throwError(
-        "Each iterable expression cannot be empty.",
-        "TAU_PARSE_EMPTY",
-      );
+      this.throwError("Each iterable expression cannot be empty.", "TAU_PARSE_EMPTY");
     }
-    assertIdentifier(
-      item,
-      "each item binding",
-      (message) => this.throwError(message, "TAU_INVALID_IDENTIFIER"),
+    assertIdentifier(item, "each item binding", (message) =>
+      this.throwError(message, "TAU_INVALID_IDENTIFIER"),
     );
     if (indexVar) {
-      assertIdentifier(
-        indexVar,
-        "each index binding",
-        (message) => this.throwError(message, "TAU_INVALID_IDENTIFIER"),
+      assertIdentifier(indexVar, "each index binding", (message) =>
+        this.throwError(message, "TAU_INVALID_IDENTIFIER"),
       );
     }
 
@@ -478,10 +421,7 @@ export class TauParser {
       if (elseMatch.endsWith("-}")) trimLeadingWhitespace(alternate);
       const innerClose = innerCloseVariants.find((v) => this.match(v));
       if (!innerClose) {
-        this.throwError(
-          'Unclosed each block. Expected "{/each}".',
-          "TAU_PARSE_UNCLOSED_BLOCK",
-        );
+        this.throwError('Unclosed each block. Expected "{/each}".', "TAU_PARSE_UNCLOSED_BLOCK");
       }
       if (innerClose.startsWith("{-")) trimTrailingWhitespace(alternate);
       this.pos += innerClose.length;
@@ -489,10 +429,7 @@ export class TauParser {
     } else {
       const closeMatch = closeVariants.find((v) => this.match(v));
       if (!closeMatch) {
-        this.throwError(
-          'Unclosed each block. Expected "{/each}".',
-          "TAU_PARSE_UNCLOSED_BLOCK",
-        );
+        this.throwError('Unclosed each block. Expected "{/each}".', "TAU_PARSE_UNCLOSED_BLOCK");
       }
       if (closeMatch.startsWith("{-")) trimTrailingWhitespace(consequent);
       this.pos += closeMatch.length;
@@ -529,16 +466,11 @@ export class TauParser {
     }
     const letName = raw.substring(0, eqIndex).trim();
     const expression = raw.substring(eqIndex + 1).trim();
-    assertIdentifier(
-      letName,
-      "let binding",
-      (message) => this.throwError(message, "TAU_INVALID_IDENTIFIER"),
+    assertIdentifier(letName, "let binding", (message) =>
+      this.throwError(message, "TAU_INVALID_IDENTIFIER"),
     );
     if (!expression) {
-      this.throwError(
-        "Let binding expression cannot be empty.",
-        "TAU_PARSE_EMPTY",
-      );
+      this.throwError("Let binding expression cannot be empty.", "TAU_PARSE_EMPTY");
     }
     return { type: "let", letName, expression };
   }
@@ -547,23 +479,18 @@ export class TauParser {
     this.consume("{@include ");
     const quoteChar = ["'", '"'].includes(this.input[this.pos]) ? this.input[this.pos++] : null;
     if (!quoteChar) {
-      this.throwError(
-        "Include paths must be quoted string literals.",
-        "TAU_PARSE_EXPECTED_TOKEN",
-      );
+      this.throwError("Include paths must be quoted string literals.", "TAU_PARSE_EXPECTED_TOKEN");
     }
     const start = this.pos;
     while (
       this.pos < this.input.length &&
       (quoteChar ? this.input[this.pos] !== quoteChar : this.input[this.pos] !== "}")
-    ) this.pos++;
+    )
+      this.pos++;
     const includePath = this.input.substring(start, this.pos).trim();
     if (quoteChar) {
       if (this.pos >= this.input.length) {
-        this.throwError(
-          "Unclosed quoted include path.",
-          "TAU_PARSE_UNCLOSED_BLOCK",
-        );
+        this.throwError("Unclosed quoted include path.", "TAU_PARSE_UNCLOSED_BLOCK");
       }
       this.pos++;
     }
@@ -622,25 +549,18 @@ export class TauParser {
         const paren = term.indexOf("(");
         if (paren !== -1 && term.endsWith(")")) {
           const name = term.substring(0, paren).trim();
-          assertIdentifier(
-            name,
-            "filter name",
-            (message) => this.throwError(message, "TAU_INVALID_IDENTIFIER"),
+          assertIdentifier(name, "filter name", (message) =>
+            this.throwError(message, "TAU_INVALID_IDENTIFIER"),
           );
           return {
             name,
-            args: splitTopLevel(
-              term.substring(paren + 1, term.length - 1),
-              ",",
-            ).map(
-              (a) => a.trim(),
-            ).filter(Boolean),
+            args: splitTopLevel(term.substring(paren + 1, term.length - 1), ",")
+              .map((a) => a.trim())
+              .filter(Boolean),
           };
         }
-        assertIdentifier(
-          term,
-          "filter name",
-          (message) => this.throwError(message, "TAU_INVALID_IDENTIFIER"),
+        assertIdentifier(term, "filter name", (message) =>
+          this.throwError(message, "TAU_INVALID_IDENTIFIER"),
         );
         return { name: term, args: [] };
       }),
@@ -650,7 +570,9 @@ export class TauParser {
   private parseComponentBlock(): Node {
     this.consume("<");
     const start = this.pos;
-    let braceCount = 0, inQuotes = false, quoteChar = "";
+    let braceCount = 0,
+      inQuotes = false,
+      quoteChar = "";
     let selfClosing = false;
     while (this.pos < this.input.length) {
       const char = this.input[this.pos];
@@ -663,9 +585,7 @@ export class TauParser {
         quoteChar = char;
       } else if (char === "{") braceCount++;
       else if (char === "}") braceCount--;
-      else if (
-        char === "/" && this.input[this.pos + 1] === ">" && braceCount === 0
-      ) {
+      else if (char === "/" && this.input[this.pos + 1] === ">" && braceCount === 0) {
         selfClosing = true;
         break;
       } else if (char === ">" && braceCount === 0) {
@@ -675,23 +595,16 @@ export class TauParser {
       this.pos++;
     }
     if (this.pos >= this.input.length) {
-      this.throwError(
-        'Unclosed component tag. Expected "/>" or ">".',
-        "TAU_PARSE_UNCLOSED_BLOCK",
-      );
+      this.throwError('Unclosed component tag. Expected "/>" or ">".', "TAU_PARSE_UNCLOSED_BLOCK");
     }
     const componentStr = this.input.substring(start, this.pos).trim();
     this.consume(selfClosing ? "/>" : ">");
 
     const spaceIndex = componentStr.search(/\s/);
-    const componentName = spaceIndex !== -1
-      ? componentStr.substring(0, spaceIndex).trim()
-      : componentStr;
+    const componentName =
+      spaceIndex !== -1 ? componentStr.substring(0, spaceIndex).trim() : componentStr;
     if (!/^[A-Z][A-Za-z\d_$]*$/.test(componentName)) {
-      this.throwError(
-        `Invalid component name "${componentName}".`,
-        "TAU_INVALID_IDENTIFIER",
-      );
+      this.throwError(`Invalid component name "${componentName}".`, "TAU_INVALID_IDENTIFIER");
     }
     const attrString = spaceIndex !== -1 ? componentStr.substring(spaceIndex).trim() : "";
     const props = parseProps(attrString);
@@ -717,12 +630,17 @@ export class TauParser {
     while (this.pos < this.input.length) {
       if (endTags.some((tag) => this.match(tag))) break;
       if (
-        this.match("{#if ") || this.match("{#each ") || this.match("{#let ") ||
-        this.match("{@html ") || this.match("{@children}") ||
-        this.match("{@include ") || this.matchCommentStart() ||
+        this.match("{#if ") ||
+        this.match("{#each ") ||
+        this.match("{#let ") ||
+        this.match("{@html ") ||
+        this.match("{@children}") ||
+        this.match("{@include ") ||
+        this.matchCommentStart() ||
         (this.peek() === "{" && !["#", "/", ":", "@"].includes(this.peek(1))) ||
         (this.peek() === "<" && /[A-Z]/.test(this.peek(1)))
-      ) break;
+      )
+        break;
       this.pos++;
     }
     return { type: "text", value: this.input.substring(start, this.pos) };

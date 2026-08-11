@@ -29,20 +29,12 @@ export function registerFrontmatterTests(): void {
 
   Deno.test("frontmatter: throws on invalid YAML frontmatter", () => {
     const input = `---\ntitle: [\nbad yaml\n---\n\nBody`;
-    assertThrows(
-      () => parseFrontmatter(input),
-      Error,
-      "Failed to parse YAML frontmatter",
-    );
+    assertThrows(() => parseFrontmatter(input), Error, "Failed to parse YAML frontmatter");
   });
 
   Deno.test("frontmatter: throws on invalid TOML frontmatter", () => {
     const input = `+++\ntitle = bad toml [\n+++\n\nBody`;
-    assertThrows(
-      () => parseFrontmatter(input),
-      Error,
-      "Failed to parse TOML frontmatter",
-    );
+    assertThrows(() => parseFrontmatter(input), Error, "Failed to parse TOML frontmatter");
   });
 
   Deno.test("frontmatter: error message includes filePath for invalid YAML", () => {

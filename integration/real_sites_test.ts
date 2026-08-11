@@ -39,10 +39,7 @@ async function removeIfPresent(path: string): Promise<void> {
   }
 }
 
-async function runBuild(
-  projectRoot: string,
-  zeroConfig = false,
-): Promise<CommandResult> {
+async function runBuild(projectRoot: string, zeroConfig = false): Promise<CommandResult> {
   const args = ["run", "-A", stenoEntry, "build"];
   if (!zeroConfig) {
     args.push("--config", "content/.steno/config.yml");
@@ -63,7 +60,7 @@ async function listFiles(root: string, current = root): Promise<string[]> {
   const files: string[] = [];
   for await (const entry of Deno.readDir(current)) {
     const path = join(current, entry.name);
-    if (entry.isDirectory) files.push(...await listFiles(root, path));
+    if (entry.isDirectory) files.push(...(await listFiles(root, path)));
     else if (entry.isFile) {
       files.push(relative(root, path).replaceAll("\\", "/"));
     }
@@ -79,15 +76,15 @@ async function snapshotTree(root: string): Promise<Map<string, Uint8Array>> {
   return snapshot;
 }
 
-function normalizeOutputPath(
-  fromHtml: string,
-  rawTarget: string,
-): string | undefined {
+function normalizeOutputPath(fromHtml: string, rawTarget: string): string | undefined {
   const target = rawTarget.trim();
   if (
-    !target || target.startsWith("#") || target.startsWith("//") ||
+    !target ||
+    target.startsWith("#") ||
+    target.startsWith("//") ||
     /^[A-Za-z][A-Za-z\d+.-]*:/.test(target)
-  ) return;
+  )
+    return;
 
   const withoutQuery = target.split(/[?#]/, 1)[0];
   let joined = withoutQuery.startsWith("/")
@@ -125,10 +122,7 @@ async function assertInternalLinks(outputDir: string): Promise<void> {
   }
 }
 
-async function assertExpectedSite(
-  outputDir: string,
-  expectation: SiteExpectation,
-): Promise<void> {
+async function assertExpectedSite(outputDir: string, expectation: SiteExpectation): Promise<void> {
   for (const [path, snippets] of Object.entries(expectation.files)) {
     const filePath = join(outputDir, path);
     const stat = await Deno.stat(filePath);
@@ -183,14 +177,9 @@ for await (const entry of Deno.readDir(sitesDir)) {
           mutableSource,
           source.replace(expectation.originalText, expectation.changedText),
         );
-        const incrementalBuild = await runBuild(
-          tempRoot,
-          expectation.zeroConfig,
-        );
+        const incrementalBuild = await runBuild(tempRoot, expectation.zeroConfig);
         assertEquals(incrementalBuild.code, 0, incrementalBuild.output);
-        const mutableHtml = await Deno.readTextFile(
-          join(outputDir, expectation.mutableOutput),
-        );
+        const mutableHtml = await Deno.readTextFile(join(outputDir, expectation.mutableOutput));
         assertStringIncludes(mutableHtml, expectation.changedText);
         const incrementalSnapshot = await snapshotTree(outputDir);
 
@@ -202,9 +191,9 @@ for await (const entry of Deno.readDir(sitesDir)) {
         assert(failedBuild.code !== 0, "Expected malformed site build to fail");
         assertEquals(await snapshotTree(outputDir), incrementalSnapshot);
 
-        const leakedTransactionPaths = (await listFiles(outputDir)).filter((
-          path,
-        ) => path.includes("steno-stage") || path.includes("steno-backup"));
+        const leakedTransactionPaths = (await listFiles(outputDir)).filter(
+          (path) => path.includes("steno-stage") || path.includes("steno-backup"),
+        );
         assertEquals(leakedTransactionPaths, []);
       } finally {
         await removeIfPresent(tempRoot);

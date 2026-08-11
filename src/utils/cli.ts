@@ -49,9 +49,7 @@ export function parseCliArgs(args: string[]): CliOptions {
     if (arg === "-c" || arg === "--config") {
       const value = args[i + 1];
       if (!value || value.startsWith("-")) {
-        throw new Error(
-          "Missing value for --config. Example: --config content/.steno/config.yml",
-        );
+        throw new Error("Missing value for --config. Example: --config content/.steno/config.yml");
       }
       configPath = value;
       i++;
@@ -62,15 +60,8 @@ export function parseCliArgs(args: string[]): CliOptions {
       const value = args[i + 1];
       const parsedPort = Number(value);
 
-      if (
-        !value ||
-        !Number.isInteger(parsedPort) ||
-        parsedPort < 1 ||
-        parsedPort > 65535
-      ) {
-        throw new Error(
-          "Invalid --port value. Expected an integer between 1 and 65535.",
-        );
+      if (!value || !Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+        throw new Error("Invalid --port value. Expected an integer between 1 and 65535.");
       }
 
       port = parsedPort;
@@ -79,8 +70,12 @@ export function parseCliArgs(args: string[]): CliOptions {
     }
 
     if (
-      arg === "build" || arg === "dev" || arg === "doctor" || arg === "help" ||
-      arg === "preview" || arg === "version"
+      arg === "build" ||
+      arg === "dev" ||
+      arg === "doctor" ||
+      arg === "help" ||
+      arg === "preview" ||
+      arg === "version"
     ) {
       command = arg;
       continue;

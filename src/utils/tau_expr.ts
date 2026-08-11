@@ -49,32 +49,32 @@ export type TauExprNode =
   | { type: "Literal"; value: string | number | boolean | null | undefined }
   | { type: "Identifier"; name: string }
   | {
-    type: "Member";
-    object: TauExprNode;
-    property: TauExprNode | string;
-    computed: boolean;
-    optional: boolean;
-  }
+      type: "Member";
+      object: TauExprNode;
+      property: TauExprNode | string;
+      computed: boolean;
+      optional: boolean;
+    }
   | {
-    type: "Call";
-    callee: TauExprNode;
-    args: TauExprNode[];
-    optional: boolean;
-  }
+      type: "Call";
+      callee: TauExprNode;
+      args: TauExprNode[];
+      optional: boolean;
+    }
   | { type: "Unary"; operator: "!" | "-" | "+"; argument: TauExprNode }
   | { type: "Binary"; operator: string; left: TauExprNode; right: TauExprNode }
   | {
-    type: "Logical";
-    operator: "&&" | "||" | "??";
-    left: TauExprNode;
-    right: TauExprNode;
-  }
+      type: "Logical";
+      operator: "&&" | "||" | "??";
+      left: TauExprNode;
+      right: TauExprNode;
+    }
   | {
-    type: "Conditional";
-    test: TauExprNode;
-    consequent: TauExprNode;
-    alternate: TauExprNode;
-  };
+      type: "Conditional";
+      test: TauExprNode;
+      consequent: TauExprNode;
+      alternate: TauExprNode;
+    };
 
 type TokenType = "ident" | "number" | "string" | "punct";
 interface Token {
@@ -144,10 +144,7 @@ function isIdentifierPart(char: string): boolean {
 }
 
 function fail(message: string, source: string): never {
-  throw new TauError(
-    "TAU_UNSAFE_EXPRESSION",
-    `${message} in Tau expression: "${source}".`,
-  );
+  throw new TauError("TAU_UNSAFE_EXPRESSION", `${message} in Tau expression: "${source}".`);
 }
 
 function tokenize(source: string): Token[] {
@@ -360,9 +357,7 @@ class ExprParser {
       if (prec === undefined || prec < minPrec) break;
       this.advance();
       const right = this.parseBinary(prec + 1);
-      if (
-        token.value === "&&" || token.value === "||" || token.value === "??"
-      ) {
+      if (token.value === "&&" || token.value === "||" || token.value === "??") {
         left = {
           type: "Logical",
           operator: token.value as "&&" | "||" | "??",
@@ -401,7 +396,7 @@ class ExprParser {
 
   private parsePropertyName(): string {
     const token = this.peek();
-    if (!token || (token.type !== "ident")) {
+    if (!token || token.type !== "ident") {
       fail("Expected a property name", this.source);
     }
     this.advance();
@@ -533,10 +528,7 @@ export function parseTauExpression(source: string): TauExprNode {
  * in `locals` (bound `{#each}` item/index variables) are emitted bare since
  * they resolve to real lexical bindings in the generated function.
  */
-export function compileExpression(
-  source: string,
-  locals: ReadonlySet<string>,
-): string {
+export function compileExpression(source: string, locals: ReadonlySet<string>): string {
   const ast = parseTauExpression(source);
   return emitExpr(ast, locals);
 }
@@ -561,8 +553,7 @@ function emitExpr(node: TauExprNode, locals: ReadonlySet<string>): string {
         const propertySrc = emitExpr(node.property as TauExprNode, locals);
         return `helpers.get(${objectSrc}, ${propertySrc}, ${node.optional})`;
       }
-      return `${objectSrc}${node.optional ? "?." : "."}${node
-        .property as string}`;
+      return `${objectSrc}${node.optional ? "?." : "."}${node.property as string}`;
     }
     case "Call": {
       const calleeSrc = emitExpr(node.callee, locals);
@@ -579,8 +570,9 @@ function emitExpr(node: TauExprNode, locals: ReadonlySet<string>): string {
     case "Logical":
       return `(${emitExpr(node.left, locals)} ${node.operator} ${emitExpr(node.right, locals)})`;
     case "Conditional":
-      return `(${emitExpr(node.test, locals)} ? ${emitExpr(node.consequent, locals)} : ${
-        emitExpr(node.alternate, locals)
-      })`;
+      return `(${emitExpr(node.test, locals)} ? ${emitExpr(node.consequent, locals)} : ${emitExpr(
+        node.alternate,
+        locals,
+      )})`;
   }
 }

@@ -3,11 +3,7 @@ import type { NavigationNode } from "../types.ts";
 import { validateHeadTags } from "./head.ts";
 import { errorMessage, isRecord } from "../utils/text.ts";
 
-function invalidPageOverride(
-  pagePath: string,
-  field: string,
-  type: string,
-): never {
+function invalidPageOverride(pagePath: string, field: string, type: string): never {
   const path = field ? `steno.${field}` : "steno";
   throw new Error(
     `Invalid per-page configuration in "${pagePath}" at "${path}": expected ${type}.`,
@@ -65,9 +61,7 @@ export function resolvePageConfigOverrides(
     try {
       overrides.head = validateHeadTags(candidate.head, "steno.head");
     } catch (error) {
-      throw new Error(
-        `Invalid per-page configuration in "${pagePath}": ${errorMessage(error)}`,
-      );
+      throw new Error(`Invalid per-page configuration in "${pagePath}": ${errorMessage(error)}`);
     }
   }
 

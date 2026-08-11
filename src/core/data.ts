@@ -6,11 +6,7 @@ import { errorMessage } from "../utils/text.ts";
 
 export type DataMap = Record<string, unknown>;
 
-function setNestedKey(
-  obj: DataMap,
-  keys: string[],
-  value: unknown,
-): void {
+function setNestedKey(obj: DataMap, keys: string[], value: unknown): void {
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
     if (!current[keys[i]] || typeof current[keys[i]] !== "object") {

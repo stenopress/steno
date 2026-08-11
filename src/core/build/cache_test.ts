@@ -19,9 +19,7 @@ Deno.test({
   name: "cache: returns null when cache file does not exist",
   permissions: { read: true },
   fn: async () => {
-    const result = await loadPersistentBuildCache(
-      "/nonexistent/path/cache.json",
-    );
+    const result = await loadPersistentBuildCache("/nonexistent/path/cache.json");
     assertEquals(result, null);
   },
 });
@@ -45,10 +43,7 @@ Deno.test({
   fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, "cache.json");
-    Deno.writeTextFileSync(
-      cachePath,
-      JSON.stringify({ version: 2, signature: "abc", pages: [] }),
-    );
+    Deno.writeTextFileSync(cachePath, JSON.stringify({ version: 2, signature: "abc", pages: [] }));
 
     await assertRejects(
       () => loadPersistentBuildCache(cachePath),
@@ -65,10 +60,7 @@ Deno.test({
   fn: async () => {
     const tempDir = Deno.makeTempDirSync();
     const cachePath = join(tempDir, "cache.json");
-    Deno.writeTextFileSync(
-      cachePath,
-      JSON.stringify({ version: 1, pages: [] }),
-    );
+    Deno.writeTextFileSync(cachePath, JSON.stringify({ version: 1, pages: [] }));
 
     await assertRejects(
       () => loadPersistentBuildCache(cachePath),

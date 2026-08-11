@@ -74,9 +74,7 @@ function scanMarkdownFiles(
  */
 export async function runDoctor(configPath: string): Promise<boolean> {
   console.log();
-  console.log(
-    `${c.bold}steno doctor${c.reset}  ${c.gray}checking your project...${c.reset}`,
-  );
+  console.log(`${c.bold}steno doctor${c.reset}  ${c.gray}checking your project...${c.reset}`);
   console.log();
 
   let hasErrors = false;
@@ -97,16 +95,12 @@ export async function runDoctor(configPath: string): Promise<boolean> {
     if (project.mode === "configured") {
       ok(`Config found at "${configPath}"`);
     } else {
-      ok(
-        `Zero-config mode (${project.mode}) - no "${configPath}" required`,
-      );
+      ok(`Zero-config mode (${project.mode}) - no "${configPath}" required`);
     }
   } catch (e) {
     fail(`Config invalid: ${(e as Error).message}`);
     console.log();
-    console.log(
-      `  ${c.red}Doctor found errors. Fix them and try again.${c.reset}`,
-    );
+    console.log(`  ${c.red}Doctor found errors. Fix them and try again.${c.reset}`);
     console.log();
     return true;
   }
@@ -128,17 +122,12 @@ export async function runDoctor(configPath: string): Promise<boolean> {
   );
 
   // Markdown pages
-  const { count: pageCount, frontmatterErrors } = scanMarkdownFiles(
-    contentDir,
-    scanIgnorePaths,
-  );
+  const { count: pageCount, frontmatterErrors } = scanMarkdownFiles(contentDir, scanIgnorePaths);
   if (pageCount > 0) {
     ok(`${pageCount} page${pageCount === 1 ? "" : "s"} found`);
 
     if (frontmatterErrors.length === 0) {
-      ok(
-        `Frontmatter parses cleanly in all ${pageCount} page${pageCount === 1 ? "" : "s"}`,
-      );
+      ok(`Frontmatter parses cleanly in all ${pageCount} page${pageCount === 1 ? "" : "s"}`);
     } else {
       for (const message of frontmatterErrors) fail(message);
       hasErrors = true;
@@ -193,9 +182,7 @@ export async function runDoctor(configPath: string): Promise<boolean> {
   ];
   for (const [customKey, topLevelKey] of deprecatedCustomKeys) {
     if (config.custom?.[customKey] !== undefined) {
-      warn(
-        `custom.${customKey} is deprecated - move it to top-level "${topLevelKey}"`,
-      );
+      warn(`custom.${customKey} is deprecated - move it to top-level "${topLevelKey}"`);
     }
   }
 
@@ -203,8 +190,8 @@ export async function runDoctor(configPath: string): Promise<boolean> {
   const plugins = config.plugins ?? [];
   if (plugins.length > 0) {
     ok(`${plugins.length} plugin${plugins.length === 1 ? "" : "s"} declared`);
-    const isolatedCount = plugins.filter((plugin) =>
-      typeof plugin === "object" && plugin.mode === "isolated"
+    const isolatedCount = plugins.filter(
+      (plugin) => typeof plugin === "object" && plugin.mode === "isolated",
     ).length;
     const trustedCount = plugins.length - isolatedCount;
     if (isolatedCount > 0) {
@@ -220,22 +207,16 @@ export async function runDoctor(configPath: string): Promise<boolean> {
           trustedCount === 1 ? "" : "s"
         } run in-process with Steno's Deno permissions`,
       );
-      info(
-        `Consider "mode: isolated" for third-party plugins - see docs/plugin_sandbox.md`,
-      );
+      info(`Consider "mode: isolated" for third-party plugins - see docs/plugin_sandbox.md`);
     }
 
     // Check the top-level plugin source policy. This is not a runtime sandbox.
     const sourcePolicy = resolvePluginSourcePolicy(config);
     if (sourcePolicy.allowLocal) {
-      warn(
-        `pluginSourcePolicy.allowLocal is enabled - trusted local plugins may be loaded`,
-      );
+      warn(`pluginSourcePolicy.allowLocal is enabled - trusted local plugins may be loaded`);
     }
     if (sourcePolicy.allowRemoteHttp) {
-      warn(
-        `pluginSourcePolicy.allowRemoteHttp is enabled - mutable URL plugins may be loaded`,
-      );
+      warn(`pluginSourcePolicy.allowRemoteHttp is enabled - mutable URL plugins may be loaded`);
     }
     if (sourcePolicy.allowNodeBuiltins) {
       warn(
@@ -249,8 +230,10 @@ export async function runDoctor(configPath: string): Promise<boolean> {
       const isolated = typeof entry === "object" && entry.mode === "isolated";
       const execution = isolated ? "isolated, subprocess" : "trusted, in-process";
       if (
-        !pkg.startsWith("jsr:") && !pkg.startsWith("npm:") &&
-        !pkg.startsWith("file://") && !pkg.startsWith("https://")
+        !pkg.startsWith("jsr:") &&
+        !pkg.startsWith("npm:") &&
+        !pkg.startsWith("file://") &&
+        !pkg.startsWith("https://")
       ) {
         fail(`Plugin "${pkg}" has an unsupported specifier format`);
         hasErrors = true;
@@ -266,9 +249,7 @@ export async function runDoctor(configPath: string): Promise<boolean> {
   const collections = config.collections ?? {};
   const collectionCount = Object.keys(collections).length;
   if (collectionCount > 0) {
-    ok(
-      `${collectionCount} collection${collectionCount === 1 ? "" : "s"} configured`,
-    );
+    ok(`${collectionCount} collection${collectionCount === 1 ? "" : "s"} configured`);
   } else {
     info(`No collections configured (auto-detected from subdirectories)`);
   }

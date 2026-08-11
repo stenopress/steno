@@ -31,7 +31,7 @@ plugins:
       theme: github-dark
 ```
 
-Every fenced code block in your Markdown (`` ```ts ``, `` ```html ``, and so on) gets syntax
+Every fenced code block in your Markdown (` ```ts `, ` ```html `, and so on) gets syntax
 highlighted automatically, no per-page setup. See [Plugins](plugins.md#using-an-official-plugin).
 
 ## Resize and optimize images
@@ -58,10 +58,10 @@ automatically. List them from any layout or Markdown page's frontmatter-driven l
 ```html
 <ul>
   {#each collections.posts.items as post}
-    <li>
-      <a href="{post.url}">{post.frontmatter.title}</a>
-      {#if post.frontmatter.date}<time>{post.frontmatter.date | date}</time>{/if}
-    </li>
+  <li>
+    <a href="{post.url}">{post.frontmatter.title}</a>
+    {#if post.frontmatter.date}<time>{post.frontmatter.date | date}</time>{/if}
+  </li>
   {/each}
 </ul>
 ```
@@ -177,10 +177,7 @@ export default function searchIndexPlugin(): StenoPlugin {
         url: page.slug,
         description: page.description,
       }));
-      await Deno.writeTextFile(
-        `${config.output}/search-index.json`,
-        JSON.stringify(index),
-      );
+      await Deno.writeTextFile(`${config.output}/search-index.json`, JSON.stringify(index));
     },
   };
 }

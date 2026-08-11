@@ -1,5 +1,6 @@
 import { assert, assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
+import { buildSite } from "../core/build/build.ts";
 import {
   createDevServerHandler,
   createPreviewHandler,
@@ -10,7 +11,6 @@ import {
   processWatchEvents,
   startPreviewServer,
 } from "./server.ts";
-import { buildSite } from "../core/build/build.ts";
 
 function createEventQueue(): {
   events: AsyncIterable<Deno.FsEvent>;
@@ -18,9 +18,7 @@ function createEventQueue(): {
   close: () => void;
 } {
   const queued: Deno.FsEvent[] = [];
-  const waiting: Array<
-    (result: IteratorResult<Deno.FsEvent>) => void
-  > = [];
+  const waiting: Array<(result: IteratorResult<Deno.FsEvent>) => void> = [];
   let closed = false;
   return {
     events: {
@@ -72,44 +70,23 @@ export function registerServerTests(): void {
         join(tempDir, "index.html"),
         "<html><body><h1>Home</h1></body></html>",
       );
-      Deno.writeTextFileSync(
-        join(tempDir, "style.css"),
-        "body { color: red; }",
-      );
+      Deno.writeTextFileSync(join(tempDir, "style.css"), "body { color: red; }");
 
       const { handler } = createDevServerHandler(tempDir);
 
-      const htmlResponse = await handler(
-        new Request("http://localhost:5735/"),
-      );
+      const htmlResponse = await handler(new Request("http://localhost:5735/"));
       assertEquals(htmlResponse.status, 200);
-      assertEquals(
-        htmlResponse.headers.get("Content-Type"),
-        "text/html; charset=utf-8",
-      );
-      assertStringIncludes(
-        await htmlResponse.text(),
-        'new EventSource("/reload")',
-      );
+      assertEquals(htmlResponse.headers.get("Content-Type"), "text/html; charset=utf-8");
+      assertStringIncludes(await htmlResponse.text(), 'new EventSource("/reload")');
 
-      const cssResponse = await handler(
-        new Request("http://localhost:5735/style.css"),
-      );
+      const cssResponse = await handler(new Request("http://localhost:5735/style.css"));
       assertEquals(cssResponse.status, 200);
-      assertEquals(
-        cssResponse.headers.get("Content-Type"),
-        "text/css; charset=utf-8",
-      );
+      assertEquals(cssResponse.headers.get("Content-Type"), "text/css; charset=utf-8");
       assertEquals(await cssResponse.text(), "body { color: red; }");
 
-      const reloadResponse = await handler(
-        new Request("http://localhost:5735/reload"),
-      );
+      const reloadResponse = await handler(new Request("http://localhost:5735/reload"));
       assertEquals(reloadResponse.status, 200);
-      assertEquals(
-        reloadResponse.headers.get("Content-Type"),
-        "text/event-stream",
-      );
+      assertEquals(reloadResponse.headers.get("Content-Type"), "text/event-stream");
     },
   });
 
@@ -138,10 +115,7 @@ export function registerServerTests(): void {
     const root = join(Deno.cwd(), "sandbox");
     const outputDir = join(root, "dist");
 
-    assertEquals(
-      isTransactionalOutputPath(join(outputDir, "index.html"), outputDir),
-      true,
-    );
+    assertEquals(isTransactionalOutputPath(join(outputDir, "index.html"), outputDir), true);
     assertEquals(
       isTransactionalOutputPath(
         join(root, ".dist.steno-stage-abc123", "assets", "style.css"),
@@ -150,10 +124,7 @@ export function registerServerTests(): void {
       true,
     );
     assertEquals(
-      isTransactionalOutputPath(
-        join(root, ".dist.steno-backup", "index.html"),
-        outputDir,
-      ),
+      isTransactionalOutputPath(join(root, ".dist.steno-backup", "index.html"), outputDir),
       true,
     );
     assertEquals(
@@ -163,17 +134,8 @@ export function registerServerTests(): void {
       ),
       true,
     );
-    assertEquals(
-      isTransactionalOutputPath(join(root, "index.md"), outputDir),
-      false,
-    );
-    assertEquals(
-      isTransactionalOutputPath(
-        join(root, "dist-notes", "index.md"),
-        outputDir,
-      ),
-      false,
-    );
+    assertEquals(isTransactionalOutputPath(join(root, "index.md"), outputDir), false);
+    assertEquals(isTransactionalOutputPath(join(root, "dist-notes", "index.md"), outputDir), false);
   });
 
   Deno.test({
@@ -183,10 +145,7 @@ export function registerServerTests(): void {
       const root = await Deno.makeTempDir();
       try {
         assertEquals(
-          await filterExistingWatchPaths([
-            root,
-            join(root, "content", ".steno", "config.yml"),
-          ]),
+          await filterExistingWatchPaths([root, join(root, "content", ".steno", "config.yml")]),
           [root],
         );
       } finally {
@@ -284,18 +243,12 @@ export function registerServerTests(): void {
       const root = Deno.makeTempDirSync();
       const outputDir = join(root, "dist");
       Deno.mkdirSync(join(outputDir, "docs"), { recursive: true });
-      Deno.writeTextFileSync(
-        join(outputDir, "index.html"),
-        "<html><body>Preview</body></html>",
-      );
+      Deno.writeTextFileSync(join(outputDir, "index.html"), "<html><body>Preview</body></html>");
       Deno.writeTextFileSync(
         join(outputDir, "docs", "index.html"),
         "<html><body>Docs</body></html>",
       );
-      Deno.writeTextFileSync(
-        join(outputDir, "app.js"),
-        "console.log('preview');",
-      );
+      Deno.writeTextFileSync(join(outputDir, "app.js"), "console.log('preview');");
       Deno.writeTextFileSync(
         join(outputDir, "404.html"),
         "<html><body>Custom missing page</body></html>",
@@ -314,39 +267,22 @@ export function registerServerTests(): void {
         assertEquals(docs.status, 200);
         assertStringIncludes(await docs.text(), "Docs");
 
-        const script = await handler(
-          new Request("http://localhost/app.js"),
-        );
-        assertEquals(
-          script.headers.get("Content-Type"),
-          "text/javascript; charset=utf-8",
-        );
+        const script = await handler(new Request("http://localhost/app.js"));
+        assertEquals(script.headers.get("Content-Type"), "text/javascript; charset=utf-8");
 
-        const missing = await handler(
-          new Request("http://localhost/missing"),
-        );
+        const missing = await handler(new Request("http://localhost/missing"));
         assertEquals(missing.status, 404);
         assertStringIncludes(await missing.text(), "Custom missing page");
 
         const reload = await handler(new Request("http://localhost/reload"));
         assertEquals(reload.status, 404);
-        assertEquals(
-          reload.headers.get("Content-Type"),
-          "text/html; charset=utf-8",
-        );
+        assertEquals(reload.headers.get("Content-Type"), "text/html; charset=utf-8");
 
-        const traversal = await handler(
-          new Request("http://localhost/%2e%2e%2fsecret.txt"),
-        );
+        const traversal = await handler(new Request("http://localhost/%2e%2e%2fsecret.txt"));
         assertEquals(traversal.status, 404);
-        assertEquals(
-          (await traversal.text()).includes("outside output"),
-          false,
-        );
+        assertEquals((await traversal.text()).includes("outside output"), false);
 
-        const malformed = await handler(
-          new Request("http://localhost/%E0%A4%A"),
-        );
+        const malformed = await handler(new Request("http://localhost/%E0%A4%A"));
         assertEquals(malformed.status, 400);
       } finally {
         Deno.removeSync(root, { recursive: true });

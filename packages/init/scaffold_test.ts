@@ -45,10 +45,7 @@ Deno.test("scaffoldTheme: slugifies the name into a stable identifier", async ()
 Deno.test("scaffoldTheme: refuses to overwrite existing files without --force", async () => {
   const dir = await Deno.makeTempDir({ prefix: "steno_init_theme_test_" });
   scaffoldTheme("dup", { targetDir: dir });
-  assertThrows(
-    () => scaffoldTheme("dup", { targetDir: dir }),
-    OnboardingError,
-  );
+  assertThrows(() => scaffoldTheme("dup", { targetDir: dir }), OnboardingError);
 });
 
 Deno.test("scaffoldTheme: force overwrites existing files", async () => {
@@ -75,10 +72,7 @@ Deno.test("scaffoldPlugin: writes a working mod.ts/test/README", async () => {
   const readme = readFile(dir, "README.md");
   assertStringIncludes(readme, "pluginSourcePolicy");
   assertStringIncludes(readme, "allowLocal: true");
-  assertStringIncludes(
-    readme,
-    `file:///absolute/path/to/my-cool-plugin/mod.ts`,
-  );
+  assertStringIncludes(readme, `file:///absolute/path/to/my-cool-plugin/mod.ts`);
 });
 
 Deno.test("scaffoldPlugin: the generated plugin passes its own generated test", async () => {
@@ -93,9 +87,7 @@ Deno.test("scaffoldPlugin: the generated plugin passes its own generated test", 
   });
   const { code, stderr } = await command.output();
   if (code !== 0) {
-    throw new Error(
-      `generated plugin test failed:\n${new TextDecoder().decode(stderr)}`,
-    );
+    throw new Error(`generated plugin test failed:\n${new TextDecoder().decode(stderr)}`);
   }
   assertEquals(code, 0);
 });
@@ -103,8 +95,5 @@ Deno.test("scaffoldPlugin: the generated plugin passes its own generated test", 
 Deno.test("scaffoldPlugin: refuses to overwrite existing files without --force", async () => {
   const dir = await Deno.makeTempDir({ prefix: "steno_init_plugin_test_" });
   scaffoldPlugin("dup", { targetDir: dir });
-  assertThrows(
-    () => scaffoldPlugin("dup", { targetDir: dir }),
-    OnboardingError,
-  );
+  assertThrows(() => scaffoldPlugin("dup", { targetDir: dir }), OnboardingError);
 });

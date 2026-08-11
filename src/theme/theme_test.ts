@@ -106,12 +106,8 @@ export function registerThemeTests(): void {
       assertStringIncludes(manifest["style.css"], "style.");
       assertStringIncludes(manifest["style.css"], ".css");
 
-      const css = Deno.readTextFileSync(
-        join(tempDir, "assets", manifest["style.css"]),
-      );
-      const bin = Deno.readFileSync(
-        join(tempDir, "assets", "images", "pixel.bin"),
-      );
+      const css = Deno.readTextFileSync(join(tempDir, "assets", manifest["style.css"]));
+      const bin = Deno.readFileSync(join(tempDir, "assets", "images", "pixel.bin"));
 
       assertStringIncludes(css, "color: red");
       assertEquals(Array.from(bin), [1, 2, 3]);
@@ -152,18 +148,12 @@ export function registerThemeTests(): void {
         join(themeDir, "theme.yaml"),
         `name: Demo\nversion: 1.0.0\ncomponents:\n  header: components/header.tau\ndefaultConfig:\n  author: demo\n`,
       );
-      Deno.writeTextFileSync(
-        join(themeDir, "layouts", "layout.tau"),
-        `<Header />{@html content}`,
-      );
+      Deno.writeTextFileSync(join(themeDir, "layouts", "layout.tau"), `<Header />{@html content}`);
       Deno.writeTextFileSync(
         join(themeDir, "layouts", "legacy.liquid"),
         `This must not be loaded as Tau.`,
       );
-      Deno.writeTextFileSync(
-        join(themeDir, "components", "header.tau"),
-        `<h1>{ site.title }</h1>`,
-      );
+      Deno.writeTextFileSync(join(themeDir, "components", "header.tau"), `<h1>{ site.title }</h1>`);
       Deno.writeTextFileSync(join(themeDir, "assets", "style.css"), `body {}`);
 
       const theme = await Theme.loadFromDirectory(themeDir, {
@@ -187,9 +177,7 @@ export function registerThemeTests(): void {
 
       const outputDir = join(tempDir, "dist");
       const manifest = await theme.copyAssets(outputDir);
-      const copied = Deno.readTextFileSync(
-        join(outputDir, "assets", manifest["style.css"]),
-      );
+      const copied = Deno.readTextFileSync(join(outputDir, "assets", manifest["style.css"]));
       assertEquals(copied, "body {}");
       assertEquals(theme.config.author, "override");
     },
@@ -204,14 +192,8 @@ export function registerThemeTests(): void {
       Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
       Deno.mkdirSync(join(themeDir, "scripts", "sub"), { recursive: true });
 
-      Deno.writeTextFileSync(
-        join(themeDir, "theme.yaml"),
-        `name: Demo\nversion: 1.0.0\n`,
-      );
-      Deno.writeTextFileSync(
-        join(themeDir, "layouts", "layout.tau"),
-        `{@html content}`,
-      );
+      Deno.writeTextFileSync(join(themeDir, "theme.yaml"), `name: Demo\nversion: 1.0.0\n`);
+      Deno.writeTextFileSync(join(themeDir, "layouts", "layout.tau"), `{@html content}`);
       Deno.writeTextFileSync(
         join(themeDir, "scripts", "foo.ts"),
         `const label: string = "hi";\nconsole.log(label);\n`,
@@ -220,30 +202,21 @@ export function registerThemeTests(): void {
         join(themeDir, "scripts", "sub", "bar.ts"),
         `const count: number = 1;\nconsole.log(count);\n`,
       );
-      Deno.writeTextFileSync(
-        join(themeDir, "scripts", "plain.js"),
-        `console.log("plain");\n`,
-      );
+      Deno.writeTextFileSync(join(themeDir, "scripts", "plain.js"), `console.log("plain");\n`);
 
       const theme = await Theme.loadFromDirectory(themeDir);
       const outputDir = join(tempDir, "dist");
       const manifest = await theme.copyAssets(outputDir);
 
-      const fooJs = Deno.readTextFileSync(
-        join(outputDir, "assets", manifest["foo.js"]),
-      );
+      const fooJs = Deno.readTextFileSync(join(outputDir, "assets", manifest["foo.js"]));
       assertStringIncludes(fooJs, "hi");
       assertEquals(fooJs.includes(": string"), false);
 
-      const barJs = Deno.readTextFileSync(
-        join(outputDir, "assets", manifest["bar.js"]),
-      );
+      const barJs = Deno.readTextFileSync(join(outputDir, "assets", manifest["bar.js"]));
       assertStringIncludes(barJs, "1");
       assertEquals(barJs.includes(": number"), false);
 
-      const plainJs = Deno.readTextFileSync(
-        join(outputDir, "assets", manifest["plain.js"]),
-      );
+      const plainJs = Deno.readTextFileSync(join(outputDir, "assets", manifest["plain.js"]));
       assertStringIncludes(plainJs, "plain");
     },
   });
@@ -255,22 +228,16 @@ export function registerThemeTests(): void {
       const tempDir = Deno.makeTempDirSync();
       const themeDir = join(tempDir, "theme");
       Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
-      Deno.writeTextFileSync(
-        join(themeDir, "theme.yaml"),
-        `name: Demo\nversion: 1.0.0\n`,
-      );
-      Deno.writeTextFileSync(
-        join(themeDir, "layouts", "layout.tau"),
-        `{@html content}`,
-      );
+      Deno.writeTextFileSync(join(themeDir, "theme.yaml"), `name: Demo\nversion: 1.0.0\n`);
+      Deno.writeTextFileSync(join(themeDir, "layouts", "layout.tau"), `{@html content}`);
 
       const theme = await Theme.loadFromDirectory(themeDir);
       const outputDir = join(tempDir, "dist");
       await theme.copyAssets(outputDir);
 
-      const assetsExist = await Deno.stat(join(outputDir, "assets")).then(
-        () => true,
-      ).catch(() => false);
+      const assetsExist = await Deno.stat(join(outputDir, "assets"))
+        .then(() => true)
+        .catch(() => false);
       assertEquals(assetsExist, false);
     },
   });
@@ -361,11 +328,7 @@ export function registerThemeTests(): void {
       },
     };
 
-    assertThrows(
-      () => new Theme(themeData),
-      Error,
-      'at "themeConfig.density": is required',
-    );
+    assertThrows(() => new Theme(themeData), Error, 'at "themeConfig.density": is required');
     assertThrows(
       () => new Theme(themeData, { density: "wide", width: 1200 }),
       Error,
@@ -489,10 +452,7 @@ export function registerThemeTests(): void {
       "extra.js": "console.log(1)",
     });
     assertEquals(merged.components, { Header: "<h1/>", Footer: "<footer/>" });
-    assertEquals(Object.keys(merged.configSchema ?? {}).sort(), [
-      "accent",
-      "title",
-    ]);
+    assertEquals(Object.keys(merged.configSchema ?? {}).sort(), ["accent", "title"]);
     assertEquals(merged.defaultConfig, { accent: "blue", title: "Untitled" });
   });
 

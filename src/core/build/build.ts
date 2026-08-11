@@ -43,17 +43,12 @@ const PAGE_RENDER_CONCURRENCY = 16;
 async function copyFilesToStaging(
   files: Array<{ source: string; destination: string }>,
 ): Promise<void> {
-  await mapWithConcurrency(
-    files,
-    STAGING_COPY_CONCURRENCY,
-    (file) => Deno.copyFile(file.source, file.destination),
+  await mapWithConcurrency(files, STAGING_COPY_CONCURRENCY, (file) =>
+    Deno.copyFile(file.source, file.destination),
   );
 }
 
-async function collectFilesRecursively(
-  dir: string,
-  relPrefix = "",
-): Promise<string[]> {
+async function collectFilesRecursively(dir: string, relPrefix = ""): Promise<string[]> {
   const results: string[] = [];
   const entries: Deno.DirEntry[] = [];
   try {
@@ -66,9 +61,7 @@ async function collectFilesRecursively(
   for (const entry of entries) {
     const relPath = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
     if (entry.isDirectory) {
-      results.push(
-        ...(await collectFilesRecursively(join(dir, entry.name), relPath)),
-      );
+      results.push(...(await collectFilesRecursively(join(dir, entry.name), relPath)));
     } else if (entry.isFile) {
       results.push(relPath);
     }
@@ -89,9 +82,7 @@ async function copyPublicDir(
     const destPath = join(stagingDir, relPath);
     const normalizedDestPath = resolve(destPath);
     if (occupiedPaths.has(normalizedDestPath)) {
-      throw new Error(
-        `Output collision: public asset "${relPath}" would overwrite "${destPath}".`,
-      );
+      throw new Error(`Output collision: public asset "${relPath}" would overwrite "${destPath}".`);
     }
     occupiedPaths.add(normalizedDestPath);
     ensureParentDirSync(destPath);
@@ -120,10 +111,7 @@ export async function buildSite({
   let committed = false;
 
   if (verbose) {
-    debugBuildStart(
-      theme && { name: theme.name, version: theme.version },
-      plugins,
-    );
+    debugBuildStart(theme && { name: theme.name, version: theme.version }, plugins);
   }
 
   try {
@@ -141,22 +129,14 @@ export async function buildSite({
     const publicDirPath = resolvePublicDir(contentDir, config.publicDir);
     const publicFiles = publicDirPath ? await collectFilesRecursively(publicDirPath) : [];
 
-    const scannedPages = pages ?? await collectMarkdownPages(contentDir, {
-      ignorePaths: resolveMarkdownScanIgnorePaths(
-        contentDir,
-        outputDir,
-        publicDirPath,
-      ),
-      pageCache: state?.pageCache,
-    });
+    const scannedPages =
+      pages ??
+      (await collectMarkdownPages(contentDir, {
+        ignorePaths: resolveMarkdownScanIgnorePaths(contentDir, outputDir, publicDirPath),
+        pageCache: state?.pageCache,
+      }));
 
-    const buildSignature = createBuildSignature(
-      config,
-      theme,
-      plugins,
-      data,
-      publicEnv,
-    );
+    const buildSignature = createBuildSignature(config, theme, plugins, data, publicEnv);
     const previousPages = new Map<string, BuildStateEntry>();
 
     if (state?.signature === buildSignature) {
@@ -174,15 +154,15 @@ export async function buildSite({
     stagedConfig.pages = activePages.map((page) => ({
       slug: resolvePageRoute(page, shortUrls).outputPath,
       title: typeof page.frontmatter.title === "string" ? page.frontmatter.title : page.title,
-      description: typeof page.frontmatter.description === "string"
-        ? page.frontmatter.description
-        : undefined,
-      date: typeof page.frontmatter.date === "string" ||
-          page.frontmatter.date instanceof Date
-        ? page.frontmatter.date
-        : undefined,
+      description:
+        typeof page.frontmatter.description === "string" ? page.frontmatter.description : undefined,
+      date:
+        typeof page.frontmatter.date === "string" || page.frontmatter.date instanceof Date
+          ? page.frontmatter.date
+          : undefined,
     }));
-    let canSkipUnchangedBuild = theme === undefined &&
+    let canSkipUnchangedBuild =
+      theme === undefined &&
       plugins.length === 0 &&
       hooks.beforeBuild === undefined &&
       hooks.afterPage === undefined &&
@@ -200,13 +180,12 @@ export async function buildSite({
         PAGE_RENDER_CONCURRENCY,
         async (page) => {
           const cached = previousPages.get(page.fullPath);
-          const expectedOutput = join(
-            outputDir,
-            resolvePageRoute(page, shortUrls).outputPath,
-          );
-          return cached?.sourceText === page.sourceText &&
+          const expectedOutput = join(outputDir, resolvePageRoute(page, shortUrls).outputPath);
+          return (
+            cached?.sourceText === page.sourceText &&
             cached.outputPath === expectedOutput &&
-            await fileExists(expectedOutput);
+            (await fileExists(expectedOutput))
+          );
         },
       );
       canSkipUnchangedBuild = unchangedChecks.every(Boolean);
@@ -246,13 +225,10 @@ export async function buildSite({
 
     let collectionsPromise: Promise<CollectionMap> | undefined;
     const getCollections = (): Promise<CollectionMap> => {
-      collectionsPromise ??= buildCollections(
-        contentDir,
-        config,
-        plugins,
-        scannedPages,
-        { processedBodies, htmlCache },
-      );
+      collectionsPromise ??= buildCollections(contentDir, config, plugins, scannedPages, {
+        processedBodies,
+        htmlCache,
+      });
       return collectionsPromise;
     };
 
@@ -260,11 +236,7 @@ export async function buildSite({
     const occupiedPaths = new Set<string>();
     const unchangedFiles: Array<{ source: string; destination: string }> = [];
     const themeAssets = theme
-      ? await theme.copyAssets(
-        stagingDir,
-        occupiedPaths,
-        config.hashAssets ?? true,
-      )
+      ? await theme.copyAssets(stagingDir, occupiedPaths, config.hashAssets ?? true)
       : {};
     // Detects stale baked-in asset hrefs on cache reuse.
     const assetsSignature = JSON.stringify(themeAssets);
@@ -272,11 +244,7 @@ export async function buildSite({
     // per-page cache check below sees it. Skipped without a theme.
     const collectionsSignature = theme ? JSON.stringify(await getCollections()) : "";
 
-    const fireAfterPage = async (
-      finalPath: string,
-      stagingPath: string,
-      html: string,
-    ) => {
+    const fireAfterPage = async (finalPath: string, stagingPath: string, html: string) => {
       // `path` kept for backward compatibility, meaning differs per hook.
       await hooks.afterPage?.({
         path: finalPath,
@@ -295,7 +263,7 @@ export async function buildSite({
     };
 
     interface PageRenderResult {
-      page: typeof scannedPages[number];
+      page: (typeof scannedPages)[number];
       outputFilePath: string;
       stagedOutputFilePath: string;
       processedBody: string;
@@ -316,7 +284,8 @@ export async function buildSite({
         const cachedPage = previousPages.get(page.fullPath);
         const processedBody = processedBodies.get(page.fullPath)!;
 
-        const needsRender = !cachedPage ||
+        const needsRender =
+          !cachedPage ||
           cachedPage.sourceText !== page.sourceText ||
           // catches a changed {@include}d partial even when sourceText didn't change
           cachedPage.body !== processedBody ||
@@ -344,14 +313,10 @@ export async function buildSite({
           htmlCache.set(page.fullPath, htmlContent);
         }
 
-        const layoutName = typeof page.frontmatter.layout === "string"
-          ? page.frontmatter.layout
-          : "layout";
+        const layoutName =
+          typeof page.frontmatter.layout === "string" ? page.frontmatter.layout : "layout";
 
-        const pageOverrides = resolvePageConfigOverrides(
-          page.frontmatter,
-          page.relPath,
-        );
+        const pageOverrides = resolvePageConfigOverrides(page.frontmatter, page.relPath);
         const pageGlobals = { ...globalVars, ...pageOverrides.globals };
         const pageHead = mergeHeadTags(siteHead, pageOverrides.head);
         const pageSite = {
@@ -372,9 +337,7 @@ export async function buildSite({
           pageThemeConfig = theme?.resolveConfig(pageOverrides.themeConfig);
         } catch (error) {
           throw new Error(
-            `Invalid per-page configuration in "${page.relPath}": ${
-              errorMessage(error)
-            }`,
+            `Invalid per-page configuration in "${page.relPath}": ${errorMessage(error)}`,
           );
         }
 
@@ -392,7 +355,8 @@ export async function buildSite({
           data,
           title:
             (typeof page.frontmatter.title === "string" ? page.frontmatter.title : undefined) ||
-            page.title || config.title,
+            page.title ||
+            config.title,
           assets: themeAssets,
         };
 
@@ -418,9 +382,11 @@ export async function buildSite({
     );
 
     const renderedWrites: Array<{ path: string; content: string }> = [];
-    const afterPageQueue: Array<
-      { outputFilePath: string; stagedOutputFilePath: string; html: string }
-    > = [];
+    const afterPageQueue: Array<{
+      outputFilePath: string;
+      stagedOutputFilePath: string;
+      html: string;
+    }> = [];
 
     for (const result of pageResults) {
       const {
@@ -435,9 +401,7 @@ export async function buildSite({
 
       const normalizedStagedPath = resolve(stagedOutputFilePath);
       if (occupiedPaths.has(normalizedStagedPath)) {
-        throw new Error(
-          `Output collision: multiple pages resolve to "${outputFilePath}".`,
-        );
+        throw new Error(`Output collision: multiple pages resolve to "${outputFilePath}".`);
       }
       occupiedPaths.add(normalizedStagedPath);
 
@@ -471,36 +435,21 @@ export async function buildSite({
     }
 
     // Writes run concurrently; hooks fire after, in original page order.
-    await mapWithConcurrency(
-      renderedWrites,
-      STAGING_COPY_CONCURRENCY,
-      (job) => Deno.writeTextFile(job.path, job.content),
+    await mapWithConcurrency(renderedWrites, STAGING_COPY_CONCURRENCY, (job) =>
+      Deno.writeTextFile(job.path, job.content),
     );
-    for (
-      const { outputFilePath, stagedOutputFilePath, html } of afterPageQueue
-    ) {
+    for (const { outputFilePath, stagedOutputFilePath, html } of afterPageQueue) {
       await fireAfterPage(outputFilePath, stagedOutputFilePath, html);
     }
     await copyFilesToStaging(unchangedFiles);
 
     if (publicDirPath && publicFiles.length > 0) {
-      await copyPublicDir(
-        publicDirPath,
-        publicFiles,
-        stagingDir,
-        occupiedPaths,
-      );
+      await copyPublicDir(publicDirPath, publicFiles, stagingDir, occupiedPaths);
     }
 
     if (config.redirects && Object.keys(config.redirects).length > 0) {
       const redirectDiagnostics = new DiagnosticBag();
-      buildRedirects(
-        stagingDir,
-        config.redirects,
-        shortUrls,
-        occupiedPaths,
-        redirectDiagnostics,
-      );
+      buildRedirects(stagingDir, config.redirects, shortUrls, occupiedPaths, redirectDiagnostics);
       enforceDiagnostics(redirectDiagnostics, dev);
     }
 
@@ -519,14 +468,10 @@ export async function buildSite({
     try {
       await savePersistentBuildCache(cachePath, buildSignature, nextPages);
     } catch (error) {
-      console.warn(
-        `Build committed, but failed to save cache: ${errorMessage(error)}`,
-      );
+      console.warn(`Build committed, but failed to save cache: ${errorMessage(error)}`);
     }
 
-    buildComplete(
-      [...nextPages.values()].filter((p) => p.htmlContent !== undefined).length,
-    );
+    buildComplete([...nextPages.values()].filter((p) => p.htmlContent !== undefined).length);
   } finally {
     if (!committed) rollbackOutputTransaction(transaction);
   }

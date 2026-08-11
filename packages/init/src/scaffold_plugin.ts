@@ -41,10 +41,7 @@ function toPascalCase(value: string): string {
  *
  * @throws {OnboardingError} if files already exist and `force` is not true.
  */
-export function scaffoldPlugin(
-  name: string,
-  options: PluginScaffoldOptions = {},
-): void {
+export function scaffoldPlugin(name: string, options: PluginScaffoldOptions = {}): void {
   const pluginName = toIdentifier(name);
   const factoryName = toCamelCase(pluginName);
   const optionsTypeName = `${toPascalCase(pluginName)}Options`;
@@ -191,15 +188,9 @@ deno task test
 
   console.log(`  ${paint(c.green, "✔")} Plugin   → ${paint(c.gray, root)}`);
   console.log();
-  console.log(
-    `${paint(c.purpleBold, "◆")} ${paint(c.whiteBold, "Plugin scaffolded!")}`,
-  );
+  console.log(`${paint(c.purpleBold, "◆")} ${paint(c.whiteBold, "Plugin scaffolded!")}`);
   console.log();
-  console.log(
-    `  Point a site at it (see README.md for the full config):`,
-  );
-  console.log(
-    `  ${paint(c.cyanBold, `plugins:\n    - package: file://${root}/mod.ts`)}`,
-  );
+  console.log(`  Point a site at it (see README.md for the full config):`);
+  console.log(`  ${paint(c.cyanBold, `plugins:\n    - package: file://${root}/mod.ts`)}`);
   console.log();
 }

@@ -4,11 +4,11 @@ import { formatTauError, TauError } from "./tau_error.ts";
 
 export function registerTauTests(): void {
   Deno.test("tau: CLI diagnostics include source, code, and suggestion", () => {
-    const error = new TauError(
-      "TAU_UNKNOWN_FILTER",
-      'Unknown filter "typo".',
-      { filePath: "content/index.md", line: 4, column: 8 },
-    );
+    const error = new TauError("TAU_UNKNOWN_FILTER", 'Unknown filter "typo".', {
+      filePath: "content/index.md",
+      line: 4,
+      column: 8,
+    });
     const output = formatTauError(error);
 
     assertStringIncludes(output, "content/index.md:4:8");
@@ -40,9 +40,7 @@ export function registerTauTests(): void {
       `<a title="&quot; onclick=&quot;alert(1)" href="https://example.com/?a=1&amp;b=2">link</a>`,
     );
 
-    for (
-      const url of ["javascript:alert(1)", "data:text/html,x", "java\nscript:x"]
-    ) {
+    for (const url of ["javascript:alert(1)", "data:text/html,x", "java\nscript:x"]) {
       const error = await assertRejects(
         () =>
           render({
@@ -69,8 +67,7 @@ export function registerTauTests(): void {
 
   Deno.test("tau: supports html passthrough and control flow", async () => {
     const output = await render({
-      template:
-        `{#if show}<ul>{#each tags as tag}<li>{ tag | lower }</li>{/each}</ul>{:else}<p>none</p>{/if}{@html extra}`,
+      template: `{#if show}<ul>{#each tags as tag}<li>{ tag | lower }</li>{/each}</ul>{:else}<p>none</p>{/if}{@html extra}`,
       context: { show: true, tags: ["A", "B"], extra: "<hr>" },
       components: {},
     });
@@ -127,10 +124,7 @@ export function registerTauTests(): void {
 
   Deno.test("tau: parse error without filePath falls back to Line/col prefix", async () => {
     const template = `line one\n{#each items}{/each}`;
-    const err = await assertRejects(
-      () => render({ template, context: {}, components: {} }),
-      Error,
-    );
+    const err = await assertRejects(() => render({ template, context: {}, components: {} }), Error);
     // no filePath → "Line N, col M:" prefix
     assertStringIncludes(err.message, "Line 2");
     assertStringIncludes(err.message, 'Expected "as" keyword');
@@ -226,18 +220,16 @@ export function registerTauTests(): void {
   });
 
   Deno.test("tau: blocks ambient runtime and constructor access", async () => {
-    for (
-      const template of [
-        `{ Deno.cwd() }`,
-        `{ globalThis }`,
-        `{ helpers }`,
-        `{ value.constructor.constructor("return 1")() }`,
-        // Dynamic/computed access to a blocked name must be rejected too,
-        // not just the static ".constructor" dot-access form.
-        `{ value["constructor"] }`,
-        `{ value["cons" + "tructor"] }`,
-      ]
-    ) {
+    for (const template of [
+      `{ Deno.cwd() }`,
+      `{ globalThis }`,
+      `{ helpers }`,
+      `{ value.constructor.constructor("return 1")() }`,
+      // Dynamic/computed access to a blocked name must be rejected too,
+      // not just the static ".constructor" dot-access form.
+      `{ value["constructor"] }`,
+      `{ value["cons" + "tructor"] }`,
+    ]) {
       await assertRejects(
         () =>
           render({
@@ -314,17 +306,13 @@ export function registerTauTests(): void {
   });
 
   Deno.test("tau: rejects code-generating and mutating expressions", async () => {
-    for (
-      const template of [
-        `{ value = 1 }`,
-        `{ (() => value)() }`,
-        `{ value | upper);Deno.cwd( }`,
-        `{#each items as item);Deno.cwd();//}{/each}`,
-      ]
-    ) {
-      await assertRejects(
-        () => render({ template, context: { value: 0 }, components: {} }),
-      );
+    for (const template of [
+      `{ value = 1 }`,
+      `{ (() => value)() }`,
+      `{ value | upper);Deno.cwd( }`,
+      `{#each items as item);Deno.cwd();//}{/each}`,
+    ]) {
+      await assertRejects(() => render({ template, context: { value: 0 }, components: {} }));
     }
   });
 

@@ -26,11 +26,7 @@ function buildRedirectHtml(to: string): string {
  * inside `outputDir` (via `isPathInsideOrEqual`) before creating anything,
  * since `from` may contain `..` segments.
  */
-function resolveRedirectOutputPath(
-  outputDir: string,
-  from: string,
-  shortUrls: boolean,
-): string {
+function resolveRedirectOutputPath(outputDir: string, from: string, shortUrls: boolean): string {
   // normalise leading slash
   const clean = from.replace(/^\//, "");
 
@@ -81,9 +77,7 @@ export function buildRedirects(
       continue;
     }
     if (occupiedPaths.has(normalizedOutputPath)) {
-      throw new Error(
-        `Output collision: redirect "${from}" would overwrite "${outputPath}".`,
-      );
+      throw new Error(`Output collision: redirect "${from}" would overwrite "${outputPath}".`);
     }
     occupiedPaths.add(normalizedOutputPath);
     ensureParentDirSync(outputPath);

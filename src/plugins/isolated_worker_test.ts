@@ -2,19 +2,20 @@ import { assertEquals, assertRejects } from "@std/assert";
 import { errorResponse, handleRequest } from "./isolated_worker.ts";
 import { ISOLATED_PLUGIN_PROTOCOL_VERSION } from "./isolated_protocol.ts";
 
-const VALID_PLUGIN_URL = "data:application/javascript," + encodeURIComponent(
-  `export default (options) => ({
+const VALID_PLUGIN_URL =
+  "data:application/javascript," +
+  encodeURIComponent(
+    `export default (options) => ({
       name: "test-plugin",
       afterBuild: () => options,
     });`,
-);
+  );
 
-const INVALID_PLUGIN_URL = "data:application/javascript," + encodeURIComponent(
-  `export default () => ({ notAPlugin: true });`,
-);
+const INVALID_PLUGIN_URL =
+  "data:application/javascript," +
+  encodeURIComponent(`export default () => ({ notAPlugin: true });`);
 
-const NON_FUNCTION_URL = "data:application/javascript," +
-  encodeURIComponent(`export default 42;`);
+const NON_FUNCTION_URL = "data:application/javascript," + encodeURIComponent(`export default 42;`);
 
 Deno.test({
   name: "isolated_worker: rejects a request with an unsupported protocol version",

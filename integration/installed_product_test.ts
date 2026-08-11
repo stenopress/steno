@@ -30,8 +30,9 @@ async function publishedFileManifest(): Promise<string[]> {
   const output = decoder.decode(result.stdout) + decoder.decode(result.stderr);
   assertEquals(result.success, true, output);
 
-  const files = [...output.matchAll(/file:\/\/(\S+)/g)]
-    .map((match) => decodeURIComponent(match[1]));
+  const files = [...output.matchAll(/file:\/\/(\S+)/g)].map((match) =>
+    decodeURIComponent(match[1]),
+  );
   assert(
     files.length > 10,
     `expected a substantial published file list, got ${files.length}:\n${output}`,
@@ -77,11 +78,7 @@ ${theme}`,
   return root;
 }
 
-async function runCli(
-  installDir: string,
-  siteRoot: string,
-  args: string[],
-): Promise<string> {
+async function runCli(installDir: string, siteRoot: string, args: string[]): Promise<string> {
   const result = await new Deno.Command(Deno.execPath(), {
     args: ["run", "-A", join(installDir, "mod.ts"), ...args],
     cwd: siteRoot,
@@ -110,27 +107,18 @@ async function installedCopy(): Promise<string> {
     // manifest still contains every runtime file the CLI needs, and none
     // of the contributor-only/tooling files that shouldn't ship.
     const relPaths = files.map((file) => relative(repositoryRoot, file));
-    for (
-      const required of [
-        "mod.ts",
-        "deno.json",
-        "src/core/steno_cli.ts",
-        "src/theme/theme.ts",
-      ]
-    ) {
+    for (const required of ["mod.ts", "deno.json", "src/core/steno_cli.ts", "src/theme/theme.ts"]) {
       assert(
         relPaths.includes(required),
         `published manifest is missing required runtime file: ${required}`,
       );
     }
-    for (
-      const forbidden of [
-        ".claude/launch.json",
-        ".devcontainer/devcontainer.json",
-        "CONTRIBUTING.md",
-        "CODE_OF_CONDUCT.md",
-      ]
-    ) {
+    for (const forbidden of [
+      ".claude/launch.json",
+      ".devcontainer/devcontainer.json",
+      "CONTRIBUTING.md",
+      "CODE_OF_CONDUCT.md",
+    ]) {
       assert(
         !relPaths.includes(forbidden),
         `published manifest unexpectedly includes ${forbidden}`,
@@ -149,11 +137,7 @@ Deno.test({
     const installDir = await installedCopy();
     const site = await createFixture();
     try {
-      await runCli(installDir, site, [
-        "build",
-        "--config",
-        "content/.steno/config.yml",
-      ]);
+      await runCli(installDir, site, ["build", "--config", "content/.steno/config.yml"]);
       const html = await Deno.readTextFile(join(site, "dist", "index.html"));
       assertStringIncludes(html, "Installed build works");
     } finally {
@@ -181,9 +165,7 @@ Deno.test({
   },
 });
 
-for (
-  const theme of ["theme-minimal", "theme-docs-minimal", "theme-marketing-minimal"]
-) {
+for (const theme of ["theme-minimal", "theme-docs-minimal", "theme-marketing-minimal"]) {
   Deno.test({
     name: `installed product: bundled ${theme} builds against the published package`,
     permissions: { env: true, read: true, run: true, write: true },
@@ -193,11 +175,7 @@ for (
         theme: join(repositoryRoot, "packages", theme),
       });
       try {
-        await runCli(installDir, site, [
-          "build",
-          "--config",
-          "content/.steno/config.yml",
-        ]);
+        await runCli(installDir, site, ["build", "--config", "content/.steno/config.yml"]);
         const html = await Deno.readTextFile(join(site, "dist", "index.html"));
         assertStringIncludes(html, "Installed build works");
       } finally {

@@ -127,7 +127,7 @@ short, this fails `steno build` outright and only prints in `steno dev`.
   See [Configuration](config_reference.md#plugin-source-policy).
 - `[plugin-load-failed] Plugin "X" does not export a default function` or
   `... returned an invalid
-  plugin object`: the package doesn't actually implement the
+plugin object`: the package doesn't actually implement the
   `StenoPlugin` factory contract - check its own docs/version.
 - `[plugin-entry-invalid] Invalid plugin entry in config: ...`: a `plugins` array entry isn't a
   package specifier string or an object with at least a `package` field.

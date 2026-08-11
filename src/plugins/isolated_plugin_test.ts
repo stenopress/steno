@@ -7,11 +7,7 @@ import {
   loadIsolatedPlugin,
 } from "./isolated_plugin.ts";
 
-function writePlugin(
-  directory: string,
-  name: string,
-  source: string,
-): string {
+function writePlugin(directory: string, name: string, source: string): string {
   const path = join(directory, name);
   Deno.writeTextFileSync(path, source);
   return `file://${path}`;
@@ -107,14 +103,16 @@ export function registerIsolatedPluginTests(): void {
           description: "",
           author: "",
           custom: { pluginSourcePolicy: { allowLocal: true } },
-          plugins: [{
-            package: packageName,
-            mode: "isolated",
-            options: { secret: secretPath },
-          }],
+          plugins: [
+            {
+              package: packageName,
+              mode: "isolated",
+              options: { secret: secretPath },
+            },
+          ],
         });
 
-        const result = JSON.parse(await plugin.transformHtml?.("") ?? "{}");
+        const result = JSON.parse((await plugin.transformHtml?.("")) ?? "{}");
         assertEquals(result, {
           read: true,
           env: true,
@@ -154,18 +152,16 @@ export function registerIsolatedPluginTests(): void {
         description: "",
         author: "",
         custom: { pluginSourcePolicy: { allowLocal: true } },
-        plugins: [{
-          package: packageName,
-          mode: "isolated",
-          timeoutMs: 100,
-        }],
+        plugins: [
+          {
+            package: packageName,
+            mode: "isolated",
+            timeoutMs: 100,
+          },
+        ],
       });
 
-      await assertRejects(
-        () => plugin.transformHtml?.("") as Promise<string>,
-        Error,
-        "timed out",
-      );
+      await assertRejects(() => plugin.transformHtml?.("") as Promise<string>, Error, "timed out");
     },
   });
 
@@ -201,21 +197,23 @@ export function registerIsolatedPluginTests(): void {
           description: "",
           author: "",
           custom: { pluginSourcePolicy: { allowLocal: true } },
-          plugins: [{
-            package: packageName,
-            mode: "isolated",
-            options: { path: readablePath },
-            permissions: {
-              read: [readablePath],
-              env: ["STENO_ALLOWED"],
+          plugins: [
+            {
+              package: packageName,
+              mode: "isolated",
+              options: { path: readablePath },
+              permissions: {
+                read: [readablePath],
+                env: ["STENO_ALLOWED"],
+              },
             },
-          }],
+          ],
         });
 
-        assertEquals(
-          JSON.parse(await plugin.transformHtml?.("") ?? "{}"),
-          { file: "allowed-file", env: "allowed-env" },
-        );
+        assertEquals(JSON.parse((await plugin.transformHtml?.("")) ?? "{}"), {
+          file: "allowed-file",
+          env: "allowed-env",
+        });
         await plugin.afterBuild?.({ title: "", description: "", author: "" });
       } finally {
         Deno.env.delete("STENO_ALLOWED");
@@ -245,18 +243,16 @@ export function registerIsolatedPluginTests(): void {
         description: "",
         author: "",
         custom: { pluginSourcePolicy: { allowLocal: true } },
-        plugins: [{
-          package: packageName,
-          mode: "isolated",
-          maxOutputBytes: 1024,
-        }],
+        plugins: [
+          {
+            package: packageName,
+            mode: "isolated",
+            maxOutputBytes: 1024,
+          },
+        ],
       });
 
-      await assertRejects(
-        () => plugin.transformHtml?.("") as Promise<string>,
-        Error,
-        "exceeds",
-      );
+      await assertRejects(() => plugin.transformHtml?.("") as Promise<string>, Error, "exceeds");
     },
   });
 
@@ -285,10 +281,7 @@ export function registerIsolatedPluginTests(): void {
         plugins: [{ package: packageName, mode: "isolated" }],
       });
 
-      const error = await assertRejects(
-        () => plugin.transformHtml?.("") as Promise<string>,
-        Error,
-      );
+      const error = await assertRejects(() => plugin.transformHtml?.("") as Promise<string>, Error);
       assertStringIncludes(error.message, "exited with code 23");
       assertEquals(1 + 1, 2);
     },

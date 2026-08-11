@@ -43,7 +43,7 @@ export function registerTauFuzzTests(): void {
   });
 
   Deno.test("tau fuzz: parser terminates deterministically on arbitrary input", () => {
-    const random = createRandom(0xF022_0008);
+    const random = createRandom(0xf022_0008);
     for (let index = 0; index < 2_000; index++) {
       const input = randomString(random, Math.floor(random() * 256));
       try {

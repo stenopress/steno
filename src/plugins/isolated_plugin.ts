@@ -1,3 +1,4 @@
+import type { TokensList } from "marked";
 import type {
   GeneratedPage,
   IsolatedPluginPermissions,
@@ -5,7 +6,7 @@ import type {
   SiteConfig,
   StenoPlugin,
 } from "../types.ts";
-import type { TokensList } from "marked";
+import { utf8ByteLength } from "../utils/text.ts";
 import {
   ISOLATED_PLUGIN_PROTOCOL_VERSION,
   type IsolatedPluginHook,
@@ -13,7 +14,6 @@ import {
   type IsolatedPluginResponse,
   readProtocolLines,
 } from "./isolated_protocol.ts";
-import { utf8ByteLength } from "../utils/text.ts";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
@@ -35,9 +35,7 @@ const encoder = new TextEncoder();
  * local `file://` plugins so edits without a bumped `integrity` still
  * invalidate the cache.
  */
-export function getIsolatedPluginSignature(
-  plugin: StenoPlugin,
-): string | undefined {
+export function getIsolatedPluginSignature(plugin: StenoPlugin): string | undefined {
   return isolatedSignatures.get(plugin);
 }
 
@@ -51,10 +49,7 @@ function fileSignature(packageName: string): unknown {
   }
 }
 
-function permissionArg(
-  name: string,
-  values: string[] | undefined,
-): string {
+function permissionArg(name: string, values: string[] | undefined): string {
   return values?.length ? `--allow-${name}=${values.join(",")}` : `--deny-${name}`;
 }
 
@@ -72,10 +67,7 @@ function workerArgs(
   memoryMb: number,
   lockFile: string | undefined,
 ): string[] {
-  const importHosts = [
-    ...inferredImportHosts(packageName),
-    ...(permissions.import ?? []),
-  ];
+  const importHosts = [...inferredImportHosts(packageName), ...(permissions.import ?? [])];
   const moduleReadPaths = packageName.startsWith("file://") ? [new URL(packageName).pathname] : [];
   const readPaths = [...moduleReadPaths, ...(permissions.read ?? [])];
   const lockArgs = lockFile ? [`--lock=${lockFile}`, "--frozen"] : ["--no-lock"];
@@ -111,9 +103,7 @@ function resolveLockFile(entry: PluginEntry): string | undefined {
   );
 }
 
-function allowedEnvironment(
-  names: string[] | undefined,
-): Record<string, string> {
+function allowedEnvironment(names: string[] | undefined): Record<string, string> {
   const environment: Record<string, string> = {};
   for (const name of names ?? []) {
     try {
@@ -137,10 +127,13 @@ class IsolatedPluginClient {
   #child?: Deno.ChildProcess;
   #writer?: WritableStreamDefaultWriter<Uint8Array>;
   #nextId = 1;
-  #pending = new Map<number, {
-    resolve: (response: IsolatedPluginResponse) => void;
-    reject: (error: Error) => void;
-  }>();
+  #pending = new Map<
+    number,
+    {
+      resolve: (response: IsolatedPluginResponse) => void;
+      reject: (error: Error) => void;
+    }
+  >();
   #starting?: Promise<IsolatedPluginResponse>;
 
   constructor(entry: PluginEntry) {
@@ -157,12 +150,7 @@ class IsolatedPluginClient {
     if (this.#child && this.#starting) return await this.#starting;
 
     const command = new Deno.Command(Deno.execPath(), {
-      args: workerArgs(
-        this.#packageName,
-        this.#permissions,
-        this.#memoryMb,
-        this.#lockFile,
-      ),
+      args: workerArgs(this.#packageName, this.#permissions, this.#memoryMb, this.#lockFile),
       stdin: "piped",
       stdout: "piped",
       stderr: "null",
@@ -173,11 +161,14 @@ class IsolatedPluginClient {
     this.#writer = this.#child.stdin.getWriter();
     this.#readResponses(this.#child.stdout);
     this.#watchExit(this.#child);
-    this.#starting = this.#request({
-      type: "init",
-      package: this.#packageName,
-      options: this.#options,
-    }, Math.max(DEFAULT_TIMEOUT_MS, this.#timeoutMs));
+    this.#starting = this.#request(
+      {
+        type: "init",
+        package: this.#packageName,
+        options: this.#options,
+      },
+      Math.max(DEFAULT_TIMEOUT_MS, this.#timeoutMs),
+    );
     return await this.#starting;
   }
 
@@ -198,9 +189,7 @@ class IsolatedPluginClient {
         // The worker already exited.
       }
     }
-    this.#rejectAll(
-      new Error(`Isolated plugin "${this.#packageName}" closed.`),
-    );
+    this.#rejectAll(new Error(`Isolated plugin "${this.#packageName}" closed.`));
   }
 
   async #request(
@@ -215,9 +204,7 @@ class IsolatedPluginClient {
     };
     const encoded = encoder.encode(`${JSON.stringify(message)}\n`);
     if (encoded.byteLength > this.#maxOutputBytes) {
-      throw new Error(
-        `Isolated plugin request exceeds ${this.#maxOutputBytes} bytes.`,
-      );
+      throw new Error(`Isolated plugin request exceeds ${this.#maxOutputBytes} bytes.`);
     }
     if (!this.#writer) {
       throw new Error("Isolated plugin worker is unavailable.");
@@ -250,13 +237,9 @@ class IsolatedPluginClient {
 
   async #readResponses(stream: ReadableStream<Uint8Array>): Promise<void> {
     try {
-      for await (
-        const line of readProtocolLines(stream, this.#maxOutputBytes)
-      ) {
+      for await (const line of readProtocolLines(stream, this.#maxOutputBytes)) {
         if (utf8ByteLength(line) > this.#maxOutputBytes) {
-          throw new Error(
-            `Isolated plugin response exceeds ${this.#maxOutputBytes} bytes.`,
-          );
+          throw new Error(`Isolated plugin response exceeds ${this.#maxOutputBytes} bytes.`);
         }
         const response = JSON.parse(line) as IsolatedPluginResponse;
         if (response.version !== ISOLATED_PLUGIN_PROTOCOL_VERSION) {
@@ -279,9 +262,7 @@ class IsolatedPluginClient {
         }
       }
     } catch (error) {
-      this.#rejectAll(
-        error instanceof Error ? error : new Error(String(error)),
-      );
+      this.#rejectAll(error instanceof Error ? error : new Error(String(error)));
       this.close();
     }
   }
@@ -293,9 +274,7 @@ class IsolatedPluginClient {
     this.#writer = undefined;
     this.#starting = undefined;
     this.#rejectAll(
-      new Error(
-        `Isolated plugin "${this.#packageName}" exited with code ${status.code}.`,
-      ),
+      new Error(`Isolated plugin "${this.#packageName}" exited with code ${status.code}.`),
     );
   }
 
@@ -305,9 +284,7 @@ class IsolatedPluginClient {
   }
 }
 
-export async function loadIsolatedPlugin(
-  entry: PluginEntry,
-): Promise<StenoPlugin> {
+export async function loadIsolatedPlugin(entry: PluginEntry): Promise<StenoPlugin> {
   const client = new IsolatedPluginClient(entry);
   const initialized = await client.initialize();
   if (!initialized.plugin) {

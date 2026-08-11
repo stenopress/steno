@@ -49,11 +49,12 @@ export class TauError extends Error {
     location: TauErrorLocation = {},
     options?: ErrorOptions,
   ) {
-    const position = location.filePath && location.line && location.column
-      ? `${location.filePath}:${location.line}:${location.column}: `
-      : location.line && location.column
-      ? `Line ${location.line}, col ${location.column}: `
-      : "";
+    const position =
+      location.filePath && location.line && location.column
+        ? `${location.filePath}:${location.line}:${location.column}: `
+        : location.line && location.column
+          ? `Line ${location.line}, col ${location.column}: `
+          : "";
     super(`${position}${message}`, options);
     this.name = "TauError";
     this.code = code;

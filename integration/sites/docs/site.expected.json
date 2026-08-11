@@ -1,10 +1,7 @@
 {
   "files": {
     "index.html": ["Steno Manual", "Installation"],
-    "guide/installation/index.html": [
-      "Installation",
-      "Configuration reference"
-    ],
+    "guide/installation/index.html": ["Installation", "Configuration reference"],
     "reference/configuration/index.html": ["Configuration reference"]
   },
   "mutableSource": "content/guide/installation.md",

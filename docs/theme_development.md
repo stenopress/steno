@@ -74,8 +74,8 @@ way:
 ```html
 <!doctype html>
 <title>{title} · {site.title}</title>
-<link rel="stylesheet" href="/assets/{assets['site.css']}">
-<Header title={site.title} />
+<link rel="stylesheet" href="/assets/{assets['site.css']}" />
+<header title="{site.title}" />
 <article>{@html content}</article>
 ```
 
@@ -89,11 +89,10 @@ Expressions are JavaScript expressions and are HTML-escaped:
 ```html
 <h1>{title | upper}</h1>
 {#if date}
-  <time>{date | date}</time>
+<time>{date | date}</time>
 {:else}
-  <span>Undated</span>
-{/if}
-{#each tags as tag, index}<span>{index}: {tag}</span>{/each}
+<span>Undated</span>
+{/if} {#each tags as tag, index}<span>{index}: {tag}</span>{/each}
 ```
 
 Use `{@html expression}` only for trusted HTML, such as Steno's generated `content`. Built-in
@@ -139,7 +138,9 @@ components:
 <html>
   {@include "Head"}
   <meta property="og:type" content="article" />
-  <body>{@html content}</body>
+  <body>
+    {@html content}
+  </body>
 </html>
 ```
 

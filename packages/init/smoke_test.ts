@@ -2,11 +2,7 @@ import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { runOnboarding, type ThemeChoice } from "./src/onboarding.ts";
 
-const themes: ThemeChoice[] = [
-  "minimal",
-  "docs-minimal",
-  "marketing-minimal",
-];
+const themes: ThemeChoice[] = ["minimal", "docs-minimal", "marketing-minimal"];
 
 Deno.test({
   name: "generated projects: every official theme builds without edits",
@@ -66,9 +62,7 @@ Deno.test({
           `${theme} generated project failed to build:\n${stdout}${stderr}`,
         );
 
-        const html = await Deno.readTextFile(
-          join(projectDir, "dist/index.html"),
-        );
+        const html = await Deno.readTextFile(join(projectDir, "dist/index.html"));
         assertStringIncludes(html, `Welcome to ${theme} smoke test`);
         const stylesheet = join(projectDir, "dist/assets/style.css");
         const hasStylesheet = await Deno.stat(stylesheet)

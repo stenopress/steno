@@ -21,14 +21,18 @@ Deno.test("signature: different config produces different signature", () => {
 
 Deno.test("signature: different plugins produce different signature", () => {
   const config = makeConfig();
-  const a = createBuildSignature(config, undefined, [{
-    name: "plugin-a",
-    transformHtml: (html) => html,
-  }]);
-  const b = createBuildSignature(config, undefined, [{
-    name: "plugin-b",
-    transformHtml: (html) => html + "<!-- b -->",
-  }]);
+  const a = createBuildSignature(config, undefined, [
+    {
+      name: "plugin-a",
+      transformHtml: (html) => html,
+    },
+  ]);
+  const b = createBuildSignature(config, undefined, [
+    {
+      name: "plugin-b",
+      transformHtml: (html) => html + "<!-- b -->",
+    },
+  ]);
   assertNotEquals(a, b);
 });
 

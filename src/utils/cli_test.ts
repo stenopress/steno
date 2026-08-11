@@ -21,11 +21,7 @@ export function registerCliTests(): void {
   });
 
   Deno.test("cli: parses build command and custom config", () => {
-    const options = parseCliArgs([
-      "build",
-      "--config",
-      "content/.steno/custom.yml",
-    ]);
+    const options = parseCliArgs(["build", "--config", "content/.steno/custom.yml"]);
     assertEquals(options, {
       command: "build",
       configPath: "content/.steno/custom.yml",
@@ -100,27 +96,15 @@ export function registerCliTests(): void {
   });
 
   Deno.test("cli: throws on unknown command", () => {
-    assertThrows(
-      () => parseCliArgs(["serve"]),
-      Error,
-      "Unknown command: serve",
-    );
+    assertThrows(() => parseCliArgs(["serve"]), Error, "Unknown command: serve");
   });
 
   Deno.test("cli: throws on unknown option", () => {
-    assertThrows(
-      () => parseCliArgs(["--wat"]),
-      Error,
-      "Unknown option: --wat",
-    );
+    assertThrows(() => parseCliArgs(["--wat"]), Error, "Unknown option: --wat");
   });
 
   Deno.test("cli: throws when config value is missing", () => {
-    assertThrows(
-      () => parseCliArgs(["build", "--config"]),
-      Error,
-      "Missing value for --config",
-    );
+    assertThrows(() => parseCliArgs(["build", "--config"]), Error, "Missing value for --config");
   });
 
   Deno.test("cli: parses doctor command", () => {
@@ -146,11 +130,7 @@ export function registerCliTests(): void {
   });
 
   Deno.test("cli: Helpful unknown-command and unknown-option errors.", () => {
-    assertThrows(
-      () => parseCliArgs(["serve"]),
-      Error,
-      "Unknown command: serve",
-    );
+    assertThrows(() => parseCliArgs(["serve"]), Error, "Unknown command: serve");
   });
 
   Deno.test("cli: parses preview command", () => {

@@ -33,13 +33,9 @@ await Deno.writeTextFile(HISTORY_FILE, JSON.stringify(snapshot) + "\n", {
   create: true,
 });
 
-const top = [...snapshot.benches]
-  .sort((a, b) => b.avgNs - a.avgNs)
-  .slice(0, 10);
+const top = [...snapshot.benches].sort((a, b) => b.avgNs - a.avgNs).slice(0, 10);
 
 console.log(`Stored benchmark snapshot at ${LATEST_FILE}`);
 for (const bench of top) {
-  console.log(
-    `${bench.name}: avg=${formatNs(bench.avgNs)} p99=${formatNs(bench.p99Ns)}`,
-  );
+  console.log(`${bench.name}: avg=${formatNs(bench.avgNs)} p99=${formatNs(bench.p99Ns)}`);
 }

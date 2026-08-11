@@ -16,9 +16,7 @@ export interface CompatPluginOptions {
 }
 
 /** Creates a plugin exercising every hook a real one might implement. */
-export default function compatPlugin(
-  options: CompatPluginOptions = {},
-): StenoPlugin {
+export default function compatPlugin(options: CompatPluginOptions = {}): StenoPlugin {
   const label = options.label ?? "compat";
   let pageCount = 0;
 

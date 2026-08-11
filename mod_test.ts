@@ -69,15 +69,11 @@ export default theme;
         if (result === "timeout") {
           child.kill();
           await child.output().catch(() => {});
-          throw new Error(
-            `Build did not complete within ${timeoutMs}ms - likely deadlocked.`,
-          );
+          throw new Error(`Build did not complete within ${timeoutMs}ms - likely deadlocked.`);
         }
 
         assertEquals(result.success, true);
-        const html = await Deno.readTextFile(
-          join(tempDir, "dist", "index.html"),
-        );
+        const html = await Deno.readTextFile(join(tempDir, "dist", "index.html"));
         assertEquals(html.includes("<h1>Hello</h1>"), true);
       } finally {
         await Deno.remove(tempDir, { recursive: true });

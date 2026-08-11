@@ -106,20 +106,14 @@ export function registerConfigTests(): void {
       const configPath = join(tempDir, "config.json");
       Deno.writeTextFileSync(configPath, `{}`);
 
-      assertThrows(
-        () => loadConfig(configPath),
-        Error,
-        "Unsupported config file format",
-      );
+      assertThrows(() => loadConfig(configPath), Error, "Unsupported config file format");
     },
   });
 
-  for (
-    const [fileName, contents] of [
-      ["config.yml", "title: [unterminated"],
-      ["config.toml", 'title = "unterminated'],
-    ] as const
-  ) {
+  for (const [fileName, contents] of [
+    ["config.yml", "title: [unterminated"],
+    ["config.toml", 'title = "unterminated'],
+  ] as const) {
     Deno.test({
       name: `config: reports the path and suggestion for malformed ${fileName}`,
       permissions: { read: true, write: true },
@@ -172,10 +166,7 @@ export function registerConfigTests(): void {
         }),
         "./top",
       );
-      assertEquals(
-        resolveTheme({ ...base, custom: { theme: "./nested" } }),
-        "./nested",
-      );
+      assertEquals(resolveTheme({ ...base, custom: { theme: "./nested" } }), "./nested");
       assertEquals(resolveTheme(base), undefined);
     },
   });
@@ -191,10 +182,7 @@ export function registerConfigTests(): void {
         }),
         { a: 1 },
       );
-      assertEquals(
-        resolveThemeConfig({ ...base, custom: { themeConfig: { a: 2 } } }),
-        { a: 2 },
-      );
+      assertEquals(resolveThemeConfig({ ...base, custom: { themeConfig: { a: 2 } } }), { a: 2 });
     },
   });
 
@@ -209,10 +197,7 @@ export function registerConfigTests(): void {
         }),
         true,
       );
-      assertEquals(
-        resolveShortUrls({ ...base, custom: { shortUrls: true } }),
-        true,
-      );
+      assertEquals(resolveShortUrls({ ...base, custom: { shortUrls: true } }), true);
       assertEquals(resolveShortUrls(base), false);
     },
   });
@@ -220,14 +205,8 @@ export function registerConfigTests(): void {
   Deno.test({
     name: "config: resolveDevPort prefers top-level, defaults to 5735",
     fn: () => {
-      assertEquals(
-        resolveDevPort({ ...base, devPort: 4000, custom: { devPort: 5000 } }),
-        4000,
-      );
-      assertEquals(
-        resolveDevPort({ ...base, custom: { devPort: 5000 } }),
-        5000,
-      );
+      assertEquals(resolveDevPort({ ...base, devPort: 4000, custom: { devPort: 5000 } }), 4000);
+      assertEquals(resolveDevPort({ ...base, custom: { devPort: 5000 } }), 5000);
       assertEquals(resolveDevPort(base), 5735);
     },
   });
@@ -243,10 +222,9 @@ export function registerConfigTests(): void {
         }),
         { a: 1 },
       );
-      assertEquals(
-        resolveGlobals({ ...base, custom: { globals: { a: 2 } } }),
-        { a: 2 },
-      );
+      assertEquals(resolveGlobals({ ...base, custom: { globals: { a: 2 } } }), {
+        a: 2,
+      });
       assertEquals(resolveGlobals(base), undefined);
     },
   });

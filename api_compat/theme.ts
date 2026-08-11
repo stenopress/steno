@@ -45,9 +45,7 @@ export const extended: StenoTheme = mergeTheme(baseTheme, {
 });
 
 /** Constructing a `Theme` instance directly and using its render methods. */
-export async function renderCompatLayout(
-  context: PageRenderContext,
-): Promise<string> {
+export async function renderCompatLayout(context: PageRenderContext): Promise<string> {
   const theme = new Theme(baseTheme, { accent: "teal" });
   return await theme.renderLayout("layout", "<p>Hello</p>", {
     ...context,

@@ -93,10 +93,7 @@ export function registerOutputTests(): void {
 
   Deno.test("output: debugBuildStart prints the resolved theme and plugins", () => {
     const messages = captureLogs(() => {
-      debugBuildStart({ name: "my-theme", version: "1.2.3" }, [
-        { name: "seo" },
-        { name: "shiki" },
-      ]);
+      debugBuildStart({ name: "my-theme", version: "1.2.3" }, [{ name: "seo" }, { name: "shiki" }]);
     });
     const output = messages.join("\n");
     assertStringIncludes(output, "theme: my-theme@1.2.3");

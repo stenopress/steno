@@ -16,10 +16,7 @@ function realFileSystem(): OutputTransactionFileSystem {
   };
 }
 
-function failRename(
-  failureCall: number,
-  error: Error,
-): OutputTransactionFileSystem {
+function failRename(failureCall: number, error: Error): OutputTransactionFileSystem {
   const fs = realFileSystem();
   let calls = 0;
   return {
@@ -59,20 +56,14 @@ export function registerOutputTransactionTests(): void {
     name: "transactions: permission failure while backing up preserves output",
     permissions: { read: true, write: true },
     fn: () => {
-      const fs = failRename(
-        1,
-        new Deno.errors.PermissionDenied("simulated permission failure"),
-      );
+      const fs = failRename(1, new Deno.errors.PermissionDenied("simulated permission failure"));
       const fixture = createTransactionFixture(fs);
       try {
         assertThrows(
           () => commitOutputTransaction(fixture.transaction),
           Deno.errors.PermissionDenied,
         );
-        assertEquals(
-          Deno.readTextFileSync(join(fixture.outputDir, "index.html")),
-          "last-good",
-        );
+        assertEquals(Deno.readTextFileSync(join(fixture.outputDir, "index.html")), "last-good");
         rollbackOutputTransaction(fixture.transaction);
       } finally {
         cleanup(fixture.root);
@@ -84,20 +75,11 @@ export function registerOutputTransactionTests(): void {
     name: "transactions: disk-full promotion failure restores output",
     permissions: { read: true, write: true },
     fn: () => {
-      const fs = failRename(
-        2,
-        new Deno.errors.WriteZero("simulated disk full"),
-      );
+      const fs = failRename(2, new Deno.errors.WriteZero("simulated disk full"));
       const fixture = createTransactionFixture(fs);
       try {
-        assertThrows(
-          () => commitOutputTransaction(fixture.transaction),
-          Deno.errors.WriteZero,
-        );
-        assertEquals(
-          Deno.readTextFileSync(join(fixture.outputDir, "index.html")),
-          "last-good",
-        );
+        assertThrows(() => commitOutputTransaction(fixture.transaction), Deno.errors.WriteZero);
+        assertEquals(Deno.readTextFileSync(join(fixture.outputDir, "index.html")), "last-good");
         rollbackOutputTransaction(fixture.transaction);
       } finally {
         cleanup(fixture.root);
@@ -110,27 +92,15 @@ export function registerOutputTransactionTests(): void {
     permissions: { read: true, write: true },
     fn: () => {
       for (const failureCall of [1, 2, 3]) {
-        const fs = failRename(
-          failureCall,
-          new Deno.errors.Interrupted(`rename ${failureCall}`),
-        );
+        const fs = failRename(failureCall, new Deno.errors.Interrupted(`rename ${failureCall}`));
         const fixture = createTransactionFixture(fs);
         const backupDir = fixture.transaction.backupDir;
         Deno.mkdirSync(backupDir);
         Deno.writeTextFileSync(join(backupDir, "index.html"), "older-backup");
         try {
-          assertThrows(
-            () => commitOutputTransaction(fixture.transaction),
-            Deno.errors.Interrupted,
-          );
-          assertEquals(
-            Deno.readTextFileSync(join(fixture.outputDir, "index.html")),
-            "last-good",
-          );
-          assertEquals(
-            Deno.readTextFileSync(join(backupDir, "index.html")),
-            "older-backup",
-          );
+          assertThrows(() => commitOutputTransaction(fixture.transaction), Deno.errors.Interrupted);
+          assertEquals(Deno.readTextFileSync(join(fixture.outputDir, "index.html")), "last-good");
+          assertEquals(Deno.readTextFileSync(join(backupDir, "index.html")), "older-backup");
           rollbackOutputTransaction(fixture.transaction);
         } finally {
           cleanup(fixture.root);
@@ -147,9 +117,7 @@ export function registerOutputTransactionTests(): void {
       const outputDir = join(root, "dist");
       Deno.mkdirSync(outputDir);
       Deno.writeTextFileSync(join(outputDir, "index.html"), "last-good");
-      const moduleUrl = toFileUrl(
-        join(Deno.cwd(), "src/core/build/output_transaction.ts"),
-      ).href;
+      const moduleUrl = toFileUrl(join(Deno.cwd(), "src/core/build/output_transaction.ts")).href;
       const script = `
         const { beginOutputTransaction } = await import(${JSON.stringify(moduleUrl)});
         const transaction = beginOutputTransaction(${JSON.stringify(outputDir)});
@@ -166,21 +134,14 @@ export function registerOutputTransactionTests(): void {
           stdout: "null",
           stderr: "piped",
         }).output();
-        assertEquals(
-          result.code,
-          137,
-          new TextDecoder().decode(result.stderr),
-        );
+        assertEquals(result.code, 137, new TextDecoder().decode(result.stderr));
         await assertRejects(
           () => Deno.readTextFile(join(outputDir, "index.html")),
           Deno.errors.NotFound,
         );
 
         const recovered = beginOutputTransaction(outputDir);
-        assertEquals(
-          Deno.readTextFileSync(join(outputDir, "index.html")),
-          "last-good",
-        );
+        assertEquals(Deno.readTextFileSync(join(outputDir, "index.html")), "last-good");
         rollbackOutputTransaction(recovered);
       } finally {
         cleanup(root);

@@ -7,7 +7,7 @@ export function errorMessage(error: unknown): string {
 export function hasControlCharacters(value: string): boolean {
   for (let i = 0; i < value.length; i++) {
     const code = value.charCodeAt(i);
-    if (code <= 0x1F || code === 0x7F) return true;
+    if (code <= 0x1f || code === 0x7f) return true;
   }
   return false;
 }
@@ -25,14 +25,15 @@ export function utf8ByteLength(value: string): number {
   let bytes = value.length;
   for (let index = 0; index < value.length; index++) {
     const code = value.charCodeAt(index);
-    if (code <= 0x7F) continue;
-    if (code <= 0x7FF) {
+    if (code <= 0x7f) continue;
+    if (code <= 0x7ff) {
       bytes++;
     } else if (
-      code >= 0xD800 && code <= 0xDBFF &&
+      code >= 0xd800 &&
+      code <= 0xdbff &&
       index + 1 < value.length &&
-      value.charCodeAt(index + 1) >= 0xDC00 &&
-      value.charCodeAt(index + 1) <= 0xDFFF
+      value.charCodeAt(index + 1) >= 0xdc00 &&
+      value.charCodeAt(index + 1) <= 0xdfff
     ) {
       bytes += 2;
       index++;

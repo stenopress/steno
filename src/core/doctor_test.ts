@@ -14,9 +14,9 @@ export function registerDoctorTests(): void {
       await Deno.writeTextFile(join(contentDir, "index.md"), "# Home");
       await Deno.writeTextFile(
         configPath,
-        `title: "Test"\ndescription: "Test"\nauthor: "Test"\ncontentDir: ${
-          JSON.stringify(contentDir)
-        }\n`,
+        `title: "Test"\ndescription: "Test"\nauthor: "Test"\ncontentDir: ${JSON.stringify(
+          contentDir,
+        )}\n`,
       );
 
       const original = console.log;
@@ -40,9 +40,9 @@ export function registerDoctorTests(): void {
       const configPath = join(tempDir, "config.yml");
       await Deno.writeTextFile(
         configPath,
-        `title: "Test"\ndescription: "Test"\nauthor: "Test"\ncontentDir: ${
-          JSON.stringify(join(tempDir, "content"))
-        }\n`,
+        `title: "Test"\ndescription: "Test"\nauthor: "Test"\ncontentDir: ${JSON.stringify(
+          join(tempDir, "content"),
+        )}\n`,
       );
 
       const original = console.log;
@@ -98,18 +98,9 @@ plugins:
       }
 
       const output = messages.join("\n");
-      assertStringIncludes(
-        output,
-        "Plugin jsr:@example/trusted@1 (trusted, in-process)",
-      );
-      assertStringIncludes(
-        output,
-        "Plugin jsr:@example/isolated@1 (isolated, subprocess)",
-      );
-      assertStringIncludes(
-        output,
-        'Consider "mode: isolated" for third-party plugins',
-      );
+      assertStringIncludes(output, "Plugin jsr:@example/trusted@1 (trusted, in-process)");
+      assertStringIncludes(output, "Plugin jsr:@example/isolated@1 (isolated, subprocess)");
+      assertStringIncludes(output, 'Consider "mode: isolated" for third-party plugins');
     },
   });
 
@@ -152,8 +143,8 @@ plugins:
       }
 
       const output = messages.join("\n");
-      const hintCount = output.split('Consider "mode: isolated" for third-party plugins')
-        .length - 1;
+      const hintCount =
+        output.split('Consider "mode: isolated" for third-party plugins').length - 1;
       assertEquals(hintCount, 0);
     },
   });
@@ -165,10 +156,7 @@ plugins:
       const tempDir = await Deno.makeTempDir();
       const originalCwd = Deno.cwd();
       await Deno.mkdir(join(tempDir, "content"), { recursive: true });
-      await Deno.writeTextFile(
-        join(tempDir, "content", "index.md"),
-        "# Home",
-      );
+      await Deno.writeTextFile(join(tempDir, "content", "index.md"), "# Home");
 
       const messages: string[] = [];
       const original = {
@@ -232,10 +220,7 @@ custom:
       }
 
       const output = messages.join("\n");
-      assertStringIncludes(
-        output,
-        'custom.theme is deprecated - move it to top-level "theme"',
-      );
+      assertStringIncludes(output, 'custom.theme is deprecated - move it to top-level "theme"');
       assertStringIncludes(
         output,
         'custom.shortUrls is deprecated - move it to top-level "shortUrls"',

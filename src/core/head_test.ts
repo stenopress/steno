@@ -12,15 +12,9 @@ export function registerHeadTests(): void {
     ]);
     const html = renderHeadTags(tags);
 
-    assertStringIncludes(
-      html,
-      '<meta name="description" content="Fast &amp; &quot;small&quot;">',
-    );
+    assertStringIncludes(html, '<meta name="description" content="Fast &amp; &quot;small&quot;">');
     assertStringIncludes(html, '<meta property="og:type" content="website">');
-    assertStringIncludes(
-      html,
-      '<link rel="canonical" href="https://example.com">',
-    );
+    assertStringIncludes(html, '<link rel="canonical" href="https://example.com">');
     assertStringIncludes(html, '<script src="/app.js" defer></script>');
     assertStringIncludes(html, "<\\/script>");
   });
@@ -48,12 +42,9 @@ export function registerHeadTests(): void {
 
   Deno.test("head: injects before head close or creates a head", () => {
     assertEquals(
-      injectHeadTags(
-        "<html><head><title>X</title></head><body></body></html>",
-        [
-          { name: "robots", content: "index" },
-        ],
-      ),
+      injectHeadTags("<html><head><title>X</title></head><body></body></html>", [
+        { name: "robots", content: "index" },
+      ]),
       '<html><head><title>X</title><meta name="robots" content="index">\n</head><body></body></html>',
     );
     assertStringIncludes(

@@ -87,14 +87,8 @@ export class Steno {
    * constructor can't otherwise know which command will call `build()`/
    * `dev()` next; `executeBuild` always passes its own `dev` explicitly.
    */
-  private async loadRuntime(
-    dev: boolean = Deno.args.includes("dev"),
-  ): Promise<ResolvedProject> {
-    const project = await resolveProject(
-      this.configPath,
-      undefined,
-      this.buildState.pageCache,
-    );
+  private async loadRuntime(dev: boolean = Deno.args.includes("dev")): Promise<ResolvedProject> {
+    const project = await resolveProject(this.configPath, undefined, this.buildState.pageCache);
     this.config = project.config;
     const diagnostics = new DiagnosticBag();
     this.theme = await loadTheme(project.config, diagnostics);
@@ -127,17 +121,17 @@ export class Steno {
 
     const themePlugins = allowThemePlugins
       ? (this.theme?.plugins ?? []).filter((plugin, index) => {
-        if (!isStenoPlugin(plugin)) {
-          diagnostics.add({
-            code: "theme-plugin-invalid",
-            severity: "error",
-            message: `Theme plugin at index ${index} is invalid.`,
-            hint: 'It must be an object with at least a "name".',
-          });
-          return false;
-        }
-        return true;
-      })
+          if (!isStenoPlugin(plugin)) {
+            diagnostics.add({
+              code: "theme-plugin-invalid",
+              severity: "error",
+              message: `Theme plugin at index ${index} is invalid.`,
+              hint: 'It must be an object with at least a "name".',
+            });
+            return false;
+          }
+          return true;
+        })
       : [];
 
     if (!allowThemePlugins && (this.theme?.plugins?.length ?? 0) > 0) {
@@ -161,10 +155,8 @@ export class Steno {
         diagnostics.add({
           code: "plugin-name-duplicate",
           severity: "warning",
-          message:
-            `More than one plugin is named "${plugin.name}" - diagnostics naming this plugin won't say which one they mean.`,
-          hint:
-            "Give each plugin a distinct name, even if it's the same package loaded twice with different options.",
+          message: `More than one plugin is named "${plugin.name}" - diagnostics naming this plugin won't say which one they mean.`,
+          hint: "Give each plugin a distinct name, even if it's the same package loaded twice with different options.",
         });
         continue;
       }
@@ -189,10 +181,7 @@ export class Steno {
         pages: project.pages,
         dev,
         verbose: this.verbose,
-        environment: loadEnvironmentFiles(
-          Deno.cwd(),
-          dev ? "development" : "production",
-        ),
+        environment: loadEnvironmentFiles(Deno.cwd(), dev ? "development" : "production"),
       });
     } finally {
       disposeIsolatedPlugins(this.plugins);
@@ -215,15 +204,13 @@ export class Steno {
     const contentDir = project.config.contentDir || "content";
     const outputDir = project.config.output || "dist";
     const devPort = resolveDevPort(project.config);
-    const envFiles = getEnvironmentFilePaths(Deno.cwd(), "development").filter(
-      (path) => {
-        try {
-          return Deno.statSync(path).isFile;
-        } catch {
-          return false;
-        }
-      },
-    );
+    const envFiles = getEnvironmentFilePaths(Deno.cwd(), "development").filter((path) => {
+      try {
+        return Deno.statSync(path).isFile;
+      } catch {
+        return false;
+      }
+    });
     // A theme loaded from a local path is under active development just
     // like the content — watch it too, so editing a layout or the theme's
     // own mod.ts triggers a rebuild instead of silently doing nothing.

@@ -30,9 +30,7 @@ export function parseFrontmatter(
     } catch (error) {
       const fileStr = filePath ? ` in "${filePath}"` : "";
       const errMsg = errorMessage(error);
-      throw new Error(
-        `Failed to parse YAML frontmatter${fileStr}: ${errMsg}`,
-      );
+      throw new Error(`Failed to parse YAML frontmatter${fileStr}: ${errMsg}`);
     }
   } else {
     try {
@@ -40,14 +38,11 @@ export function parseFrontmatter(
     } catch (error) {
       const fileStr = filePath ? ` in "${filePath}"` : "";
       const errMsg = errorMessage(error);
-      throw new Error(
-        `Failed to parse TOML frontmatter${fileStr}: ${errMsg}`,
-      );
+      throw new Error(`Failed to parse TOML frontmatter${fileStr}: ${errMsg}`);
     }
   }
 
-  const normalizedFrontmatter = frontmatter && typeof frontmatter === "object"
-    ? (frontmatter as Record<string, unknown>)
-    : {};
+  const normalizedFrontmatter =
+    frontmatter && typeof frontmatter === "object" ? (frontmatter as Record<string, unknown>) : {};
   return { frontmatter: normalizedFrontmatter, body };
 }

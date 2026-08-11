@@ -345,12 +345,15 @@ export interface MarkdownToken {
  */
 export interface MarkdownTokens extends Array<MarkdownToken> {
   /** Reference-link definitions collected while lexing Markdown. */
-  links: Record<string, {
-    /** Link destination. */
-    href: string;
-    /** Optional link title. */
-    title?: string | null;
-  }>;
+  links: Record<
+    string,
+    {
+      /** Link destination. */
+      href: string;
+      /** Optional link title. */
+      title?: string | null;
+    }
+  >;
 }
 
 /**
@@ -362,9 +365,7 @@ export interface StenoPlugin {
   /** Stable plugin name used in diagnostics. */
   name: string;
   /** Transforms parsed Markdown tokens before HTML rendering. */
-  transformAst?: (tokens: MarkdownTokens) =>
-    | MarkdownTokens
-    | Promise<MarkdownTokens>;
+  transformAst?: (tokens: MarkdownTokens) => MarkdownTokens | Promise<MarkdownTokens>;
   /** Transforms rendered page HTML. */
   transformHtml?: (html: string) => string | Promise<string>;
   /** Runs once before a site build begins. */

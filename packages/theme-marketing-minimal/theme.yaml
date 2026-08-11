@@ -24,20 +24,15 @@ configSchema:
   accentDarkHover: { type: string, default: "#c0afe6" }
   accentDarkFg: { type: string, default: "#171519" }
   eyebrow: { type: string, default: "A clearer way forward" }
-  heroTitle: {
-    type: string,
-    default: "Make the important thing impossible to miss.",
-  }
-  heroDescription: {
-    type: string,
-    default: "A focused, fast landing page for products, studios, and ideas worth sharing.",
-  }
+  heroTitle: { type: string, default: "Make the important thing impossible to miss." }
+  heroDescription:
+    {
+      type: string,
+      default: "A focused, fast landing page for products, studios, and ideas worth sharing.",
+    }
   primaryLabel: { type: string, default: "Get started" }
   primaryUrl: { type: string, default: "#content" }
   secondaryLabel: { type: string, default: "Learn more" }
   secondaryUrl: { type: string, default: "#content" }
-  githubUrl: {
-    type: string,
-    default: "https://github.com/stenopress/steno",
-  }
+  githubUrl: { type: string, default: "https://github.com/stenopress/steno" }
   jsrUrl: { type: string, default: "https://jsr.io/@steno/steno" }

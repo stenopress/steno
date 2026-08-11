@@ -28,38 +28,29 @@ const MAX_PORT = 65535;
  * completed build. In zero-config mode the project root itself is watched,
  * which means those siblings must be ignored alongside the final output.
  */
-export function isTransactionalOutputPath(
-  path: string,
-  outputDir: string,
-): boolean {
+export function isTransactionalOutputPath(path: string, outputDir: string): boolean {
   const absoluteOutput = resolve(outputDir);
   const absolutePath = resolve(path);
   if (isPathInsideOrEqual(absolutePath, absoluteOutput)) return true;
 
   const outputParent = dirname(absoluteOutput);
   const relativePath = relative(outputParent, absolutePath);
-  if (
-    relativePath === "" || relativePath.startsWith("..") ||
-    relativePath.startsWith("/")
-  ) {
+  if (relativePath === "" || relativePath.startsWith("..") || relativePath.startsWith("/")) {
     return false;
   }
 
   const firstSegment = relativePath.replaceAll("\\", "/").split("/")[0];
   const outputName = basename(absoluteOutput);
-  return firstSegment.startsWith(`.${outputName}.steno-stage-`) ||
+  return (
+    firstSegment.startsWith(`.${outputName}.steno-stage-`) ||
     firstSegment === `.${outputName}.steno-backup` ||
-    firstSegment.startsWith(`.${outputName}.steno-backup.retired-`);
+    firstSegment.startsWith(`.${outputName}.steno-backup.retired-`)
+  );
 }
 
-type PortAvailabilityCheck = (
-  port: number,
-) => boolean | Promise<boolean>;
+type PortAvailabilityCheck = (port: number) => boolean | Promise<boolean>;
 
-function isPortAvailable(
-  port: number,
-  hostname: string,
-): boolean {
+function isPortAvailable(port: number, hostname: string): boolean {
   let listener: Deno.Listener | undefined;
   try {
     listener = Deno.listen({ hostname, port });
@@ -91,8 +82,7 @@ export async function findAvailablePort(
 
   const hostname = options.hostname ?? "0.0.0.0";
   const maxPort = options.maxPort ?? MAX_PORT;
-  const portCheck = options.isPortAvailable ??
-    ((port: number) => isPortAvailable(port, hostname));
+  const portCheck = options.isPortAvailable ?? ((port: number) => isPortAvailable(port, hostname));
 
   for (let port = startPort; port <= maxPort; port++) {
     if (await portCheck(port)) {
@@ -100,9 +90,7 @@ export async function findAvailablePort(
     }
   }
 
-  throw new Error(
-    `No available port found in range ${startPort}-${maxPort}.`,
-  );
+  throw new Error(`No available port found in range ${startPort}-${maxPort}.`);
 }
 
 /** Internal state for connected reload clients. */
@@ -153,12 +141,9 @@ export function createStaticHandler(
 
       if (contentType.startsWith("text/html")) {
         const html = new TextDecoder().decode(contents);
-        return new Response(
-          liveReload ? injectReloadScript(html) : html,
-          {
-            headers: { "Content-Type": contentType },
-          },
-        );
+        return new Response(liveReload ? injectReloadScript(html) : html, {
+          headers: { "Content-Type": contentType },
+        });
       }
 
       return new Response(contents, {
@@ -238,9 +223,7 @@ export function createDevServerHandler(outputDir: string): {
 }
 
 /** Creates a preview-server handler for static files. */
-export function createPreviewHandler(
-  outputDir: string,
-): (request: Request) => Promise<Response> {
+export function createPreviewHandler(outputDir: string): (request: Request) => Promise<Response> {
   return createStaticHandler(outputDir, false);
 }
 
@@ -290,17 +273,15 @@ export async function processWatchEvents(
   };
 
   for await (const event of events) {
-    if (
-      event.kind !== "modify" && event.kind !== "create" &&
-      event.kind !== "remove"
-    ) {
+    if (event.kind !== "modify" && event.kind !== "create" && event.kind !== "remove") {
       continue;
     }
     if (
       event.paths.length > 0 &&
-      event.paths.every((path) =>
-        isTransactionalOutputPath(path, options.outputDir) ||
-        ignoredPaths.some((ignoredPath) => isPathInsideOrEqual(path, ignoredPath))
+      event.paths.every(
+        (path) =>
+          isTransactionalOutputPath(path, options.outputDir) ||
+          ignoredPaths.some((ignoredPath) => isPathInsideOrEqual(path, ignoredPath)),
       )
     ) {
       continue;
@@ -315,9 +296,7 @@ export async function processWatchEvents(
 }
 
 /** Serves the built site and rebuilds on filesystem changes. */
-export async function filterExistingWatchPaths(
-  paths: string[],
-): Promise<string[]> {
+export async function filterExistingWatchPaths(paths: string[]): Promise<string[]> {
   const existing: string[] = [];
   for (const path of paths) {
     try {
@@ -346,9 +325,7 @@ export async function startDevServer(
   const requestedWatchDirs = Array.isArray(watchDirs) ? watchDirs : [watchDirs];
   const dirsToWatch = await filterExistingWatchPaths(requestedWatchDirs);
   if (!dirsToWatch.length) {
-    throw new Error(
-      "No existing paths are available for the dev server to watch.",
-    );
+    throw new Error("No existing paths are available for the dev server to watch.");
   }
   const watcher = Deno.watchFs(dirsToWatch);
   const port = await findAvailablePort(preferredPort, { hostname });
@@ -377,9 +354,7 @@ export async function startPreviewServer(
     stat = await Deno.stat(outputDir);
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
-      throw new Error(
-        `Preview output not found at "${outputDir}". Run "steno build" first.`,
-      );
+      throw new Error(`Preview output not found at "${outputDir}". Run "steno build" first.`);
     }
     throw error;
   }

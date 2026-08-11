@@ -33,10 +33,7 @@ export function registerEnvironmentTests(): void {
       const processKey = "STENO_TEST_ENV_PROCESS_WINS";
       const valueKey = "STENO_TEST_ENV_LAYER_VALUE";
       const baseKey = "STENO_TEST_ENV_BASE_ONLY";
-      Deno.writeTextFileSync(
-        join(root, ".env"),
-        `${valueKey}=base\n${baseKey}=yes\n`,
-      );
+      Deno.writeTextFileSync(join(root, ".env"), `${valueKey}=base\n${baseKey}=yes\n`);
       Deno.writeTextFileSync(join(root, ".env.local"), `${valueKey}=local\n`);
       Deno.writeTextFileSync(
         join(root, ".env.development"),
@@ -46,10 +43,7 @@ export function registerEnvironmentTests(): void {
         join(root, ".env.development.local"),
         `${valueKey}=development-local\n`,
       );
-      Deno.writeTextFileSync(
-        join(root, ".env.production"),
-        `${valueKey}=production\n`,
-      );
+      Deno.writeTextFileSync(join(root, ".env.production"), `${valueKey}=production\n`);
       Deno.env.set(processKey, "process");
 
       try {
@@ -58,10 +52,7 @@ export function registerEnvironmentTests(): void {
           [baseKey]: "yes",
           [processKey]: "process",
         });
-        assertEquals(
-          loadEnvironmentFiles(root, "production")[valueKey],
-          "production",
-        );
+        assertEquals(loadEnvironmentFiles(root, "production")[valueKey], "production");
       } finally {
         Deno.env.delete(processKey);
         Deno.removeSync(root, { recursive: true });

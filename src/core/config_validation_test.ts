@@ -54,15 +54,16 @@ export function registerConfigValidationTests(): void {
     );
   });
 
-  Deno.test("config_validation: title/description/author are optional, but wrong-typed if present is still an error", () => {
-    assertEquals(errorCodes({ title: 1, description: "d", author: "a" }), [
-      "config-invalid",
-    ]);
-    // Omitted entirely is fine - resolveConfiguredSiteMetadata (project.ts)
-    // fills these in later, the same way zero-config mode already does.
-    assertEquals(errorCodes({ description: "d", author: "a" }), []);
-    assertEquals(errorCodes({}), []);
-  });
+  Deno.test(
+    "config_validation: title/description/author are optional, but wrong-typed if present is still an error",
+    () => {
+      assertEquals(errorCodes({ title: 1, description: "d", author: "a" }), ["config-invalid"]);
+      // Omitted entirely is fine - resolveConfiguredSiteMetadata (project.ts)
+      // fills these in later, the same way zero-config mode already does.
+      assertEquals(errorCodes({ description: "d", author: "a" }), []);
+      assertEquals(errorCodes({}), []);
+    },
+  );
 
   Deno.test("config_validation: rejects wrong-typed optional strings/booleans", () => {
     assertEquals(errorCodes({ ...base, contentDir: 1 }), ["config-invalid"]);
@@ -87,21 +88,12 @@ export function registerConfigValidationTests(): void {
   });
 
   Deno.test("config_validation: rejects a wrong-typed collections config", () => {
-    assertEquals(errorCodes({ ...base, collections: "nope" }), [
+    assertEquals(errorCodes({ ...base, collections: "nope" }), ["config-invalid"]);
+    assertEquals(errorCodes({ ...base, collections: { blog: { sortBy: 1 } } }), ["config-invalid"]);
+    assertEquals(errorCodes({ ...base, collections: { blog: { order: "sideways" } } }), [
       "config-invalid",
     ]);
-    assertEquals(
-      errorCodes({ ...base, collections: { blog: { sortBy: 1 } } }),
-      ["config-invalid"],
-    );
-    assertEquals(
-      errorCodes({ ...base, collections: { blog: { order: "sideways" } } }),
-      ["config-invalid"],
-    );
-    assertEquals(
-      errorCodes({ ...base, collections: { blog: { limit: -1 } } }),
-      ["config-invalid"],
-    );
+    assertEquals(errorCodes({ ...base, collections: { blog: { limit: -1 } } }), ["config-invalid"]);
     assertEquals(
       errorCodes({
         ...base,
@@ -112,25 +104,14 @@ export function registerConfigValidationTests(): void {
   });
 
   Deno.test("config_validation: rejects a wrong-typed redirects map", () => {
-    assertEquals(errorCodes({ ...base, redirects: "nope" }), [
-      "config-invalid",
-    ]);
-    assertEquals(errorCodes({ ...base, redirects: { "/old": 1 } }), [
-      "config-invalid",
-    ]);
+    assertEquals(errorCodes({ ...base, redirects: "nope" }), ["config-invalid"]);
+    assertEquals(errorCodes({ ...base, redirects: { "/old": 1 } }), ["config-invalid"]);
   });
 
   Deno.test("config_validation: validates nested navigation entries recursively", () => {
-    assertEquals(
-      errorCodes({ ...base, navigation: [{ title: "Home" }] }),
-      [],
-    );
-    assertEquals(errorCodes({ ...base, navigation: "nope" }), [
-      "config-invalid",
-    ]);
-    assertEquals(errorCodes({ ...base, navigation: [{ url: "/" }] }), [
-      "config-invalid",
-    ]);
+    assertEquals(errorCodes({ ...base, navigation: [{ title: "Home" }] }), []);
+    assertEquals(errorCodes({ ...base, navigation: "nope" }), ["config-invalid"]);
+    assertEquals(errorCodes({ ...base, navigation: [{ url: "/" }] }), ["config-invalid"]);
     assertEquals(
       errorCodes({
         ...base,
@@ -141,16 +122,13 @@ export function registerConfigValidationTests(): void {
   });
 
   Deno.test("config_validation: rejects a wrong-typed pluginSourcePolicy", () => {
-    assertEquals(
-      errorCodes({ ...base, pluginSourcePolicy: { allowLocal: "yes" } }),
-      ["config-invalid"],
-    );
+    assertEquals(errorCodes({ ...base, pluginSourcePolicy: { allowLocal: "yes" } }), [
+      "config-invalid",
+    ]);
   });
 
   Deno.test("config_validation: rejects malformed plugin entries", () => {
-    assertEquals(errorCodes({ ...base, plugins: "nope" }), [
-      "config-invalid",
-    ]);
+    assertEquals(errorCodes({ ...base, plugins: "nope" }), ["config-invalid"]);
     assertEquals(errorCodes({ ...base, plugins: [{}] }), ["config-invalid"]);
     assertEquals(errorCodes({ ...base, plugins: ["jsr:@example/a"] }), []);
   });
@@ -159,6 +137,9 @@ export function registerConfigValidationTests(): void {
     const bag = new DiagnosticBag();
     validateSiteConfig({ ...base, colllections: {} }, "config.yml", bag);
     assertEquals(bag.hasErrors, false);
-    assertEquals(bag.warnings.map((d) => d.code), ["config-unknown-key"]);
+    assertEquals(
+      bag.warnings.map((d) => d.code),
+      ["config-unknown-key"],
+    );
   });
 }

@@ -32,10 +32,7 @@ export interface TauLimits {
 }
 
 /** Function signature for a Tau value filter. May be sync or async. */
-export type FilterFunction = (
-  val: unknown,
-  ...args: unknown[]
-) => unknown;
+export type FilterFunction = (val: unknown, ...args: unknown[]) => unknown;
 type CompiledTemplateFn = (
   context: Record<string, unknown>,
   helpers: TauHelpers,
@@ -87,67 +84,54 @@ function resolveLimits(overrides?: Partial<TauLimits>): TauLimits {
   const limits = { ...DEFAULT_LIMITS, ...overrides };
   for (const [name, value] of Object.entries(limits)) {
     if (!Number.isSafeInteger(value) || value <= 0) {
-      throw new TauError(
-        "TAU_INVALID_LIMIT",
-        `Tau limit "${name}" must be a positive integer.`,
-      );
+      throw new TauError("TAU_INVALID_LIMIT", `Tau limit "${name}" must be a positive integer.`);
     }
   }
   return limits;
 }
 
 /** Built-in Tau filters and the registry for custom filters. */
-export const filters: Record<string, FilterFunction> = Object.assign(
-  Object.create(null),
-  {
-    date: (val: unknown) => {
-      if (!val) return "";
-      const d = new Date(
-        typeof val === "string" || typeof val === "number" ||
-          val instanceof Date
-          ? val
-          : String(val),
-      );
-      return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString();
-    },
-    truncate: (val: unknown, len: unknown = 100) => {
-      if (val === null || val === undefined) return "";
-      const parsedLen = typeof len === "string" ? parseInt(len, 10) : Number(len);
-      const finalLen = isNaN(parsedLen) ? 100 : parsedLen;
-      return String(val).length > finalLen ? String(val).slice(0, finalLen) + "..." : String(val);
-    },
-    upper: (val: unknown) => (val ? String(val).toUpperCase() : ""),
-    lower: (val: unknown) => (val ? String(val).toLowerCase() : ""),
-    url: (val: unknown) => {
-      if (val === null || val === undefined) return "";
-      const value = String(val).trim();
-      if (hasControlCharacters(value)) {
-        throw new TauError(
-          "TAU_UNSAFE_URL",
-          "Tau URL values cannot contain control characters.",
-        );
-      }
-      const scheme = /^([A-Za-z][A-Za-z\d+.-]*):/.exec(value)?.[1];
-      if (
-        scheme &&
-        !["http", "https", "mailto", "tel"].includes(scheme.toLowerCase())
-      ) {
-        throw new TauError(
-          "TAU_UNSAFE_URL",
-          `Tau URL scheme "${scheme.toLowerCase()}:" is not allowed.`,
-        );
-      }
-      return value;
-    },
+export const filters: Record<string, FilterFunction> = Object.assign(Object.create(null), {
+  date: (val: unknown) => {
+    if (!val) return "";
+    const d = new Date(
+      typeof val === "string" || typeof val === "number" || val instanceof Date ? val : String(val),
+    );
+    return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString();
   },
-);
+  truncate: (val: unknown, len: unknown = 100) => {
+    if (val === null || val === undefined) return "";
+    const parsedLen = typeof len === "string" ? parseInt(len, 10) : Number(len);
+    const finalLen = isNaN(parsedLen) ? 100 : parsedLen;
+    return String(val).length > finalLen ? String(val).slice(0, finalLen) + "..." : String(val);
+  },
+  upper: (val: unknown) => (val ? String(val).toUpperCase() : ""),
+  lower: (val: unknown) => (val ? String(val).toLowerCase() : ""),
+  url: (val: unknown) => {
+    if (val === null || val === undefined) return "";
+    const value = String(val).trim();
+    if (hasControlCharacters(value)) {
+      throw new TauError("TAU_UNSAFE_URL", "Tau URL values cannot contain control characters.");
+    }
+    const scheme = /^([A-Za-z][A-Za-z\d+.-]*):/.exec(value)?.[1];
+    if (scheme && !["http", "https", "mailto", "tel"].includes(scheme.toLowerCase())) {
+      throw new TauError(
+        "TAU_UNSAFE_URL",
+        `Tau URL scheme "${scheme.toLowerCase()}:" is not allowed.`,
+      );
+    }
+    return value;
+  },
+});
 
 export function escapeHtml(val: unknown): string {
   if (val === null || val === undefined) return "";
-  return String(val).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(
-    />/g,
-    "&gt;",
-  ).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  return String(val)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 const EMPTY_LOCALS: ReadonlySet<string> = new Set();
@@ -179,10 +163,7 @@ function compileNodes(
       let expr = compileExpression(node.expression!, currentLocals);
       for (const filter of node.filters || []) {
         if (!Object.hasOwn(filters, filter.name)) {
-          throw new TauError(
-            "TAU_UNKNOWN_FILTER",
-            `Unknown Tau filter "${filter.name}".`,
-          );
+          throw new TauError("TAU_UNKNOWN_FILTER", `Unknown Tau filter "${filter.name}".`);
         }
         const args = filter.args.map((arg) => compileExpression(arg, currentLocals));
         expr = `(await helpers.filters.${filter.name}(${[expr, ...args].join(", ")}))`;
@@ -192,14 +173,17 @@ function compileNodes(
       const expr = compileExpression(node.expression!, currentLocals);
       code += `helpers.append(${target}, ${expr}, false);\n`;
     } else if (node.type === "include") {
-      code += `await helpers.resolveInclude(${
-        JSON.stringify(node.includePath)
-      }, context, ${target});\n`;
+      code += `await helpers.resolveInclude(${JSON.stringify(
+        node.includePath,
+      )}, context, ${target});\n`;
     } else if (node.type === "if") {
       const condition = compileExpression(node.condition!, currentLocals);
-      code += `if (${condition}) {\n${
-        compileNodes(node.consequent || [], currentLocals, target, state)
-      }}`;
+      code += `if (${condition}) {\n${compileNodes(
+        node.consequent || [],
+        currentLocals,
+        target,
+        state,
+      )}}`;
       if (node.alternate?.length) {
         code += ` else {\n${compileNodes(node.alternate, currentLocals, target, state)}}\n`;
       } else code += "\n";
@@ -215,15 +199,21 @@ function compileNodes(
       if (node.indexVar) code += `  let ${node.indexVar} = 0;\n`;
       code += `  for (const ${node.item} of __tauIterable) {\n${
         hasElse ? "    __tauHadItems = true;\n" : ""
-      }    helpers.countIteration();\n${
-        compileNodes(node.consequent || [], loopLocals, target, state)
-      }`;
+      }    helpers.countIteration();\n${compileNodes(
+        node.consequent || [],
+        loopLocals,
+        target,
+        state,
+      )}`;
       if (node.indexVar) code += `    ${node.indexVar}++;\n`;
       code += `  }\n}\n`;
       if (hasElse) {
-        code += `if (!__tauHadItems) {\n${
-          compileNodes(node.alternate || [], currentLocals, target, state)
-        }}\n`;
+        code += `if (!__tauHadItems) {\n${compileNodes(
+          node.alternate || [],
+          currentLocals,
+          target,
+          state,
+        )}}\n`;
       }
       code += `}\n`;
     } else if (node.type === "component") {
@@ -233,24 +223,24 @@ function compileNodes(
       });
       if (node.consequent && node.consequent.length > 0) {
         const childTarget = `__tauChildren${state.nextId++}`;
-        code += `const ${childTarget} = [];\n${
-          compileNodes(node.consequent, currentLocals, childTarget, state)
-        }`;
+        code += `const ${childTarget} = [];\n${compileNodes(
+          node.consequent,
+          currentLocals,
+          childTarget,
+          state,
+        )}`;
         propsEntries.push(`children: ${childTarget}.join("")`);
       }
       const propsObj = `{ ${propsEntries.join(", ")} }`;
-      code += `await helpers.renderComponent(${
-        JSON.stringify(node.componentName)
-      }, ${propsObj}, context, ${target});\n`;
+      code += `await helpers.renderComponent(${JSON.stringify(
+        node.componentName,
+      )}, ${propsObj}, context, ${target});\n`;
     }
   }
   return code;
 }
 
-export function compileToFunction(
-  template: string,
-  filePath?: string,
-): CompiledTemplateFn {
+export function compileToFunction(template: string, filePath?: string): CompiledTemplateFn {
   const body = compileNodes(new TauParser(template, filePath).parseBlock());
   try {
     return new AsyncFunction(
@@ -268,10 +258,7 @@ export function compileToFunction(
   }
 }
 
-function getCompiledTemplate(
-  template: string,
-  filePath?: string,
-): CompiledTemplateFn {
+function getCompiledTemplate(template: string, filePath?: string): CompiledTemplateFn {
   const key = `${filePath ?? ""}\u0000${template}`;
   const cached = templateCache.get(key);
   if (cached) {
@@ -363,8 +350,7 @@ async function renderWithCompiledTemplate(
     },
     isIterable: (value: unknown) =>
       value != null &&
-      typeof (value as { [Symbol.iterator]?: unknown })[Symbol.iterator] ===
-        "function",
+      typeof (value as { [Symbol.iterator]?: unknown })[Symbol.iterator] === "function",
     countIteration: () => {
       state.iterations++;
       if (state.iterations > state.limits.maxIterations) {
@@ -374,11 +360,7 @@ async function renderWithCompiledTemplate(
         );
       }
     },
-    resolveInclude: async (
-      path: string,
-      ctx: Record<string, unknown>,
-      target: string[],
-    ) => {
+    resolveInclude: async (path: string, ctx: Record<string, unknown>, target: string[]) => {
       if (!options.includeResolver) {
         throw new TauError(
           "TAU_INCLUDE_RESOLVER_MISSING",
@@ -422,13 +404,10 @@ async function renderWithCompiledTemplate(
       const componentTemplate = Object.hasOwn(options.components, name)
         ? options.components[name]
         : Object.hasOwn(options.components, lowerName)
-        ? options.components[lowerName]
-        : undefined;
+          ? options.components[lowerName]
+          : undefined;
       if (componentTemplate === undefined) {
-        throw new TauError(
-          "TAU_COMPONENT_NOT_FOUND",
-          `Component "${name}" not found.`,
-        );
+        throw new TauError("TAU_COMPONENT_NOT_FOUND", `Component "${name}" not found.`);
       }
       if (state.componentStack.includes(name)) {
         throw new TauError(
@@ -440,17 +419,16 @@ async function renderWithCompiledTemplate(
 
       let componentRenderFn = componentFnCache.get(componentTemplate);
       if (!componentRenderFn) {
-        componentRenderFn = getCompiledTemplate(
-          componentTemplate,
-          options.filePath,
-        );
+        componentRenderFn = getCompiledTemplate(componentTemplate, options.filePath);
         componentFnCache.set(componentTemplate, componentRenderFn);
       }
 
-      const globals = parentContext.globals && typeof parentContext.globals === "object" &&
-          !Array.isArray(parentContext.globals)
-        ? parentContext.globals
-        : {};
+      const globals =
+        parentContext.globals &&
+        typeof parentContext.globals === "object" &&
+        !Array.isArray(parentContext.globals)
+          ? parentContext.globals
+          : {};
       state.componentStack.push(name);
       try {
         const output = await renderWithCompiledTemplate(
