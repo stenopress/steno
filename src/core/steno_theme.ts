@@ -1,23 +1,11 @@
-import { Theme } from "../theme/theme.ts";
-import type { SiteConfig, StenoTheme } from "../types.ts";
 import { fromFileUrl, isAbsolute, join, toFileUrl } from "@std/path";
+import { Theme, bundledThemeLocalPath, bundledThemeSources } from "../theme/theme.ts";
+import type { SiteConfig, StenoTheme } from "../types.ts";
+import { errorMessage } from "../utils/text.ts";
 import { resolveTheme, resolveThemeConfig } from "./config.ts";
 import { DiagnosticBag } from "./diagnostics.ts";
-import { errorMessage } from "../utils/text.ts";
 
-const bundledThemeSources: Record<string, URL> = {
-  "jsr:@steno/theme-minimal": new URL("../../packages/theme-minimal", import.meta.url),
-  "jsr:@steno/theme-docs-minimal": new URL("../../packages/theme-docs-minimal", import.meta.url),
-  "jsr:@steno/theme-marketing-minimal": new URL(
-    "../../packages/theme-marketing-minimal",
-    import.meta.url,
-  ),
-};
-
-/** Returns a local bundled-theme path when Steno itself is running from disk. */
-export function bundledThemeLocalPath(source: URL): string | undefined {
-  return source.protocol === "file:" ? fromFileUrl(source) : undefined;
-}
+export { bundledThemeLocalPath };
 
 /** Whether `themeName` refers to a local filesystem path, not a package specifier. */
 function isLocalThemePath(themeName: string): boolean {
