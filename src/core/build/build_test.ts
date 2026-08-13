@@ -1196,6 +1196,48 @@ Body.`,
   });
 
   Deno.test({
+    name: "build: a public custom.css is auto-linked in every page's head",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig();
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+      f.writePage("public/custom.css", "h1 { color: hotpink; }");
+
+      await new Steno(f.configPath, false).build();
+
+      const html = Deno.readTextFileSync(join(f.outputDir, "index.html"));
+      assertStringIncludes(html, '<link rel="stylesheet" href="/custom.css">');
+      assertEquals(
+        Deno.readTextFileSync(join(f.outputDir, "custom.css")),
+        "h1 { color: hotpink; }",
+      );
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: an explicit head entry for /custom.css replaces the automatic one",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      f.writeConfig(
+        `head:\n  - tag: link\n    rel: stylesheet\n    href: /custom.css\n    media: print\n`,
+      );
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+      f.writePage("public/custom.css", "h1 { color: hotpink; }");
+
+      await new Steno(f.configPath, false).build();
+
+      const html = Deno.readTextFileSync(join(f.outputDir, "index.html"));
+      const matches = html.match(/<link[^>]*custom\.css[^>]*>/g) ?? [];
+      assertEquals(matches.length, 1);
+      assertStringIncludes(html, 'media="print"');
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
     name: "build: public asset colliding with a page fails the build",
     permissions: { read: true, write: true },
     fn: async () => {
