@@ -1,7 +1,7 @@
 import { assertEquals, assertRejects, assertStringIncludes, assertThrows } from "@std/assert";
 import { join } from "@std/path";
-import { mergeTheme, Theme } from "./theme.ts";
 import type { StenoTheme } from "../types.ts";
+import { mergeTheme, Theme } from "./theme.ts";
 
 export function registerThemeTests(): void {
   Deno.test("theme: constructor throws on a missing/empty name", () => {
@@ -239,6 +239,117 @@ export function registerThemeTests(): void {
         .then(() => true)
         .catch(() => false);
       assertEquals(assetsExist, false);
+    },
+  });
+
+  Deno.test({
+    name: "theme: loadFromDirectory extends a local base theme by theme.yaml",
+    permissions: { read: true, write: true, net: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const baseDir = join(tempDir, "base");
+      const childDir = join(tempDir, "child");
+      Deno.mkdirSync(join(baseDir, "layouts"), { recursive: true });
+      Deno.mkdirSync(join(baseDir, "components"), { recursive: true });
+      Deno.mkdirSync(join(childDir, "layouts"), { recursive: true });
+
+      Deno.writeTextFileSync(
+        join(baseDir, "theme.yaml"),
+        `name: Base\nversion: 1.0.0\ncomponents:\n  header: components/header.tau\ndefaultConfig:\n  accent: blue\n`,
+      );
+      Deno.writeTextFileSync(
+        join(baseDir, "layouts", "layout.tau"),
+        `<Header /><main>{@html content}</main>`,
+      );
+      Deno.writeTextFileSync(
+        join(baseDir, "layouts", "post.tau"),
+        `<article>{@html content}</article>`,
+      );
+      Deno.writeTextFileSync(join(baseDir, "components", "header.tau"), `<h1>{ site.title }</h1>`);
+
+      Deno.writeTextFileSync(
+        join(childDir, "theme.yaml"),
+        `name: Child\nversion: 1.0.0\nextends: ../base\n`,
+      );
+      Deno.writeTextFileSync(
+        join(childDir, "layouts", "layout.tau"),
+        `<Header /><main class="custom">{@html content}</main>`,
+      );
+
+      const theme = await Theme.loadFromDirectory(childDir);
+      assertEquals(theme.name, "Child");
+      assertEquals(theme.config.accent, "blue");
+
+      const layout = await theme.renderLayout("layout", "<p>x</p>", {
+        site: { title: "My Site", description: "", author: "" },
+      });
+      assertStringIncludes(layout, 'class="custom"');
+      assertStringIncludes(layout, "<h1>My Site</h1>");
+
+      const post = await theme.renderLayout("post", "<p>x</p>", {});
+      assertStringIncludes(post, "<article>");
+    },
+  });
+
+  Deno.test({
+    name: "theme: loadFromDirectory extends a bundled theme by specifier",
+    permissions: { read: true, write: true, net: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const themeDir = join(tempDir, "theme");
+      Deno.mkdirSync(themeDir, { recursive: true });
+      Deno.writeTextFileSync(
+        join(themeDir, "theme.yaml"),
+        `name: My Minimal\nversion: 1.0.0\nextends: jsr:@steno/theme-minimal\n`,
+      );
+
+      const theme = await Theme.loadFromDirectory(themeDir);
+      assertEquals(theme.name, "My Minimal");
+
+      const layout = await theme.renderLayout("layout", "<p>x</p>", {
+        site: { title: "My Site", description: "", author: "" },
+        theme: { name: theme.name, version: theme.version, ...theme.config },
+      });
+      assertStringIncludes(layout, "site-header");
+    },
+  });
+
+  Deno.test({
+    name: "theme: loadFromDirectory rejects a circular extends chain",
+    permissions: { read: true, write: true, net: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const aDir = join(tempDir, "a");
+      const bDir = join(tempDir, "b");
+      Deno.mkdirSync(join(aDir, "layouts"), { recursive: true });
+      Deno.mkdirSync(join(bDir, "layouts"), { recursive: true });
+      Deno.writeTextFileSync(join(aDir, "theme.yaml"), `name: A\nversion: 1.0.0\nextends: ../b\n`);
+      Deno.writeTextFileSync(join(aDir, "layouts", "layout.tau"), `{@html content}`);
+      Deno.writeTextFileSync(join(bDir, "theme.yaml"), `name: B\nversion: 1.0.0\nextends: ../a\n`);
+      Deno.writeTextFileSync(join(bDir, "layouts", "layout.tau"), `{@html content}`);
+
+      await assertRejects(() => Theme.loadFromDirectory(aDir), Error, "Circular");
+    },
+  });
+
+  Deno.test({
+    name: "theme: loadFromDirectory rejects an unrecognized extends specifier",
+    permissions: { read: true, write: true, net: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const themeDir = join(tempDir, "theme");
+      Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
+      Deno.writeTextFileSync(
+        join(themeDir, "theme.yaml"),
+        `name: Demo\nversion: 1.0.0\nextends: some-package\n`,
+      );
+      Deno.writeTextFileSync(join(themeDir, "layouts", "layout.tau"), `{@html content}`);
+
+      await assertRejects(
+        () => Theme.loadFromDirectory(themeDir),
+        Error,
+        "not a recognized bundled theme",
+      );
     },
   });
 
