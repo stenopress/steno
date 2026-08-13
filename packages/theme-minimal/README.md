@@ -7,7 +7,7 @@ A minimal theme for Steno static site generator.
 To use this theme, specify it in `content/.steno/config.yml`:
 
 ```yaml
-theme: jsr:@steno/theme-minimal@^0.10.0
+theme: jsr:@steno/theme-minimal@^0.12.0
 ```
 
 ## Configuration
@@ -15,7 +15,7 @@ theme: jsr:@steno/theme-minimal@^0.10.0
 All fields are optional strings and can be set under `themeConfig`:
 
 ```yaml
-theme: jsr:@steno/theme-minimal@^0.10.0
+theme: jsr:@steno/theme-minimal@^0.12.0
 themeConfig:
   accent: "#7760a9"
   accentHover: "#5f488f"

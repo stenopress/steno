@@ -73,7 +73,7 @@ Deno.test("onboarding: config.yml uses JSR theme package for minimal", async () 
   const dir = await scaffold({ theme: "minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.10\.0"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.12\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -82,7 +82,7 @@ Deno.test("onboarding: config.yml uses JSR theme package for docs-minimal", asyn
   const dir = await scaffold({ theme: "docs-minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-docs-minimal@\^0\.10\.0"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-docs-minimal@\^0\.12\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -165,7 +165,7 @@ Deno.test(
     });
 
     const config = readFile(dir, "content", ".steno", "config.yml");
-    assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.10\.0"/);
+    assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.12\.0"/);
 
     await Deno.remove(dir, { recursive: true });
   },
@@ -175,7 +175,7 @@ Deno.test("onboarding: config.yml uses JSR theme package for marketing-minimal",
   const dir = await scaffold({ theme: "marketing-minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-marketing-minimal@\^0\.10\.0"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-marketing-minimal@\^0\.12\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -196,7 +196,7 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   const denoJson = JSON.parse(readFile(dir, "deno.json"));
   assertEquals(typeof denoJson.tasks.build, "string");
   assertEquals(typeof denoJson.tasks.dev, "string");
-  assertEquals(denoJson.imports["@steno/steno"], "jsr:@steno/steno@^0.11.2");
+  assertEquals(denoJson.imports["@steno/steno"], "jsr:@steno/steno@^0.12.0");
   assertMatch(denoJson.tasks.build, /--allow-read=\./);
   assertMatch(denoJson.tasks.build, /--allow-write=\./);
   assertMatch(denoJson.tasks.build, /--allow-net=jsr\.io/);

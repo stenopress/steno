@@ -59,7 +59,7 @@ export function scaffoldTheme(name: string, options: ThemeScaffoldOptions = {}):
     ".": "./mod.ts"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@^0.11.2"
+    "@steno/steno": "jsr:@steno/steno@^0.12.0"
   }
 }
 `,

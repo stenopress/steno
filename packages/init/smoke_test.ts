@@ -27,8 +27,8 @@ Deno.test({
           importMapPath,
           JSON.stringify({
             imports: {
-              "@steno/steno": "jsr:@steno/steno@^0.10.0",
-              [`jsr:@steno/theme-${theme}@^0.10.0`]: new URL(
+              "@steno/steno": "jsr:@steno/steno@^0.12.0",
+              [`jsr:@steno/theme-${theme}@^0.12.0`]: new URL(
                 `../theme-${theme}/mod.ts`,
                 import.meta.url,
               ).href,
@@ -64,10 +64,20 @@ Deno.test({
 
         const html = await Deno.readTextFile(join(projectDir, "dist/index.html"));
         assertStringIncludes(html, `Welcome to ${theme} smoke test`);
-        const stylesheet = join(projectDir, "dist/assets/style.css");
-        const hasStylesheet = await Deno.stat(stylesheet)
-          .then((file) => file.isFile)
-          .catch(() => false);
+        // hashAssets defaults to true, so the shipped filename is
+        // `style.<hash>.css`, not the literal source name - match by prefix.
+        const assetsDir = join(projectDir, "dist/assets");
+        let hasStylesheet = false;
+        try {
+          for await (const entry of Deno.readDir(assetsDir)) {
+            if (entry.isFile && entry.name.startsWith("style") && entry.name.endsWith(".css")) {
+              hasStylesheet = true;
+              break;
+            }
+          }
+        } catch {
+          hasStylesheet = false;
+        }
         assertEquals(
           hasStylesheet,
           true,

@@ -27,6 +27,7 @@
     "jsr:@std/toml@1.0.11": "1.0.11",
     "jsr:@std/yaml@1.1.2": "1.1.2",
     "jsr:@std/yaml@1.2.0": "1.2.0",
+    "jsr:@steno/init@*": "0.11.0",
     "jsr:@steno/plugin-docs@*": "0.1.0",
     "jsr:@steno/plugin-docs@0.1.0": "0.1.0",
     "jsr:@steno/plugin-image@1.0.0": "1.0.0",
@@ -143,6 +144,12 @@
     },
     "@std/yaml@1.2.0": {
       "integrity": "20beb41e4983ba3437dbefac62b14061ab058e8a187596f19d28ff9035f6e6cf"
+    },
+    "@steno/init@0.11.0": {
+      "integrity": "941590da98721c742c726893b0dae69e4cd7892fbe001fb38e9633a14141ca28",
+      "dependencies": [
+        "jsr:@std/path@1"
+      ]
     },
     "@steno/plugin-docs@0.1.0": {
       "integrity": "53f89ff7e01e2c0d6925e26b7f9e0acd1672942fa5aff3b728af97ec786fd47a",

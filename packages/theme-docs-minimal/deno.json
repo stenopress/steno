@@ -1,13 +1,13 @@
 {
   "name": "@steno/theme-docs-minimal",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "license": "MIT",
   "lock": false,
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@^0.11.0"
+    "@steno/steno": "jsr:@steno/steno@^0.12.0"
   },
   "minimumDependencyAge": {
     "age": "P1D",

@@ -36,7 +36,7 @@ export interface ProjectOptions {
    * and local themes. */
   themeVersion?: string;
   /** Version range applied to `@steno/steno` in the generated `deno.json`
-   * (default: `^0.11.2`). */
+   * (default: `^0.12.0`). */
   stenoVersion?: string;
   /** Content directory written to configuration and scaffolded into
    * (default: `content`). */
@@ -57,8 +57,8 @@ export interface ProjectOptions {
 /** Official theme choices supported by the onboarding CLI. */
 export type ThemeChoice = "minimal" | "docs-minimal" | "marketing-minimal";
 
-const DEFAULT_STENO_VERSION = "^0.11.2";
-const DEFAULT_THEME_VERSION = "^0.10.0";
+const DEFAULT_STENO_VERSION = "^0.12.0";
+const DEFAULT_THEME_VERSION = "^0.12.0";
 
 const AVAILABLE_THEMES: Record<
   ThemeChoice,

@@ -80,7 +80,7 @@ Deno.test("scaffoldPlugin: the generated plugin passes its own generated test", 
   scaffoldPlugin("smoke", { targetDir: dir });
 
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["test", "-A", "mod_test.ts"],
+    args: ["test", "-A", "--minimum-dependency-age=0", "mod_test.ts"],
     cwd: dir,
     stdout: "piped",
     stderr: "piped",

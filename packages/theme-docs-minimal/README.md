@@ -9,7 +9,7 @@ documentation tree while keeping long-form content quiet and highly readable.
 To use this theme, specify it in `content/.steno/config.yml`:
 
 ```yaml
-theme: jsr:@steno/theme-docs-minimal@^0.10.0
+theme: jsr:@steno/theme-docs-minimal@^0.12.0
 ```
 
 ## Configuration
@@ -17,7 +17,7 @@ theme: jsr:@steno/theme-docs-minimal@^0.10.0
 All fields are optional strings and can be set under `themeConfig`:
 
 ```yaml
-theme: jsr:@steno/theme-docs-minimal@^0.10.0
+theme: jsr:@steno/theme-docs-minimal@^0.12.0
 themeConfig:
   accent: "#7760a9"
   accentHover: "#5f488f"

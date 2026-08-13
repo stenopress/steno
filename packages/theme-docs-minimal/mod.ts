@@ -26,7 +26,7 @@ const configSchema = Object.fromEntries(
 /** Documentation-focused official Steno theme. */
 const theme: StenoTheme = {
   name: "docs-minimal",
-  version: "0.11.0",
+  version: "0.12.0",
   layouts: { layout },
   assets: {
     "style.css": new URL("./assets/style.css", import.meta.url),
