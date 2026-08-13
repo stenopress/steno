@@ -1,12 +1,33 @@
 import { render } from "../utils/tau.ts";
 import type { SiteConfig, StenoPlugin, StenoTheme, ThemeConfigField } from "../types.ts";
 import type { CollectionMap } from "../core/collections.ts";
-import { basename, join, resolve, toFileUrl } from "@std/path";
+import { basename, fromFileUrl, isAbsolute, join, resolve, toFileUrl } from "@std/path";
 import { parse as parseYaml } from "@std/yaml";
 import { transpile } from "@deno/emit";
 import { mapWithConcurrency } from "../utils/concurrency.ts";
 import { isRecord } from "../utils/text.ts";
 import { ensureParentDirSync } from "../utils/fs.ts";
+
+/**
+ * Bundled theme specifiers Steno resolves from its own packaged copy,
+ * without a network request. Lives here (rather than `steno_theme.ts`,
+ * which orchestrates full theme resolution including module imports) so a
+ * directory theme's `extends` can resolve the same three names without a
+ * circular import - `steno_theme.ts` already imports `Theme` from this file.
+ */
+export const bundledThemeSources: Record<string, URL> = {
+  "jsr:@steno/theme-minimal": new URL("../../packages/theme-minimal", import.meta.url),
+  "jsr:@steno/theme-docs-minimal": new URL("../../packages/theme-docs-minimal", import.meta.url),
+  "jsr:@steno/theme-marketing-minimal": new URL(
+    "../../packages/theme-marketing-minimal",
+    import.meta.url,
+  ),
+};
+
+/** Returns a local bundled-theme path when Steno itself is running from disk. */
+export function bundledThemeLocalPath(source: URL): string | undefined {
+  return source.protocol === "file:" ? fromFileUrl(source) : undefined;
+}
 
 /** Resolved configuration values passed to a theme. */
 export type ThemeConfig = Record<string, unknown>;
@@ -210,6 +231,14 @@ interface ThemeDirectoryMetadata {
   components?: Record<string, string>;
   defaultConfig?: ThemeConfig;
   configSchema?: Record<string, ThemeConfigField>;
+  extends?: string;
+}
+
+/** A directory theme's own data plus the source paths its layouts/components loaded from. */
+interface LoadedDirectoryTheme {
+  theme: StenoTheme;
+  layoutPaths: Record<string, string>;
+  componentPaths: Record<string, string>;
 }
 
 /**
@@ -311,6 +340,39 @@ export class Theme {
    * @returns A new {@link Theme} instance.
    */
   public static async loadFromDirectory(dir: string, userConfig: ThemeConfig = {}): Promise<Theme> {
+    const { theme, layoutPaths, componentPaths } = await Theme.loadDirectoryChain(dir, new Set());
+
+    const themeInstance = new Theme(theme, userConfig);
+    themeInstance.layoutPaths = layoutPaths;
+    themeInstance.componentPaths = componentPaths;
+    return themeInstance;
+  }
+
+  /**
+   * Loads a single directory theme's own data (no `extends` resolution),
+   * then - if its `theme.yaml` declares `extends` - recursively loads and
+   * `mergeTheme`s the base theme underneath it, same field-by-field
+   * semantics as [extending a bundled theme](../../docs/theme-specification.md)
+   * from a module. Source-path maps (used for Tau error messages) merge the
+   * same way: a layout/component this theme redeclares points at this
+   * theme's file, everything else still points at the base's.
+   *
+   * `seen` guards against a cycle (`A extends B extends A`) - each
+   * directory's resolved absolute path is added before recursing, so a
+   * repeat throws instead of recursing forever.
+   */
+  private static async loadDirectoryChain(
+    dir: string,
+    seen: Set<string>,
+  ): Promise<LoadedDirectoryTheme> {
+    const resolvedDir = resolve(dir);
+    if (seen.has(resolvedDir)) {
+      throw new Error(
+        `Circular "extends" chain in theme directory "${dir}" - it already appears earlier in the chain.`,
+      );
+    }
+    seen.add(resolvedDir);
+
     const metadata = Theme.loadMetadata(dir);
     const name = metadata.name || "unnamed";
     const version = metadata.version || "1.0.0";
@@ -322,22 +384,61 @@ export class Theme {
       ...(await Theme.loadScripts(dir)),
     };
 
-    const themeInstance = new Theme(
-      {
-        name,
-        version,
-        layouts,
-        components,
-        assets,
-        defaultConfig: metadata.defaultConfig || {},
-        configSchema: metadata.configSchema,
-      },
-      userConfig,
-    );
+    const own: StenoTheme = {
+      name,
+      version,
+      layouts,
+      components,
+      assets,
+      defaultConfig: metadata.defaultConfig || {},
+      configSchema: metadata.configSchema,
+    };
 
-    themeInstance.layoutPaths = layoutPaths;
-    themeInstance.componentPaths = componentPaths;
-    return themeInstance;
+    if (!metadata.extends) {
+      return { theme: own, layoutPaths, componentPaths };
+    }
+
+    const baseDir = Theme.resolveExtendsDir(dir, metadata.extends);
+    const base = await Theme.loadDirectoryChain(baseDir, seen);
+    return {
+      theme: mergeTheme(base.theme, own),
+      layoutPaths: { ...base.layoutPaths, ...layoutPaths },
+      componentPaths: { ...base.componentPaths, ...componentPaths },
+    };
+  }
+
+  /**
+   * Resolves a `theme.yaml` `extends` value to a directory to load. Accepts
+   * the same three bundled specifiers `theme:` does (resolved from Steno's
+   * own packaged copy, no network request) or a local path - relative paths
+   * resolve against `dir` (the extending theme's own directory), not the
+   * current working directory, so a theme keeps working regardless of where
+   * `steno build` runs from. Unlike top-level `theme:`, arbitrary `jsr:`,
+   * `npm:`, or `https:` module specifiers aren't supported here - a
+   * directory theme's `extends` always resolves to another `theme.yaml`
+   * directory, never an importable `StenoTheme` module.
+   */
+  private static resolveExtendsDir(dir: string, specifier: string): string {
+    const bundledSource = bundledThemeSources[specifier];
+    if (bundledSource) {
+      const localPath = bundledThemeLocalPath(bundledSource);
+      if (!localPath) {
+        throw new Error(
+          `Theme extends "${specifier}", but its bundled copy isn't available on disk in this environment.`,
+        );
+      }
+      return localPath;
+    }
+
+    if (specifier.startsWith("file://")) return fromFileUrl(new URL(specifier));
+    if (isAbsolute(specifier)) return specifier;
+    if (specifier.startsWith(".")) return resolve(dir, specifier);
+
+    throw new Error(
+      `Theme "extends: ${specifier}" is not a recognized bundled theme (jsr:@steno/theme-minimal, ` +
+        `jsr:@steno/theme-docs-minimal, jsr:@steno/theme-marketing-minimal) or a local path ` +
+        `(starting with ".", "/", or "file://").`,
+    );
   }
 
   /**
