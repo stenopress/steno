@@ -89,8 +89,8 @@ deno task bench:trends  # Compare recent benchmark runs
 
 Before you open a pull request, run through this list:
 
-1. **Domain ownership.** Put new logic in the smallest, most specific module that actually owns
-   it - don't scatter it across layers that only touch it in passing.
+1. **Domain ownership.** Put new logic in the smallest, most specific module that actually owns it -
+   don't scatter it across layers that only touch it in passing.
 2. **Test coverage.** Add a focused test alongside whichever module or code path you changed.
    Touching the isolated plugin protocol (`src/plugins/isolated_protocol.ts`, `isolated_worker.ts`)
    needs coverage on both sides of the stdin/stdout boundary. Touching the Tau parser or compiler

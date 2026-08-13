@@ -17,8 +17,8 @@ export default {
 ```
 
 `name`, `version`, and `layouts` are required. `assets` maps output-relative paths to strings,
-`Uint8Array`s, or URLs. Optional `plugins` are trusted, in-process code, so they run with Steno's own
-Deno permissions unless you set `pluginSourcePolicy.allowThemePlugins` to `false`.
+`Uint8Array`s, or URLs. Optional `plugins` are trusted, in-process code, so they run with Steno's
+own Deno permissions unless you set `pluginSourcePolicy.allowThemePlugins` to `false`.
 
 `configSchema` declares `string`, `number`, `integer`, `boolean`, `array`, or `object` settings.
 Fields support `required`, `default`, `description`, and `enum`. Strings support `minLength`,
@@ -62,8 +62,8 @@ layout, component, or asset `base` ships (for example `theme-marketing-minimal`'
 instead, so only the entry you actually named in `overrides` changes.
 
 This only applies to module-based themes (an importable `StenoTheme` object). A directory-based
-theme (`theme.yaml`) has no equivalent object to import and merge - copy from it or use
-`{@include}` instead; see [Themes and Tau](theme_development.md).
+theme (`theme.yaml`) has no equivalent object to import and merge - copy from it or use `{@include}`
+instead; see [Themes and Tau](theme_development.md).
 
 ## Resolution
 

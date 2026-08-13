@@ -5,8 +5,8 @@ developing, and previewing a site. Read on if you're embedding Steno in your own
 writing a plugin, or calling `render()` directly instead of through a theme.
 
 The public module is `jsr:@steno/steno` (or this repository's `mod.ts`). Every export from `mod.ts`
-is listed on this page - nothing else in the package counts as public API, even if you can technically
-reach it by import path.
+is listed on this page - nothing else in the package counts as public API, even if you can
+technically reach it by import path.
 
 ```ts
 import { filters, mergeTheme, render, Steno, Theme } from "jsr:@steno/steno";

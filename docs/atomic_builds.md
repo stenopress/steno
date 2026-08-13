@@ -53,8 +53,8 @@ it to build a sitemap, an RSS feed, or a search index without re-scanning `conte
 
 Fresh output trees remove stale pages and assets on their own, no extra cleanup step needed. Steno
 rejects collisions between pages, theme assets, and redirects rather than letting the last writer
-win silently. Clean builds with identical inputs are tested against identical file paths and
-SHA-256 hashes to make sure nothing drifts.
+win silently. Clean builds with identical inputs are tested against identical file paths and SHA-256
+hashes to make sure nothing drifts.
 
 When the inputs are provably unchanged, and no theme, plugin, lifecycle hook, redirect, data file,
 public environment value, or include could produce additional output, Steno does a no-op warm build
