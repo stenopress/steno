@@ -47,6 +47,10 @@ Point a project at this theme with `theme: ./theme` (or wherever the folder live
 config file) in `content/.steno/config.yml`. See [Resolution](theme-specification.md#resolution) for
 every specifier form `theme` accepts, and [Configuration](config_reference.md) for `themeConfig`.
 
+Add `extends: jsr:@steno/theme-minimal` (or a local path to another `theme.yaml` directory) to
+`theme.yaml` to override just a layout or two instead of building a theme from scratch - see
+[Extending a directory theme](theme-specification.md#extending-a-directory-theme).
+
 ## Scripts
 
 `scripts/*.ts`/`*.tsx` are transpiled to JavaScript and merged into the theme's assets, so

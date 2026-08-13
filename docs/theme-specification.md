@@ -62,8 +62,40 @@ layout, component, or asset `base` ships (for example `theme-marketing-minimal`'
 instead, so only the entry you actually named in `overrides` changes.
 
 This only applies to module-based themes (an importable `StenoTheme` object). A directory-based
-theme (`theme.yaml`) has no equivalent object to import and merge - copy from it or use `{@include}`
-instead; see [Themes and Tau](theme_development.md).
+theme (`theme.yaml`) has its own equivalent - `extends` - covered next.
+
+## Extending a directory theme
+
+A directory theme (`theme.yaml`) overrides another directory theme by setting `extends`:
+
+```yaml
+# theme.yaml
+name: My Minimal
+version: 1.0.0
+extends: jsr:@steno/theme-minimal
+```
+
+```text
+theme/
+├── theme.yaml
+└── layouts/
+    └── layout.tau   # overrides "layout"; every other layout from theme-minimal is untouched
+```
+
+`extends` accepts one of the three bundled specifiers (`jsr:@steno/theme-minimal`,
+`jsr:@steno/theme-docs-minimal`, `jsr:@steno/theme-marketing-minimal`, resolved from Steno's own
+packaged copy, no network request) or a local path starting with `.`, `/`, or `file://` - relative
+paths resolve against the extending theme's own directory, not the current working directory, so
+the theme keeps working regardless of where `steno build` runs from. Arbitrary `jsr:`, `npm:`, or
+`https:` module specifiers aren't accepted here - a directory theme's `extends` always resolves to
+another `theme.yaml` directory, never an importable `StenoTheme` module; use `mergeTheme` from a
+module theme instead if you need that.
+
+Layouts, components, assets, `configSchema`, and `defaultConfig` merge exactly like `mergeTheme`
+above: a file the child theme redeclares (same layout name, same component key, same asset path)
+replaces the base's, everything else survives. `name` and `version` always come from the child.
+Chains can go more than one level deep (`extends` all the way up); a theme that appears twice in its
+own chain fails to load with a clear "circular extends chain" error instead of hanging.
 
 ## Resolution
 
