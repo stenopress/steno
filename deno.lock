@@ -19,6 +19,7 @@
     "jsr:@std/io@0.223": "0.223.0",
     "jsr:@std/media-types@1": "1.1.0",
     "jsr:@std/media-types@1.1.0": "1.1.0",
+    "jsr:@std/path@*": "1.1.6",
     "jsr:@std/path@0.223": "0.223.0",
     "jsr:@std/path@1": "1.1.6",
     "jsr:@std/path@1.1.6": "1.1.6",

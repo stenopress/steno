@@ -1,40 +1,40 @@
 import { join, resolve } from "@std/path";
 import { marked } from "marked";
-import type { CollectionMap } from "../collections.ts";
-import type { PageRenderContext } from "../../theme/theme.ts";
-import { buildCollections, collectMarkdownPages } from "../collections.ts";
 import { runAstTransforms, runHtmlTransforms } from "../../plugins/plugins.ts";
-import { processIncludes } from "../includes.ts";
-import { buildRedirects } from "../redirects.ts";
+import type { PageRenderContext } from "../../theme/theme.ts";
+import type { SiteConfig } from "../../types.ts";
+import { mapWithConcurrency } from "../../utils/concurrency.ts";
+import { ensureParentDirSync, fileExists } from "../../utils/fs.ts";
+import { buildComplete, debugBuildStart, debugPageContext } from "../../utils/output.ts";
+import { errorMessage } from "../../utils/text.ts";
+import type { CollectionMap } from "../collections.ts";
+import { buildCollections, collectMarkdownPages } from "../collections.ts";
+import { resolveShortUrls } from "../config.ts";
 import { loadDataFiles } from "../data.ts";
 import { DiagnosticBag, enforceDiagnostics } from "../diagnostics.ts";
-import { buildComplete, debugBuildStart, debugPageContext } from "../../utils/output.ts";
+import { injectHeadTags, mergeHeadTags, validateHeadTags } from "../head.ts";
+import { processIncludes } from "../includes.ts";
+import { resolvePageConfigOverrides } from "../page_config.ts";
 import {
   resolveMarkdownScanIgnorePaths,
   resolvePageRoute,
   resolvePublicDir,
 } from "../path_utils.ts";
-import type { BuildContext, BuildStateEntry } from "./context.ts";
+import { buildRedirects } from "../redirects.ts";
 import {
   loadPersistentBuildCache,
   resolveCachePath,
   savePersistentBuildCache,
   toBuildStatePageMap,
 } from "./cache.ts";
-import { createBuildSignature } from "./signature.ts";
+import type { BuildContext, BuildStateEntry } from "./context.ts";
 import { getPublicEnvVars, resolveConfigGlobals } from "./env.ts";
-import type { SiteConfig } from "../../types.ts";
 import {
   beginOutputTransaction,
   commitOutputTransaction,
   rollbackOutputTransaction,
 } from "./output_transaction.ts";
-import { resolvePageConfigOverrides } from "../page_config.ts";
-import { injectHeadTags, mergeHeadTags, validateHeadTags } from "../head.ts";
-import { ensureParentDirSync, fileExists } from "../../utils/fs.ts";
-import { resolveShortUrls } from "../config.ts";
-import { mapWithConcurrency } from "../../utils/concurrency.ts";
-import { errorMessage } from "../../utils/text.ts";
+import { createBuildSignature } from "./signature.ts";
 
 export type { BuildContext, BuildState, BuildStateEntry } from "./context.ts";
 const STAGING_COPY_CONCURRENCY = 128;
@@ -128,6 +128,15 @@ export async function buildSite({
     const cachePath = resolveCachePath(contentDir);
     const publicDirPath = resolvePublicDir(contentDir, config.publicDir);
     const publicFiles = publicDirPath ? await collectFilesRecursively(publicDirPath) : [];
+    // A `custom.css` dropped at the public dir's root is a zero-config escape for extra css
+    if (
+      publicFiles.includes("custom.css") &&
+      !siteHead.some(
+        (tag) => tag.tag === "link" && tag.rel === "stylesheet" && tag.href === "/custom.css",
+      )
+    ) {
+      siteHead.push({ tag: "link", rel: "stylesheet", href: "/custom.css" });
+    }
 
     const scannedPages =
       pages ??
