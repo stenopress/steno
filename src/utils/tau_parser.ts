@@ -289,9 +289,9 @@ export class TauParser {
         else if (this.match("{@children}")) {
           this.consume("{@children}");
           nodes.push({ type: "html", expression: "children" });
-        } else if (this.peek() === "{" && !["#", "/", ":", "@"].includes(this.peek(1)))
+        } else if (this.peek() === "{" && !["#", "/", ":", "@"].includes(this.peek(1))) {
           nodes.push(this.parseVariableBlock());
-        else if (this.peek() === "<" && /[A-Z]/.test(this.peek(1))) {
+        } else if (this.peek() === "<" && /[A-Z]/.test(this.peek(1))) {
           nodes.push(this.parseComponentBlock());
         } else nodes.push(this.parseTextNode(endTags));
       }
@@ -485,8 +485,9 @@ export class TauParser {
     while (
       this.pos < this.input.length &&
       (quoteChar ? this.input[this.pos] !== quoteChar : this.input[this.pos] !== "}")
-    )
+    ) {
       this.pos++;
+    }
     const includePath = this.input.substring(start, this.pos).trim();
     if (quoteChar) {
       if (this.pos >= this.input.length) {
@@ -639,8 +640,9 @@ export class TauParser {
         this.matchCommentStart() ||
         (this.peek() === "{" && !["#", "/", ":", "@"].includes(this.peek(1))) ||
         (this.peek() === "<" && /[A-Z]/.test(this.peek(1)))
-      )
+      ) {
         break;
+      }
       this.pos++;
     }
     return { type: "text", value: this.input.substring(start, this.pos) };

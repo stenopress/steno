@@ -83,8 +83,9 @@ function normalizeOutputPath(fromHtml: string, rawTarget: string): string | unde
     target.startsWith("#") ||
     target.startsWith("//") ||
     /^[A-Za-z][A-Za-z\d+.-]*:/.test(target)
-  )
+  ) {
     return;
+  }
 
   const withoutQuery = target.split(/[?#]/, 1)[0];
   let joined = withoutQuery.startsWith("/")
