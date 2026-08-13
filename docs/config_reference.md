@@ -105,6 +105,11 @@ for a link tag, `rel: canonical` is always one shared identity regardless of `hr
 without `src` and link tags without a recognized `rel` have no identity and are always appended. A
 meta entry must set exactly one of `name`, `property`, `httpEquiv`, or `charset`.
 
+A `custom.css` at the root of the public dir gets an automatic `link: stylesheet` entry appended
+here for free - see [Public assets](content.md#public-assets). Declaring your own `head` entry with
+`href: /custom.css` replaces that automatic one by identity, so you can still move or configure it
+explicitly.
+
 ## Theme, globals, and other core settings
 
 `theme` accepts a local directory, a local module, or an importable `jsr:`, `npm:`, or HTTPS module.

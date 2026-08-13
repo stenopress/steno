@@ -123,6 +123,13 @@ This folder is never scanned for Markdown. Rename it with `publicDir` in config,
 entirely with `publicDir: false`. If a public file would overwrite a page or a theme asset, the
 build fails loudly instead of silently overwriting something.
 
+A `custom.css` file at the public dir's root is a special case: Steno links it into every page's
+`<head>` automatically, after the theme's own stylesheet, with no `head` config needed. It's the
+quickest way to make a small tweak - override a color, restyle one heading - without forking or
+extending a theme. For anything past a few rules, [extend the theme](theme-specification.md)
+instead. Add an explicit `head` entry with the same `href: /custom.css` in config if you need it
+placed somewhere other than "last" (see [Managed head tags](config_reference.md#managed-head-tags)).
+
 ## Collections
 
 A collection is an automatic grouping of pages by folder: every page inside `content/posts/` becomes
