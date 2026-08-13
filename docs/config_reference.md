@@ -1,8 +1,9 @@
 # Configuration reference
 
-Steno reads `content/.steno/config.yml` by default; pass another path with `--config`. The format is
-picked from the file extension: `.yml`/`.yaml` for YAML, `.toml` for TOML - so
-`--config content/.steno/config.toml` reads the same fields written as TOML instead.
+Steno reads `content/.steno/config.yml` by default; pass another path with `--config` if you'd
+rather use a different one. The format is picked from the file extension: `.yml`/`.yaml` for YAML,
+`.toml` for TOML - so `--config content/.steno/config.toml` reads the same fields, just written as
+TOML instead.
 
 Every field below is validated against its documented type as soon as the file loads - a wrong type
 (a string `devPort`, a `collections` entry that isn't an object, ...) fails immediately with a

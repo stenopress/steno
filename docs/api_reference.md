@@ -1,12 +1,12 @@
 # API reference
 
-Most projects never need this page: the `deno x jsr:@steno/steno` CLI covers building, developing,
-and previewing a site. Read this if you're embedding Steno in your own script or tool, writing a
-plugin, or calling `render()` directly instead of through a theme.
+Most projects never need this page - the `deno x jsr:@steno/steno` CLI already covers building,
+developing, and previewing a site. Read on if you're embedding Steno in your own script or tool,
+writing a plugin, or calling `render()` directly instead of through a theme.
 
 The public module is `jsr:@steno/steno` (or this repository's `mod.ts`). Every export from `mod.ts`
-is listed on this page - nothing else in the package is public API, even if it happens to be
-reachable by import path.
+is listed on this page - nothing else in the package counts as public API, even if you can technically
+reach it by import path.
 
 ```ts
 import { filters, mergeTheme, render, Steno, Theme } from "jsr:@steno/steno";

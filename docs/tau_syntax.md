@@ -4,10 +4,10 @@ This document specifies Tau 0.9. Tau templates are UTF-8 text and use the `.tau`
 is a superset of Tau 0.8: every Tau 0.8 template still parses and renders identically (see
 [Compatibility](#compatibility)).
 
-If you're using Tau through a Steno theme rather than the `render()` API directly, see
+If you're using Tau through a Steno theme rather than calling the `render()` API directly, head to
 [Themes and Tau](theme_development.md) instead - it covers the context a layout receives (`site`,
 `theme`, `assets`, ...) and is the faster path to a working template. This document is the language
-reference.
+reference, for when you need the full picture.
 
 ## Quick example
 

@@ -1,8 +1,8 @@
 # Plugin sandbox
 
-This page is the detailed security model behind `mode: isolated`, written for people deciding
-whether to trust a plugin, or writing a plugin others will trust. If you only want the short
-version, see [Trust and permissions](plugins.md#trust-and-permissions) in the plugins guide.
+This page walks through the security model behind `mode: isolated`, for anyone deciding whether to
+trust a plugin, or writing one that others will trust. Just want the short version? See
+[Trust and permissions](plugins.md#trust-and-permissions) in the plugins guide instead.
 
 Steno supports two explicit plugin execution modes:
 
@@ -69,7 +69,7 @@ importing `node:child_process` does not grant subprocess access.
 
 ## Threat model
 
-The sandbox is designed to contain a malicious plugin that attempts to:
+The sandbox is built to contain a malicious plugin that tries to:
 
 - read or modify project and host files;
 - read secrets from environment variables;
@@ -84,14 +84,14 @@ The sandbox is designed to contain a malicious plugin that attempts to:
 - corrupt the protocol; or
 - crash or exit its worker.
 
-Capabilities explicitly listed under `permissions` are intentionally outside the boundary. A plugin
-allowed to write a directory can corrupt files in that directory. A plugin allowed network and
-secret-bearing environment variables can exfiltrate those variables. Grants should therefore be
-narrow.
+Anything you explicitly list under `permissions` is intentionally outside the boundary. A plugin
+allowed to write a directory can corrupt files in that directory. A plugin allowed network access
+and a secret-bearing environment variable can exfiltrate it. So keep your grants narrow, only give a
+plugin what it genuinely needs.
 
 ## Current exclusions
 
-The following are not claimed to be sandboxed:
+We don't claim these are sandboxed:
 
 - Plugins configured with `mode: trusted` or the string shorthand.
 - Theme modules, Tau templates, and theme-bundled plugins. Themes are loaded and rendered
@@ -103,5 +103,5 @@ The following are not claimed to be sandboxed:
   explicitly allowed by the user.
 - Integrity of an entire remote dependency graph unless a frozen lockfile is used.
 
-The sandbox should be treated as defense in depth until it has passed cross-platform adversarial
-testing and independent security review.
+Treat the sandbox as defense in depth for now, not a guarantee, until it's passed cross-platform
+adversarial testing and an independent security review.

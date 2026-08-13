@@ -6,7 +6,7 @@ Not sure why your site won't build, or want a second opinion before you ship? Ru
 deno x jsr:@steno/steno doctor
 ```
 
-It inspects your project and prints a report, without building anything or changing a single file.
+It inspects your project and prints a report, without building anything or touching a single file.
 Below is exactly what it checks and how to read the result.
 
 ## Checks
@@ -36,5 +36,5 @@ Below is exactly what it checks and how to read the result.
 
 A failing check (missing config, missing content directory, missing local theme directory, or an
 unsupported plugin specifier) marks the run as having errors, prints a summary line asking you to
-fix them and try again, and exits with process exit code `1`. Any other check produces an
-informational or warning line but does not fail the run; a clean run exits `0`.
+fix them and try again, and exits with process exit code `1`. Anything else just produces an
+informational or warning line and doesn't fail the run; a clean run exits `0`.

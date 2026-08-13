@@ -23,11 +23,11 @@ Promotion moves the previous output to a sibling backup and then renames the sta
 If the second rename fails, Steno restores the backup. On the next build, Steno also recovers a
 backup left by a process interruption during this narrow promotion window.
 
-Because portable filesystems cannot replace a non-empty directory with one universal atomic syscall,
-consumers may observe a brief path transition during promotion. Steno guarantees transactional
-rollback and recovery, not a lock-free directory swap for concurrent readers. Deployment systems
-that need zero-gap switching should publish the completed output as a versioned release and
-atomically update their own symlink or release pointer.
+Because portable filesystems can't replace a non-empty directory with one universal atomic syscall,
+you may see a brief path transition during promotion. Steno guarantees transactional rollback and
+recovery, not a lock-free directory swap for concurrent readers. If your deployment system needs a
+zero-gap switch, publish the completed output as a versioned release and atomically update your own
+symlink or release pointer instead.
 
 ## Plugin and hook paths
 
@@ -51,14 +51,15 @@ it to build a sitemap, an RSS feed, or a search index without re-scanning `conte
 
 ## Determinism and collisions
 
-Fresh output trees remove stale pages and assets naturally. Steno rejects collisions between pages,
-theme assets, and redirects instead of allowing the last writer to win. Clean builds with identical
-inputs are tested for identical file paths and SHA-256 hashes.
+Fresh output trees remove stale pages and assets on their own, no extra cleanup step needed. Steno
+rejects collisions between pages, theme assets, and redirects rather than letting the last writer
+win silently. Clean builds with identical inputs are tested against identical file paths and
+SHA-256 hashes to make sure nothing drifts.
 
-When inputs are provably unchanged and no theme, plugin, lifecycle hook, redirect, data file, public
-environment value, or include can produce additional output, Steno performs a no-op warm build
-without materializing or promoting a new tree. Changed production builds remain transactional and
-are reported separately as atomic incremental builds in the benchmark suite.
+When the inputs are provably unchanged, and no theme, plugin, lifecycle hook, redirect, data file,
+public environment value, or include could produce additional output, Steno does a no-op warm build
+without materializing or promoting a new tree at all. Changed production builds stay transactional
+and get reported separately, as atomic incremental builds, in the benchmark suite.
 
 A warm build qualifies as a no-op only when all of the following hold: no theme is configured, no
 plugins are configured, none of `beforeBuild`, `afterPage`, or `afterBuild` is set on the

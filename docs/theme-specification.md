@@ -16,27 +16,27 @@ export default {
 } satisfies StenoTheme;
 ```
 
-`name`, `version`, and `layouts` are required. `assets` map output-relative paths to strings,
-`Uint8Array`s, or URLs. Optional `plugins` are trusted, in-process code and run with Steno's Deno
-permissions unless `pluginSourcePolicy.allowThemePlugins` is `false`.
+`name`, `version`, and `layouts` are required. `assets` maps output-relative paths to strings,
+`Uint8Array`s, or URLs. Optional `plugins` are trusted, in-process code, so they run with Steno's own
+Deno permissions unless you set `pluginSourcePolicy.allowThemePlugins` to `false`.
 
 `configSchema` declares `string`, `number`, `integer`, `boolean`, `array`, or `object` settings.
 Fields support `required`, `default`, `description`, and `enum`. Strings support `minLength`,
 `maxLength`, and `pattern`; numbers support `minimum` and `maximum`; arrays support `items`,
 `minItems`, and `maxItems`; objects support nested `properties` and `additionalProperties: false`.
 
-Schema defaults, `defaultConfig`, and site `themeConfig` are applied in that order, then validated.
-The top-level merge is shallow, while schema validation and defaults can be recursive. Undeclared
-top-level keys are allowed for backwards compatibility. Invalid values fail theme loading with a
-path to the offending setting - which fails `steno build` outright and only prints in `steno dev`;
-see [How Steno reports problems](troubleshooting.md#how-steno-reports-problems).
+Schema defaults, `defaultConfig`, and site `themeConfig` get applied in that order, then validated.
+The top-level merge is shallow, but schema validation and defaults can go recursive. Undeclared
+top-level keys are allowed, for backwards compatibility. An invalid value fails theme loading with a
+path straight to the offending setting - that fails `steno build` outright, and only prints as a
+warning in `steno dev`; see
+[How Steno reports problems](troubleshooting.md#how-steno-reports-problems).
 
 ## Extending a bundled theme
 
-Each official theme's `mod.ts` exports its `StenoTheme` object as the module default, in addition to
-being loadable directly as `theme:
-jsr:@steno/theme-minimal`. Import that object and pass it to
-`mergeTheme` to override or add to it without repeating everything it already defines:
+Each official theme's `mod.ts` exports its `StenoTheme` object as the module default, on top of
+being loadable directly as `theme: jsr:@steno/theme-minimal`. Import that object and hand it to
+`mergeTheme` to override or add to it, without repeating everything it already defines:
 
 ```ts
 import { mergeTheme } from "jsr:@steno/steno";
@@ -52,22 +52,22 @@ export default mergeTheme(minimal, {
 ```
 
 `mergeTheme(base, overrides)` merges `layouts`, `components`, `assets`, `configSchema`, and
-`defaultConfig` shallowly by key: a key present in `overrides` replaces that entry in `base`; every
-other key from `base` survives untouched. `name`, `version`, and `plugins` are replaced wholesale
-when `overrides` sets them, otherwise `base`'s value is kept. This is why `mergeTheme` exists
-instead of a plain object spread: overriding one entry with
+`defaultConfig` shallowly, key by key: a key present in `overrides` replaces that entry in `base`,
+and every other key from `base` survives untouched. `name`, `version`, and `plugins` get replaced
+wholesale when `overrides` sets them, otherwise `base`'s value sticks. This is exactly why
+`mergeTheme` exists instead of a plain object spread: overriding one entry with
 `{ ...minimal, layouts: { layout: "..." } }` replaces the whole `layouts` object, so any other
 layout, component, or asset `base` ships (for example `theme-marketing-minimal`'s four separate
-`assets` entries) would silently disappear too. `mergeTheme` merges each of those objects key by key
-instead, so only the entry actually named in `overrides` changes.
+`assets` entries) would silently vanish too. `mergeTheme` merges each of those objects key by key
+instead, so only the entry you actually named in `overrides` changes.
 
 This only applies to module-based themes (an importable `StenoTheme` object). A directory-based
-theme (`theme.yaml`) has no equivalent object to import and merge - copy or `{@include}` from it
-instead; see [Themes and Tau](theme_development.md).
+theme (`theme.yaml`) has no equivalent object to import and merge - copy from it or use
+`{@include}` instead; see [Themes and Tau](theme_development.md).
 
 ## Resolution
 
-`theme` accepts, in order of how Steno tries to resolve it:
+`theme` accepts a few different forms:
 
 1. One of the three bundled theme specifiers, `jsr:@steno/theme-minimal`,
    `jsr:@steno/theme-docs-minimal`, or `jsr:@steno/theme-marketing-minimal`, which Steno loads from
