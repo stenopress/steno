@@ -1,7 +1,8 @@
 import { contentType } from "@std/media-types";
 import { basename, dirname, extname, join, relative, resolve } from "@std/path";
 import { isPathInsideOrEqual } from "../core/path_utils.ts";
-import { changeDetected, devServerReady } from "./output.ts";
+import { buildError, changeDetected, devServerReady } from "./output.ts";
+import { errorMessage } from "./text.ts";
 
 export const DEFAULT_DEV_PORT = 5735;
 
@@ -258,7 +259,13 @@ export async function processWatchEvents(
     pending = false;
     rebuildChain = rebuildChain.then(async () => {
       changeDetected();
-      await options.buildFn();
+      // Don't let a rejecting hook crash dev() - report as a failed build instead.
+      try {
+        await options.buildFn();
+      } catch (error) {
+        buildError(errorMessage(error));
+        return;
+      }
       options.broadcastReload?.();
     });
   };
