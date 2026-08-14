@@ -1,5 +1,5 @@
-import { basename, dirname, extname, join, relative, resolve } from "@std/path";
 import { contentType } from "@std/media-types";
+import { basename, dirname, extname, join, relative, resolve } from "@std/path";
 import { isPathInsideOrEqual } from "../core/path_utils.ts";
 import { changeDetected, devServerReady } from "./output.ts";
 
@@ -309,6 +309,22 @@ export async function filterExistingWatchPaths(paths: string[]): Promise<string[
   return existing;
 }
 
+/**
+ * Resolves a path the way `Deno.watchFs` reports it: symlinks followed.
+ * `path.resolve` doesn't follow symlinks, so a symlinked `contentDir` or
+ * `outputDir` would desync ignoredPaths from incoming events - e.g. the
+ * build cache write would never match, re-triggering rebuilds forever.
+ * Falls back to `resolve` when the path doesn't exist yet.
+ */
+export async function resolveWatchComparisonPath(path: string): Promise<string> {
+  try {
+    return await Deno.realPath(path);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return resolve(path);
+    throw error;
+  }
+}
+
 export async function startDevServer(
   outputDir: string,
   buildFn: () => void | Promise<void>,
@@ -334,9 +350,13 @@ export async function startDevServer(
 
   devServerReady(port, preferredPort, hostname);
 
+  // After buildFn(), so ignored paths exist to realpath (see resolveWatchComparisonPath).
+  const resolvedOutputDir = await resolveWatchComparisonPath(outputDir);
+  const resolvedIgnoredPaths = await Promise.all(ignoredPaths.map(resolveWatchComparisonPath));
+
   await processWatchEvents(watcher, {
-    outputDir,
-    ignoredPaths,
+    outputDir: resolvedOutputDir,
+    ignoredPaths: resolvedIgnoredPaths,
     buildFn,
     broadcastReload,
   });
