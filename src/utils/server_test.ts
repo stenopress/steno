@@ -195,6 +195,51 @@ export function registerServerTests(): void {
   });
 
   Deno.test({
+    name: "server: a rejecting buildFn is reported, not left as an unhandled rejection",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const queue = createEventQueue();
+      let buildCount = 0;
+      let broadcastCount = 0;
+
+      const watchLoop = processWatchEvents(queue.events, {
+        outputDir: "/nonexistent-output",
+        buildFn: () => {
+          buildCount++;
+          if (buildCount === 1) {
+            throw new Error("beforeBuild hook exploded");
+          }
+          return Promise.resolve();
+        },
+        broadcastReload: () => {
+          broadcastCount++;
+        },
+        debounceMs: 0,
+      });
+
+      const onRejection = (event: PromiseRejectionEvent) => event.preventDefault();
+      globalThis.addEventListener("unhandledrejection", onRejection);
+
+      try {
+        queue.push({ kind: "modify", paths: ["/nonexistent-content/index.md"] });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        assertEquals(buildCount, 1);
+        assertEquals(broadcastCount, 0, "a failed build must not trigger a reload");
+
+        // The watch loop must still be alive for the next edit.
+        queue.push({ kind: "modify", paths: ["/nonexistent-content/index.md"] });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        assertEquals(buildCount, 2);
+        assertEquals(broadcastCount, 1);
+      } finally {
+        globalThis.removeEventListener("unhandledrejection", onRejection);
+        queue.close();
+        await watchLoop;
+      }
+    },
+  });
+
+  Deno.test({
     name: "server: rapid concurrent edits converge on the latest content",
     permissions: { read: true, write: true },
     fn: async () => {
