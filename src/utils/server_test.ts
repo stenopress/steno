@@ -9,6 +9,7 @@ import {
   injectReloadScript,
   isTransactionalOutputPath,
   processWatchEvents,
+  resolveWatchComparisonPath,
   startPreviewServer,
 } from "./server.ts";
 
@@ -148,6 +149,45 @@ export function registerServerTests(): void {
           await filterExistingWatchPaths([root, join(root, "content", ".steno", "config.yml")]),
           [root],
         );
+      } finally {
+        await Deno.remove(root, { recursive: true });
+      }
+    },
+  });
+
+  Deno.test({
+    name: "server: resolveWatchComparisonPath follows symlinks like Deno.watchFs does",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const root = await Deno.makeTempDir();
+      try {
+        const realContentDir = join(root, "real_content");
+        const stenoDir = join(realContentDir, ".steno");
+        await Deno.mkdir(stenoDir, { recursive: true });
+        const cachePath = join(stenoDir, "build-cache.json");
+        await Deno.writeTextFile(cachePath, "{}");
+
+        const symlinkedContentDir = join(root, "content");
+        await Deno.symlink(realContentDir, symlinkedContentDir, { type: "dir" });
+
+        const resolved = await resolveWatchComparisonPath(
+          join(symlinkedContentDir, ".steno", "build-cache.json"),
+        );
+        assertEquals(resolved, await Deno.realPath(cachePath));
+      } finally {
+        await Deno.remove(root, { recursive: true });
+      }
+    },
+  });
+
+  Deno.test({
+    name: "server: resolveWatchComparisonPath falls back to a plain resolve for a missing path",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const root = await Deno.makeTempDir();
+      try {
+        const missingPath = join(root, "content", ".steno", "build-cache.json");
+        assertEquals(await resolveWatchComparisonPath(missingPath), missingPath);
       } finally {
         await Deno.remove(root, { recursive: true });
       }
