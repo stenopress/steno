@@ -9,13 +9,21 @@ export const DEFAULT_DEV_PORT = 5735;
 const reloadScript = `
   <script>
     if (typeof(EventSource) !== "undefined") {
-      const eventSource = new EventSource("/reload");
-      eventSource.onmessage = function(_event) {
-        location.reload();
-      };
+      let eventSource;
+      function connect() {
+        eventSource = new EventSource("/reload");
+        eventSource.onmessage = function(_event) {
+          location.reload();
+        };
+      }
+      connect();
       // bfcache can freeze this page (EventSource included) instead of tearing it down on navigation.
       addEventListener("pagehide", function() {
         eventSource.close();
+      });
+      // Restored from bfcache: the closed EventSource won't reconnect on its own.
+      addEventListener("pageshow", function(event) {
+        if (event.persisted) connect();
       });
     } else {
       console.log("Sorry, your browser does not support server-sent events...");
