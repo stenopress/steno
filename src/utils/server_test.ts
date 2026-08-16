@@ -70,6 +70,15 @@ export function registerServerTests(): void {
     assertStringIncludes(out, "eventSource.close()");
   });
 
+  Deno.test("server: injectReloadScript reconnects on a bfcache restore", () => {
+    // pagehide's close() doesn't come back on its own when the page is
+    // restored from bfcache instead of freshly loaded - reconnect explicitly.
+    const out = injectReloadScript("<html><body></body></html>");
+
+    assertStringIncludes(out, 'addEventListener("pageshow"');
+    assertStringIncludes(out, "event.persisted");
+  });
+
   Deno.test({
     name: "server: handler serves HTML, CSS and reload stream",
     permissions: { read: true, write: true },
