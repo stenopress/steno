@@ -283,7 +283,7 @@ export async function processWatchEvents(
   // without --allow-env.
   let debugWatch = false;
   try {
-    debugWatch = Deno.env.get("STENO_DEBUG_WATCH") !== undefined;
+    debugWatch = Deno.env.get("STENO_DEBUG_WATCH") === "1";
   } catch {
     // No env permission - debug logging just stays off.
   }
