@@ -13,6 +13,10 @@ const reloadScript = `
       eventSource.onmessage = function(_event) {
         location.reload();
       };
+      // bfcache can freeze this page (EventSource included) instead of tearing it down on navigation.
+      addEventListener("pagehide", function() {
+        eventSource.close();
+      });
     } else {
       console.log("Sorry, your browser does not support server-sent events...");
     }
@@ -178,7 +182,7 @@ function getContentType(filePath: string): string {
 
 /** Creates the dev-server handler and reload broadcaster. */
 export function createDevServerHandler(outputDir: string): {
-  handler: (req: Request) => Promise<Response>;
+  handler: (req: Request, info?: Deno.ServeHandlerInfo) => Promise<Response>;
   broadcastReload: () => void;
 } {
   const state: DevServerState = { clients: new Set() };
@@ -186,11 +190,17 @@ export function createDevServerHandler(outputDir: string): {
 
   const broadcastReload = () => {
     for (const client of state.clients) {
-      client.enqueue(textEncoder.encode("data: reload\n\n"));
+      try {
+        client.enqueue(textEncoder.encode("data: reload\n\n"));
+      } catch {
+        // Client's socket is already gone - drop it rather than let it
+        // linger until the next broadcast rediscovers the same failure.
+        state.clients.delete(client);
+      }
     }
   };
 
-  const handler = (req: Request): Promise<Response> => {
+  const handler = (req: Request, info?: Deno.ServeHandlerInfo): Promise<Response> => {
     const url = new URL(req.url);
 
     if (url.pathname !== "/reload") {
@@ -209,12 +219,22 @@ export function createDevServerHandler(outputDir: string): {
       },
     });
 
+    // info.completed, not req.signal - req.signal also fires on a normal successful response.
+    info?.completed.then(() => {
+      if (!client) return;
+      state.clients.delete(client);
+      try {
+        client.close();
+      } catch {
+        // Already closed/errored - nothing left to clean up.
+      }
+    });
+
     return Promise.resolve(
       new Response(stream, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
-          Connection: "keep-alive",
         },
       }),
     );
@@ -249,6 +269,16 @@ export async function processWatchEvents(
 ): Promise<void> {
   const ignoredPaths = options.ignoredPaths ?? [];
   const debounceMs = options.debounceMs ?? DEFAULT_WATCH_DEBOUNCE_MS;
+  // Temporary diagnostic for tracking down what's re-triggering a rebuild
+  // with no real edit - set STENO_DEBUG_WATCH=1 to print every raw watch
+  // event that survives the ignoredPaths filter. Guarded because tests run
+  // without --allow-env.
+  let debugWatch = false;
+  try {
+    debugWatch = Deno.env.get("STENO_DEBUG_WATCH") !== undefined;
+  } catch {
+    // No env permission - debug logging just stays off.
+  }
 
   let pending = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -294,6 +324,9 @@ export async function processWatchEvents(
       continue;
     }
 
+    if (debugWatch) {
+      console.error("[watch]", event.kind, event.paths, "ignoredPaths:", ignoredPaths);
+    }
     scheduleRebuild();
   }
 

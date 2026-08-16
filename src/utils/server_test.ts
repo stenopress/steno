@@ -62,6 +62,14 @@ export function registerServerTests(): void {
     assertStringIncludes(out, "</body>");
   });
 
+  Deno.test("server: injectReloadScript closes the EventSource on pagehide", () => {
+    // bfcache can freeze the page (EventSource included) instead of tearing it down on navigation.
+    const out = injectReloadScript("<html><body></body></html>");
+
+    assertStringIncludes(out, 'addEventListener("pagehide"');
+    assertStringIncludes(out, "eventSource.close()");
+  });
+
   Deno.test({
     name: "server: handler serves HTML, CSS and reload stream",
     permissions: { read: true, write: true },
@@ -88,6 +96,35 @@ export function registerServerTests(): void {
       const reloadResponse = await handler(new Request("http://localhost:5735/reload"));
       assertEquals(reloadResponse.status, 200);
       assertEquals(reloadResponse.headers.get("Content-Type"), "text/event-stream");
+    },
+  });
+
+  Deno.test({
+    name: "server: navigating away closes the stale /reload stream instead of leaking it",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      Deno.writeTextFileSync(join(tempDir, "index.html"), "<html><body>Home</body></html>");
+
+      // info.completed resolves on real disconnect; req.signal can't be trusted for this.
+      let resolveCompleted: () => void;
+      const completed = new Promise<void>((resolve) => {
+        resolveCompleted = resolve;
+      });
+      const { handler, broadcastReload } = createDevServerHandler(tempDir);
+      const reloadResponse = await handler(new Request("http://localhost:5735/reload"), {
+        completed,
+        remoteAddr: { transport: "tcp", hostname: "127.0.0.1", port: 0 },
+      });
+      const reader = reloadResponse.body!.getReader();
+      await reader.read(); // the initial "retry: 1000" comment
+
+      resolveCompleted!();
+      const afterDisconnect = await reader.read();
+      assert(afterDisconnect.done, "stream should close once the client disconnects");
+
+      // A broadcast after the client is gone must not resurrect it or throw.
+      broadcastReload();
     },
   });
 
