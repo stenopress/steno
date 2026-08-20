@@ -109,8 +109,27 @@ export function registerThemeTests(): void {
       const css = Deno.readTextFileSync(join(tempDir, "assets", manifest["style.css"]));
       const bin = Deno.readFileSync(join(tempDir, "assets", "images", "pixel.bin"));
 
-      assertStringIncludes(css, "color: red");
+      assertStringIncludes(css, "color:red");
       assertEquals(Array.from(bin), [1, 2, 3]);
+    },
+  });
+
+  Deno.test({
+    name: "theme: copyAssets skips CSS minification when minifyCss is false",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const theme = new Theme({
+        name: "assets",
+        version: "1.0.0",
+        layouts: { layout: `{ title }` },
+        assets: { "style.css": "body {\n  color: red;\n}" },
+      });
+
+      const manifest = await theme.copyAssets(tempDir, new Set(), true, false);
+      const css = Deno.readTextFileSync(join(tempDir, "assets", manifest["style.css"]));
+
+      assertEquals(css, "body {\n  color: red;\n}");
     },
   });
 
@@ -178,7 +197,7 @@ export function registerThemeTests(): void {
       const outputDir = join(tempDir, "dist");
       const manifest = await theme.copyAssets(outputDir);
       const copied = Deno.readTextFileSync(join(outputDir, "assets", manifest["style.css"]));
-      assertEquals(copied, "body {}");
+      assertEquals(copied, "body{}");
       assertEquals(theme.config.author, "override");
     },
   });
