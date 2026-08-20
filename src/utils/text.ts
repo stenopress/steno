@@ -145,9 +145,17 @@ export function minifyHtml(html: string): string {
 
       if (!closing && HTML_RAW_TAG_PATTERN.test(tagName)) {
         const closeTag = `</${tagName.toLowerCase()}`;
-        const lowerHtml = html.slice(index).toLowerCase();
-        const relativeEnd = lowerHtml.indexOf(closeTag);
-        const rawEnd = relativeEnd === -1 ? length : index + relativeEnd;
+        const rawEnd = length;
+        let search = index;
+        while (true) {
+          const found = html.indexOf("</", search);
+          if (found === -1) break;
+          if (html.slice(found, found + closeTag.length).toLowerCase() === closeTag) {
+            const rawEnd = found;
+            break;
+          }
+          search = found + 2;
+        }
         out += html.slice(index, rawEnd);
         index = rawEnd;
       }
