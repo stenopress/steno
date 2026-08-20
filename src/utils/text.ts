@@ -4,7 +4,7 @@ export function errorMessage(error: unknown): string {
 }
 
 /**
- * Returns a short SHA-256 fingerprint of `content`, for cache-invalidation
+ * Returns a SHA-256 fingerprint of `content`, for cache-invalidation
  * signatures that only need equality, not the content itself.
  */
 export async function hashContent(content: string): Promise<string> {
