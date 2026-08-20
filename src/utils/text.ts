@@ -159,19 +159,19 @@ export function minifyHtml(html: string): string {
 
       if (!closing && HTML_RAW_TAG_PATTERN.test(tagName)) {
         const closeTag = `</${tagName.toLowerCase()}`;
-        const rawEnd = length;
+        let _rawEnd = length;
         let search = index;
         while (true) {
           const found = html.indexOf("</", search);
           if (found === -1) break;
           if (html.slice(found, found + closeTag.length).toLowerCase() === closeTag) {
-            const rawEnd = found;
+            _rawEnd = found;
             break;
           }
           search = found + 2;
         }
-        out += html.slice(index, rawEnd);
-        index = rawEnd;
+        out += html.slice(index, _rawEnd);
+        index = _rawEnd;
       }
       continue;
     }
