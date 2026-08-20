@@ -6,10 +6,10 @@ import type { SiteConfig } from "../../types.ts";
 import { mapWithConcurrency } from "../../utils/concurrency.ts";
 import { ensureParentDirSync, fileExists } from "../../utils/fs.ts";
 import { buildComplete, debugBuildStart, debugPageContext } from "../../utils/output.ts";
-import { errorMessage } from "../../utils/text.ts";
+import { errorMessage, hashContent, minifyHtml } from "../../utils/text.ts";
 import type { CollectionMap } from "../collections.ts";
 import { buildCollections, collectMarkdownPages } from "../collections.ts";
-import { resolveShortUrls } from "../config.ts";
+import { resolveMinifyCss, resolveMinifyHtml, resolveShortUrls } from "../config.ts";
 import { loadDataFiles } from "../data.ts";
 import { DiagnosticBag, enforceDiagnostics } from "../diagnostics.ts";
 import { injectHeadTags, mergeHeadTags, validateHeadTags } from "../head.ts";
@@ -245,13 +245,20 @@ export async function buildSite({
     const occupiedPaths = new Set<string>();
     const unchangedFiles: Array<{ source: string; destination: string }> = [];
     const themeAssets = theme
-      ? await theme.copyAssets(stagingDir, occupiedPaths, config.hashAssets ?? true)
+      ? await theme.copyAssets(
+          stagingDir,
+          occupiedPaths,
+          config.hashAssets ?? true,
+          resolveMinifyCss(config),
+        )
       : {};
     // Detects stale baked-in asset hrefs on cache reuse.
-    const assetsSignature = JSON.stringify(themeAssets);
+    const assetsSignature = await hashContent(JSON.stringify(themeAssets));
     // Any page's template could read `collections`; resolved eagerly so the
     // per-page cache check below sees it. Skipped without a theme.
-    const collectionsSignature = theme ? JSON.stringify(await getCollections()) : "";
+    const collectionsSignature = theme
+      ? await hashContent(JSON.stringify(await getCollections()))
+      : "";
 
     const fireAfterPage = async (finalPath: string, stagingPath: string, html: string) => {
       // `path` kept for backward compatibility, meaning differs per hook.
@@ -376,7 +383,10 @@ export async function buildSite({
         const layoutContent = theme
           ? await theme.renderLayout(layoutName, htmlContent, pageContext)
           : htmlContent;
-        const renderedContent = injectHeadTags(layoutContent, pageHead);
+        const injectedContent = injectHeadTags(layoutContent, pageHead);
+        const renderedContent = resolveMinifyHtml(config)
+          ? minifyHtml(injectedContent)
+          : injectedContent;
 
         return {
           page,

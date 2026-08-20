@@ -52,6 +52,24 @@ function checkOptionalBoolean(
   if (typeof value !== "boolean") invalid(diagnostics, configPath, field, "a boolean");
 }
 
+function checkMinify(
+  config: Record<string, unknown>,
+  diagnostics: DiagnosticBag,
+  configPath: string,
+): void {
+  const value = config.minify;
+  if (value === undefined || typeof value === "boolean") return;
+  if (!isRecord(value)) {
+    invalid(diagnostics, configPath, "minify", "a boolean or an object with css/html booleans");
+    return;
+  }
+  for (const field of ["css", "html"] as const) {
+    if (value[field] !== undefined && typeof value[field] !== "boolean") {
+      invalid(diagnostics, configPath, `minify.${field}`, "a boolean");
+    }
+  }
+}
+
 function checkOptionalRecord(
   config: Record<string, unknown>,
   field: string,
@@ -261,6 +279,7 @@ const KNOWN_CONFIG_KEYS = new Set<string>([
   "redirects",
   "shortUrls",
   "hashAssets",
+  "minify",
   "devPort",
   "theme",
   "themeConfig",
@@ -304,6 +323,7 @@ export function validateSiteConfig(
     checkOptionalRecord(raw, field, diagnostics, configPath);
   }
 
+  checkMinify(raw, diagnostics, configPath);
   checkDevPort(raw, diagnostics, configPath);
   checkPublicDir(raw, diagnostics, configPath);
   checkCollections(raw, diagnostics, configPath);

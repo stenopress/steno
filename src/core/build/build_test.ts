@@ -160,7 +160,7 @@ export function registerBuildTests(): void {
         throw new Error(`Expected a hashed global.css asset, found: ${assetFiles.join(", ")}`);
       }
       const css = Deno.readTextFileSync(join(f.outputDir, "assets", cssFileName));
-      assertEquals(css, "body { margin: 0; }");
+      assertEquals(css, "body{margin:0}");
 
       f.cleanup();
     },
@@ -174,13 +174,96 @@ export function registerBuildTests(): void {
       const themeDir = f.writeTheme(undefined, undefined, {
         "style.css": "body { color: green; }",
       });
-      f.writeConfig(`custom:\n  theme: "${themeDir}"\nhashAssets: false\n`);
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\nhashAssets: false\nminify:\n  css: false\n`);
       f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
 
       await new Steno(f.configPath, false).build();
 
       const css = Deno.readTextFileSync(join(f.outputDir, "assets", "style.css"));
       assertEquals(css, "body { color: green; }");
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: minify.css: false keeps theme CSS asset formatting as-is",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme(undefined, undefined, {
+        "style.css": "body {\n  color: green;\n}",
+      });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\nminify:\n  css: false\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+
+      await new Steno(f.configPath, false).build();
+
+      const [assetsFile] = Array.from(Deno.readDirSync(join(f.outputDir, "assets")))
+        .map((entry) => entry.name)
+        .filter((name) => name.startsWith("style."));
+      const css = Deno.readTextFileSync(join(f.outputDir, "assets", assetsFile));
+      assertEquals(css, "body {\n  color: green;\n}");
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: theme CSS assets are minified by default",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme(undefined, undefined, {
+        "style.css": "body {\n  color: green;\n}",
+      });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\nhashAssets: false\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+
+      await new Steno(f.configPath, false).build();
+
+      const css = Deno.readTextFileSync(join(f.outputDir, "assets", "style.css"));
+      assertEquals(css, "body{color:green}");
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: minify.html: false keeps rendered page formatting as-is",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme({
+        layout: `<html>\n  <body>\n    {@html content}\n  </body>\n</html>`,
+      });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\nminify:\n  html: false\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+
+      await new Steno(f.configPath, false).build();
+
+      const html = Deno.readTextFileSync(join(f.outputDir, "index.html"));
+      assertStringIncludes(html, "\n  <body>\n    ");
+
+      f.cleanup();
+    },
+  });
+
+  Deno.test({
+    name: "build: rendered pages are HTML-minified by default",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      const themeDir = f.writeTheme({
+        layout: `<html>\n  <body>\n    {@html content}\n  </body>\n</html>`,
+      });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\n---\nHello.`);
+
+      await new Steno(f.configPath, false).build();
+
+      const html = Deno.readTextFileSync(join(f.outputDir, "index.html"));
+      assertEquals(html.includes("\n  <body>\n    "), false);
 
       f.cleanup();
     },

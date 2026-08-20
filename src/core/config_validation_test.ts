@@ -30,6 +30,7 @@ export function registerConfigValidationTests(): void {
         publicDir: "assets",
         shortUrls: true,
         hashAssets: false,
+        minify: { css: false, html: true },
         devPort: 5735,
         theme: "jsr:@steno/theme-minimal",
         themeConfig: { accent: "indigo" },
@@ -71,6 +72,17 @@ export function registerConfigValidationTests(): void {
     assertEquals(errorCodes({ ...base, theme: 1 }), ["config-invalid"]);
     assertEquals(errorCodes({ ...base, shortUrls: "true" }), ["config-invalid"]);
     assertEquals(errorCodes({ ...base, hashAssets: "false" }), ["config-invalid"]);
+  });
+
+  Deno.test("config_validation: minify accepts a boolean or a css/html object", () => {
+    assertEquals(errorCodes({ ...base, minify: true }), []);
+    assertEquals(errorCodes({ ...base, minify: false }), []);
+    assertEquals(errorCodes({ ...base, minify: {} }), []);
+    assertEquals(errorCodes({ ...base, minify: { css: false } }), []);
+    assertEquals(errorCodes({ ...base, minify: { html: true } }), []);
+    assertEquals(errorCodes({ ...base, minify: "off" }), ["config-invalid"]);
+    assertEquals(errorCodes({ ...base, minify: { css: "no" } }), ["config-invalid"]);
+    assertEquals(errorCodes({ ...base, minify: { html: 1 } }), ["config-invalid"]);
   });
 
   Deno.test("config_validation: publicDir accepts a string or false, rejects anything else", () => {

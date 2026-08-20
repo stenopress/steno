@@ -46,6 +46,23 @@ export function resolveDevPort(config: SiteConfig): number {
   return config.devPort ?? config.custom?.devPort ?? DEFAULT_DEV_PORT;
 }
 
+/** Resolves whether a specific `minify` kind (`css`/`html`) is enabled. Defaults to `true`. */
+function resolveMinifyKind(config: SiteConfig, kind: "css" | "html"): boolean {
+  const { minify } = config;
+  if (typeof minify === "boolean") return minify;
+  return minify?.[kind] ?? true;
+}
+
+/** Resolves whether theme CSS assets get minified. */
+export function resolveMinifyCss(config: SiteConfig): boolean {
+  return resolveMinifyKind(config, "css");
+}
+
+/** Resolves whether rendered HTML pages get minified. */
+export function resolveMinifyHtml(config: SiteConfig): boolean {
+  return resolveMinifyKind(config, "html");
+}
+
 /** Resolves global values exposed to templates. */
 export function resolveGlobals(config: SiteConfig): Record<string, unknown> | undefined {
   return config.globals ?? config.custom?.globals;

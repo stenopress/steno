@@ -124,6 +124,25 @@ free one.
 (`style.css` -> `style.a1b2c3d4.css`), so a redeploy with changed styles or scripts is served under
 a new URL without a manual CDN cache purge. Set it to `false` to keep source filenames as-is.
 
+`minify` defaults to `true`: theme CSS assets and rendered HTML pages both get comments and
+extraneous whitespace stripped before being written to the output directory. `<pre>`, `<script>`,
+`<style>`, and `<textarea>` contents are always left untouched in HTML, and CSS string literals
+(quoted values, `url(...)`) are always left untouched, since minification is conservative by
+design - a safety-first pass, not a byte-squeezing one.
+
+Pass a plain boolean to turn everything on or off at once, or an object to control CSS and HTML
+independently:
+
+```yaml
+minify: false # keep all source formatting as-is
+
+minify:
+  css: false # keep theme CSS as-is, HTML still minified
+  html: false # keep rendered HTML as-is, CSS still minified
+```
+
+Each of `css`/`html` defaults to `true` when the other is set explicitly.
+
 These fields, along with `pluginSourcePolicy` (below), used to live nested under a `custom` object.
 That nesting is deprecated: set them at the top level of the config instead. `steno doctor` warns if
 it finds any of them still under `custom`.

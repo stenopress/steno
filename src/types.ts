@@ -208,6 +208,15 @@ export interface SiteConfig {
    * keep source filenames as-is.
    */
   hashAssets?: boolean;
+  /**
+   * Whether output is minified (comments and extraneous whitespace
+   * stripped) before being written to the output directory. `true`/`false`
+   * applies to everything minification covers; an object turns individual
+   * kinds on or off - `css` for theme CSS assets, `html` for rendered
+   * pages (`<pre>`/`<script>`/`<style>`/`<textarea>` contents are always
+   * left untouched). Each kind defaults to `true`.
+   */
+  minify?: boolean | { css?: boolean; html?: boolean };
   /** Development server port. */
   devPort?: number;
   /** Theme module specifier or local path. */

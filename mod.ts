@@ -55,14 +55,7 @@ export type { PageRenderContext, ThemeConfig } from "./src/theme/theme.ts";
 export { StenoDiagnosticError } from "./src/core/diagnostics.ts";
 export type { Diagnostic } from "./src/core/diagnostics.ts";
 
-// Deliberately not `await`-ed at the top level: a top-level await here would
-// keep this module's own evaluation pending for as long as the build runs.
-// A theme loaded mid-build that imports a *value* (not just a type) from
-// this same module - `Theme`, `mergeTheme`, etc. - would then dynamically
-// re-import a module whose evaluation can never finish until this very
-// `await` resolves, deadlocking the build. Firing it without awaiting lets
-// this module finish evaluating immediately; the process still stays alive
-// on the pending work underneath, and still exits non-zero on failure.
+// Not awaited to prevent build deadlock from re-imports
 async function runCli(): Promise<void> {
   try {
     await runStenoCli(Deno.args);

@@ -5,6 +5,8 @@ import {
   loadPlugins,
   resolveDevPort,
   resolveGlobals,
+  resolveMinifyCss,
+  resolveMinifyHtml,
   resolveShortUrls,
   resolveTheme,
   resolveThemeConfig,
@@ -199,6 +201,23 @@ export function registerConfigTests(): void {
       );
       assertEquals(resolveShortUrls({ ...base, custom: { shortUrls: true } }), true);
       assertEquals(resolveShortUrls(base), false);
+    },
+  });
+
+  Deno.test({
+    name: "config: resolveMinifyCss/resolveMinifyHtml default to true, honor boolean or object form",
+    fn: () => {
+      assertEquals(resolveMinifyCss(base), true);
+      assertEquals(resolveMinifyHtml(base), true);
+
+      assertEquals(resolveMinifyCss({ ...base, minify: false }), false);
+      assertEquals(resolveMinifyHtml({ ...base, minify: false }), false);
+
+      assertEquals(resolveMinifyCss({ ...base, minify: { css: false } }), false);
+      assertEquals(resolveMinifyHtml({ ...base, minify: { css: false } }), true);
+
+      assertEquals(resolveMinifyCss({ ...base, minify: { html: false } }), true);
+      assertEquals(resolveMinifyHtml({ ...base, minify: { html: false } }), false);
     },
   });
 

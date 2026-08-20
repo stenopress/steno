@@ -72,8 +72,9 @@ yourself (outside `.tau` templates, which aren't typed)? Import `PageRenderConte
 output filename. CSS and JS assets are written under a content-hashed filename by default
 (`site.css` -> `site.a1b2c3d4.css`) so a redeploy with changed styles or scripts gets a new URL
 automatically - no CDN cache purge needed. Set `hashAssets: false` in the site config to keep source
-filenames as-is. Reference assets through this map rather than hardcoding the source filename either
-way:
+filenames as-is. CSS assets are also minified by default; set `minify: { css: false }` to keep
+source formatting as-is. Reference assets through this map rather than hardcoding the source
+filename either way:
 
 ```html
 <!doctype html>
@@ -171,5 +172,5 @@ expressions.
 - [Tau syntax](tau_syntax.md) for the full expression grammar, built-in filters, and escaping rules.
 - [Theme specification](theme-specification.md) for module-based (`mod.ts`) themes, `configSchema`
   validation rules, and how `theme` is resolved.
-- [Configuration](config_reference.md) for `theme`, `themeConfig`, `hashAssets`, and other
-  site-level settings.
+- [Configuration](config_reference.md) for `theme`, `themeConfig`, `hashAssets`, `minify`, and
+  other site-level settings.
