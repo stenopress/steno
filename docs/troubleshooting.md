@@ -117,6 +117,13 @@ and no CDN purge is needed. If you're still seeing stale assets:
 - If the asset is in `content/public/` rather than a theme asset, it isn't hashed, `hashAssets` only
   applies to theme-owned CSS and JS; see [Public assets](content.md#public-assets).
 
+## Output HTML/CSS is minified and I want readable source for debugging
+
+By default, Steno minifies rendered HTML pages and theme CSS assets (comments and extraneous
+whitespace stripped). Set `minify: false` in config to disable both, or `minify: { css: false }` /
+`minify: { html: false }` to disable just one. See
+[Configuration](config_reference.md#theme-globals-and-other-core-settings).
+
 ## A plugin failed to load
 
 See [How Steno reports problems](#how-steno-reports-problems) above for what happens next - in

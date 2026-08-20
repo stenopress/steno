@@ -67,9 +67,10 @@ problem found, not just the first. See
 `Theme.loadFromDirectory` loads a convention-based local theme (a folder with `theme.yaml`) instead.
 `renderLayout(name, content, variables)` and `renderComponent(name, variables)` render templates and
 return `Promise<string>`; `variables` is the `PageRenderContext` shape (site/theme/page data merged
-for rendering). `copyAssets(outputDir, occupiedPaths?, hashAssets?)` writes the theme's assets to
-disk and returns a manifest mapping each asset's source path to its (possibly content-hashed) output
-path; see [Themes and Tau](theme_development.md#layout-context).
+for rendering). `copyAssets(outputDir, occupiedPaths?, hashAssets?, minifyCss?)` writes the theme's
+assets to disk and returns a manifest mapping each asset's source path to its (possibly
+content-hashed, possibly minified) output path; see
+[Themes and Tau](theme_development.md#layout-context).
 
 `mergeTheme(base, overrides)` merges a base `StenoTheme` (for example, one of the three official
 themes' exported default) with overrides, producing a new `StenoTheme` for extending a bundled theme

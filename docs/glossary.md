@@ -87,6 +87,11 @@ is how Steno makes sure visitors (and CDNs) always get your latest CSS and JavaS
 redeploy, without you having to manually clear a cache. See `hashAssets` in
 [Configuration](config_reference.md#theme-globals-and-other-core-settings).
 
+**Minification**: stripping comments and extraneous whitespace from rendered HTML pages and theme
+CSS assets before writing them to the output directory, to shrink the bytes sent over the network.
+On by default; see `minify` in
+[Configuration](config_reference.md#theme-globals-and-other-core-settings).
+
 **CDN**: a content delivery network, a layer (Cloudflare, for example) that sits in front of your
 host and caches your site's files close to visitors around the world, for speed. Relevant here
 mainly because CDNs cache aggressively, which is exactly what content hashing above solves for.
