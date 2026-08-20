@@ -5,7 +5,7 @@ import { basename, fromFileUrl, isAbsolute, join, resolve, toFileUrl } from "@st
 import { parse as parseYaml } from "@std/yaml";
 import { transpile } from "@deno/emit";
 import { mapWithConcurrency } from "../utils/concurrency.ts";
-import { isRecord } from "../utils/text.ts";
+import { isRecord, minifyCss } from "../utils/text.ts";
 import { ensureParentDirSync } from "../utils/fs.ts";
 
 /**
@@ -72,6 +72,8 @@ export interface PageRenderContext {
 const ASSET_COPY_CONCURRENCY = 32;
 /** Assets matching this pattern get a content hash baked into their output filename. */
 const HASHABLE_ASSET_PATTERN = /\.m?js$|\.css$/i;
+/** Assets matching this pattern are eligible for minification. */
+const CSS_ASSET_PATTERN = /\.css$/i;
 
 async function hashContent(content: string | Uint8Array): Promise<string> {
   const bytes =
@@ -679,6 +681,7 @@ export class Theme {
     outputDir: string,
     occupiedPaths: Set<string> = new Set(),
     hashAssets = true,
+    minifyCssAssets = true,
   ): Promise<Record<string, string>> {
     const manifest: Record<string, string> = {};
     if (!this.themeData.assets) return manifest;
@@ -698,7 +701,11 @@ export class Theme {
       assets.map((entry, index) => ({ entry, index })),
       ASSET_COPY_CONCURRENCY,
       async ({ entry: [relPath, source], index }) => {
-        const content = await Theme.resolveAssetContent(relPath, source);
+        let content = await Theme.resolveAssetContent(relPath, source);
+        if (minifyCssAssets && CSS_ASSET_PATTERN.test(relPath)) {
+          const text = typeof content === "string" ? content : new TextDecoder().decode(content);
+          content = minifyCss(text);
+        }
         const destRelPath =
           hashAssets && HASHABLE_ASSET_PATTERN.test(relPath)
             ? insertAssetHash(relPath, await hashContent(content))
