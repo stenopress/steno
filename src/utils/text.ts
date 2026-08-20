@@ -37,6 +37,20 @@ export function minifyCss(css: string): string {
       continue;
     }
 
+    // preserve unquoted `url(...)` contents
+    if (
+      (char === "u" || char === "U") &&
+      css.slice(index, index + 4).toLowerCase() === "url(" &&
+      css[index + 4] !== '"' &&
+      css[index + 4] !== "'"
+    ) {
+      const end = css.indexOf(")", index + 4);
+      const cursor = end === -1 ? length : end + 1;
+      out += css.slice(index, cursor);
+      index = cursor;
+      continue;
+    }
+
     // quoted string literal; skip over it so we don't minify its contents
     if (char === '"' || char === "'") {
       const quote = char;
