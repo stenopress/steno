@@ -8,6 +8,20 @@
  */
 
 import { join } from "@std/path";
+import {
+  c,
+  ESC,
+  heading,
+  isInteractiveTerminal,
+  paint,
+  printBanner,
+  readKey,
+  setRawMode,
+  truncate,
+  writeTerminal,
+} from "./terminal.ts";
+
+export { c, heading, paint } from "./terminal.ts";
 
 /** Options that can be passed directly to {@link runOnboarding}. When a field
  * is omitted the user is prompted interactively. */
@@ -154,94 +168,6 @@ export class OnboardingError extends Error {
   }
 }
 
-const ESC = "\x1b[";
-
-function noColorRequested(): boolean {
-  try {
-    return Deno.env.get("NO_COLOR") !== undefined;
-  } catch {
-    return false;
-  }
-}
-
-const useColor = !noColorRequested();
-const color = (code: string): string => (useColor ? `${ESC}${code}m` : "");
-
-/** Shared color codes, exported so other scaffolders (theme/plugin) match this CLI's look. */
-export const c = {
-  reset: color("0"),
-  bold: color("1"),
-  dim: color("2"),
-  purple: color("38;5;135"),
-  purpleBold: color("1;38;5;135"),
-  white: color("97"),
-  whiteBold: color("1;97"),
-  gray: color("38;5;245"),
-  green: color("38;5;120"),
-  yellow: color("38;5;222"),
-  cyan: color("38;5;159"),
-  cyanBold: color("1;38;5;159"),
-};
-
-/** Wraps `text` in `color`, resetting afterward. */
-export function paint(color: string, text: string): string {
-  return `${color}${text}${c.reset}`;
-}
-
-function printBanner(): void {
-  const logo = [
-    `   \x1b[32mTTTTT\x1b[0m    \x1b[31mNNNN\x1b[0m`,
-    ` \x1b[35mSSS\x1b[0m \x1b[32mT\x1b[0m \x1b[33mEEEE\x1b[0m \x1b[31mN  N\x1b[0m \x1b[34mOOOO\x1b[0m`,
-    `\x1b[35mS\x1b[0m    \x1b[32mT\x1b[0m \x1b[33mE\x1b[0m    \x1b[31mN  N\x1b[0m \x1b[34mO  O\x1b[0m`,
-    ` \x1b[35mSS\x1b[0m  \x1b[32mT\x1b[0m \x1b[33mEEE\x1b[0m  \x1b[31mN  N\x1b[0m \x1b[34mO  O\x1b[0m`,
-    `   \x1b[35mS\x1b[0m \x1b[32mT\x1b[0m \x1b[33mE\x1b[0m    \x1b[31mN  N\x1b[0m \x1b[34mO  O\x1b[0m`,
-    `\x1b[35mSSS\x1b[0m    \x1b[33mEEEE\x1b[0m      \x1b[34mOOOO\x1b[0m`,
-  ];
-
-  const stripAnsi = (s: string) => s.replace(new RegExp(`${ESC}[0-9;]*m`, "g"), "");
-  const logoWidth = Math.max(...logo.map((l) => stripAnsi(l).length));
-
-  const tagline = "A fast Deno-powered static site generator";
-  const words = tagline.split(" ");
-  const lines: string[] = [];
-  let current = "";
-
-  for (const word of words) {
-    const next = current ? `${current} ${word}` : word;
-    if (next.length <= logoWidth) {
-      current = next;
-    } else {
-      if (current) lines.push(current);
-      current = word;
-    }
-  }
-  if (current) lines.push(current);
-
-  const termWidth = (() => {
-    try {
-      return Deno.consoleSize().columns;
-    } catch {
-      return 80;
-    }
-  })();
-  const leftPad = Math.floor((termWidth - logoWidth) / 2);
-  const p = " ".repeat(leftPad);
-
-  for (const line of logo) console.log(p + (useColor ? line : stripAnsi(line)));
-  console.log();
-  for (const line of lines) {
-    const pad = Math.floor((logoWidth - line.length) / 2);
-    console.log(paint(c.gray, p + " ".repeat(pad) + line));
-  }
-  console.log();
-}
-
-/** Prints a section header matching this CLI's onboarding output. */
-export function heading(text: string): void {
-  console.log(`\n${paint(c.purpleBold, "◆")} ${paint(c.whiteBold, text)}`);
-  console.log(paint(c.gray, "  " + "─".repeat(text.length + 2)));
-}
-
 function toYamlString(value: string): string {
   return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
@@ -346,62 +272,6 @@ function selectTheme(advanced: boolean): string {
   }
 }
 
-function isInteractiveTerminal(): boolean {
-  try {
-    return Deno.stdin.isTerminal() && Deno.stdout.isTerminal();
-  } catch {
-    return false;
-  }
-}
-
-function setRawMode(enabled: boolean): void {
-  try {
-    Deno.stdin.setRaw(enabled);
-  } catch {
-    // stdin is not a tty; caller should have already checked isInteractiveTerminal.
-  }
-}
-
-const encoder = new TextEncoder();
-const write = (text: string): void => {
-  Deno.stdout.writeSync(encoder.encode(text));
-};
-
-type Key = "up" | "down" | "space" | "enter" | "cancel" | "unknown";
-
-function readKey(): Key {
-  const buf = new Uint8Array(8);
-  const n = Deno.stdin.readSync(buf);
-  if (n === null || n === 0) return "unknown";
-  const bytes = buf.subarray(0, n);
-
-  if (bytes.length === 1) {
-    switch (bytes[0]) {
-      case 3: // Ctrl+C
-        return "cancel";
-      case 13: // Enter
-      case 10:
-        return "enter";
-      case 32: // Space
-        return "space";
-    }
-  }
-
-  if (bytes.length >= 3 && bytes[0] === 27 && bytes[1] === 91) {
-    if (bytes[2] === 65) return "up"; // ESC [ A
-    if (bytes[2] === 66) return "down"; // ESC [ B
-  }
-
-  if (bytes[0] === 27) return "cancel"; // plain Escape
-
-  return "unknown";
-}
-
-function truncate(text: string, maxLength: number): string {
-  if (maxLength <= 1 || text.length <= maxLength) return text;
-  return text.slice(0, Math.max(0, maxLength - 1)).trimEnd() + "…";
-}
-
 function promptPackageSpecifier(): string | undefined {
   const arrow = paint(c.purple, "›");
   const value = prompt(
@@ -487,14 +357,14 @@ function selectPluginsInteractive(): PluginSelection {
   let lastRowCount = 0;
   const render = (first: boolean): void => {
     const rows = buildRows();
-    if (!first) write(`${ESC}${lastRowCount}A`);
+    if (!first) writeTerminal(`${ESC}${lastRowCount}A`);
     for (let i = 0; i < rows.length; i++) {
-      write(`\r${ESC}2K${renderRow(rows[i], i === cursor)}\n`);
+      writeTerminal(`\r${ESC}2K${renderRow(rows[i], i === cursor)}\n`);
     }
     lastRowCount = rows.length;
   };
 
-  write(`${ESC}?25l`); // hide cursor
+  writeTerminal(`${ESC}?25l`); // hide cursor
   setRawMode(true);
 
   try {
@@ -525,10 +395,10 @@ function selectPluginsInteractive(): PluginSelection {
         const row = rows[cursor];
         if (row.type === "add-community") {
           setRawMode(false);
-          write(`${ESC}?25h`);
+          writeTerminal(`${ESC}?25h`);
           const pkg = promptPackageSpecifier();
           setRawMode(true);
-          write(`${ESC}?25l`);
+          writeTerminal(`${ESC}?25l`);
           if (pkg) {
             communityPackages.push(pkg);
             selectedCommunity.add(communityPackages.length - 1);
@@ -540,14 +410,14 @@ function selectPluginsInteractive(): PluginSelection {
         }
       } else if (key === "cancel") {
         setRawMode(false);
-        write(`${ESC}?25h`);
+        writeTerminal(`${ESC}?25h`);
         console.log();
         Deno.exit(130);
       }
     }
   } finally {
     setRawMode(false);
-    write(`${ESC}?25h`);
+    writeTerminal(`${ESC}?25h`);
   }
 
   console.log();
