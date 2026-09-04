@@ -26,6 +26,7 @@ import {
   promptYesNo,
   toYamlString,
 } from "./prompt_input.ts";
+import { checkProjectOverwrite } from "./project_files.ts";
 
 export { c, heading, paint } from "./terminal.ts";
 
@@ -501,23 +502,7 @@ export function parseThemeChoice(value?: string): ThemeChoice | undefined {
  * unless the caller already checked its own `force` flag.
  */
 export function checkOverwrite(paths: string[]): void {
-  const existing = paths.filter((p) => {
-    try {
-      Deno.statSync(p);
-      return true;
-    } catch (e) {
-      if (e instanceof Deno.errors.NotFound) return false;
-      throw e;
-    }
-  });
-
-  if (existing.length > 0) {
-    throw new OnboardingError(
-      `Aborted: the following files already exist:\n${existing
-        .map((p) => `  ${paint(c.purple, "•")} ${p}`)
-        .join("\n")}\n\nUse ${paint(c.whiteBold, "--force")} to overwrite.`,
-    );
-  }
+  checkProjectOverwrite(paths, OnboardingError);
 }
 
 /**
