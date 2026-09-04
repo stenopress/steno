@@ -20,6 +20,12 @@ import {
   truncate,
   writeTerminal,
 } from "./terminal.ts";
+import {
+  promptPackageSpecifier,
+  promptWithDefault,
+  promptYesNo,
+  toYamlString,
+} from "./prompt_input.ts";
 
 export { c, heading, paint } from "./terminal.ts";
 
@@ -168,30 +174,6 @@ export class OnboardingError extends Error {
   }
 }
 
-function toYamlString(value: string): string {
-  return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
-}
-
-function promptWithDefault(label: string, defaultValue: string): string {
-  const arrow = paint(c.purple, "›");
-  const def = paint(c.gray, `(${defaultValue})`);
-  const value = prompt(`  ${arrow} ${label} ${def}`)?.trim();
-  return value && value.length > 0 ? value : defaultValue;
-}
-
-function promptYesNo(label: string, defaultValue = false): boolean {
-  const arrow = paint(c.purple, "›");
-  const hint = defaultValue ? paint(c.gray, "[Y/n]") : paint(c.gray, "[y/N]");
-
-  while (true) {
-    const value = prompt(`  ${arrow} ${label} ${hint}`)?.trim().toLowerCase();
-    if (!value) return defaultValue;
-    if (value === "y" || value === "yes") return true;
-    if (value === "n" || value === "no") return false;
-    console.log(paint(c.yellow, "  ⚠  Please answer yes or no."));
-  }
-}
-
 const COMMUNITY_THEME_LABEL = "Community theme";
 const LOCAL_THEME_LABEL = "Local theme";
 
@@ -270,14 +252,6 @@ function selectTheme(advanced: boolean): string {
       paint(c.yellow, `\n  ⚠  Invalid choice. Enter a number between 1 and ${maxIndex}.\n`),
     );
   }
-}
-
-function promptPackageSpecifier(): string | undefined {
-  const arrow = paint(c.purple, "›");
-  const value = prompt(
-    `  ${arrow} Package specifier ${paint(c.gray, "(e.g. jsr:@user/plugin-name)")}`,
-  )?.trim();
-  return value && value.length > 0 ? value : undefined;
 }
 
 type PluginSelection = { plugins: PluginChoice[]; community: string[] };
