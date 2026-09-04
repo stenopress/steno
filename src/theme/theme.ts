@@ -4,9 +4,8 @@ import type { CollectionMap } from "../core/collections.ts";
 import { basename, fromFileUrl, isAbsolute, join, resolve, toFileUrl } from "@std/path";
 import { parse as parseYaml } from "@std/yaml";
 import { transpile } from "@deno/emit";
-import { mapWithConcurrency } from "../utils/concurrency.ts";
-import { isRecord, minifyCss } from "../utils/text.ts";
-import { ensureParentDirSync } from "../utils/fs.ts";
+import { isRecord } from "../utils/text.ts";
+import { copyThemeAssets } from "./assets.ts";
 import { resolveSchemaDefaults, type ThemeConfig, validateThemeConfig } from "./config.ts";
 
 export type { ThemeConfig } from "./config.ts";
@@ -67,33 +66,6 @@ export interface PageRenderContext {
   assets?: Record<string, string>;
   /** Every other page frontmatter field and public env var, spread at the top level. */
   [key: string]: unknown;
-}
-
-const ASSET_COPY_CONCURRENCY = 32;
-/** Assets matching this pattern get a content hash baked into their output filename. */
-const HASHABLE_ASSET_PATTERN = /\.m?js$|\.css$/i;
-/** Assets matching this pattern are eligible for minification. */
-const CSS_ASSET_PATTERN = /\.css$/i;
-
-async function hashContent(content: string | Uint8Array): Promise<string> {
-  const bytes =
-    typeof content === "string" ? new TextEncoder().encode(content) : new Uint8Array(content);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("")
-    .slice(0, 8);
-}
-
-/** Inserts a hash before an asset's file extension: `style.css` -> `style.<hash>.css`. */
-function insertAssetHash(relPath: string, hash: string): string {
-  const slashIndex = relPath.lastIndexOf("/");
-  const dir = slashIndex === -1 ? "" : relPath.slice(0, slashIndex + 1);
-  const fileName = slashIndex === -1 ? relPath : relPath.slice(slashIndex + 1);
-  const dotIndex = fileName.lastIndexOf(".");
-  return dotIndex === -1
-    ? `${dir}${fileName}.${hash}`
-    : `${dir}${fileName.slice(0, dotIndex)}.${hash}${fileName.slice(dotIndex)}`;
 }
 
 interface ThemeDirectoryMetadata {
@@ -552,75 +524,12 @@ export class Theme {
     hashAssets = true,
     minifyCssAssets = true,
   ): Promise<Record<string, string>> {
-    const manifest: Record<string, string> = {};
-    if (!this.themeData.assets) return manifest;
-    const assetsDir = join(outputDir, "assets");
-
-    const assets = Object.entries(this.themeData.assets).sort(([left], [right]) =>
-      left.localeCompare(right),
+    return await copyThemeAssets(
+      this.themeData.assets,
+      outputDir,
+      occupiedPaths,
+      hashAssets,
+      minifyCssAssets,
     );
-
-    const resolved = new Array<{
-      relPath: string;
-      destRelPath: string;
-      content: string | Uint8Array;
-    }>(assets.length);
-
-    await mapWithConcurrency(
-      assets.map((entry, index) => ({ entry, index })),
-      ASSET_COPY_CONCURRENCY,
-      async ({ entry: [relPath, source], index }) => {
-        let content = await Theme.resolveAssetContent(relPath, source);
-        if (minifyCssAssets && CSS_ASSET_PATTERN.test(relPath)) {
-          const text = typeof content === "string" ? content : new TextDecoder().decode(content);
-          content = minifyCss(text);
-        }
-        const destRelPath =
-          hashAssets && HASHABLE_ASSET_PATTERN.test(relPath)
-            ? insertAssetHash(relPath, await hashContent(content))
-            : relPath;
-        resolved[index] = { relPath, destRelPath, content };
-      },
-    );
-
-    const writeJobs: Array<{ destPath: string; content: string | Uint8Array }> = [];
-    for (const { relPath, destRelPath, content } of resolved) {
-      const destPath = join(assetsDir, destRelPath);
-      const normalizedDestPath = resolve(destPath);
-      if (occupiedPaths.has(normalizedDestPath)) {
-        throw new Error(
-          `Output collision: theme asset "${relPath}" would overwrite "${destPath}".`,
-        );
-      }
-      occupiedPaths.add(normalizedDestPath);
-      ensureParentDirSync(destPath);
-      manifest[relPath] = destRelPath;
-      writeJobs.push({ destPath, content });
-    }
-
-    await mapWithConcurrency(writeJobs, ASSET_COPY_CONCURRENCY, async ({ destPath, content }) => {
-      if (typeof content === "string") {
-        await Deno.writeTextFile(destPath, content);
-      } else {
-        await Deno.writeFile(destPath, content);
-      }
-    });
-
-    return manifest;
-  }
-
-  /** Resolves a theme asset's raw source to bytes/text, fetching URL sources. */
-  private static async resolveAssetContent(
-    relPath: string,
-    source: string | Uint8Array | URL,
-  ): Promise<string | Uint8Array> {
-    if (typeof source === "string" || source instanceof Uint8Array) {
-      return source;
-    }
-    const response = await fetch(source);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch theme asset "${relPath}": ${source.href}`);
-    }
-    return new Uint8Array(await response.arrayBuffer());
   }
 }
