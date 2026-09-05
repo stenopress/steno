@@ -1,6 +1,17 @@
-import { basename, dirname, isAbsolute, join, relative } from "@std/path";
+import { basename, dirname, join } from "@std/path";
 import { marked } from "marked";
-import type { MarkdownPage } from "./collections.ts";
+import { isPathInsideOrEqual } from "../utils/fs.ts";
+
+export { isPathInsideOrEqual } from "../utils/fs.ts";
+
+interface RoutablePage {
+  fullPath?: string;
+  relPath: string;
+  sourceText?: string;
+  frontmatter: Record<string, unknown>;
+  body: string;
+  title?: string;
+}
 
 /** Name of Steno's reserved metadata directory within a content directory. */
 export const STENO_DIR = ".steno";
@@ -14,7 +25,7 @@ export function humanizeSegment(input: string): string {
   return value ? value.replace(/\b\w/g, (char) => char.toUpperCase()) : "Untitled";
 }
 
-export function inferPageTitle(page: MarkdownPage): string {
+export function inferPageTitle(page: RoutablePage): string {
   const explicitTitle = page.frontmatter.title;
   if (typeof explicitTitle === "string" && explicitTitle.trim()) {
     return explicitTitle.trim();
@@ -55,7 +66,7 @@ export interface PageRoute {
   outputPath: string;
 }
 
-function readPermalink(page: MarkdownPage): string | undefined {
+function readPermalink(page: RoutablePage): string | undefined {
   const namespace = page.frontmatter.steno;
   const namespacedPermalink =
     namespace && typeof namespace === "object" && !Array.isArray(namespace)
@@ -98,7 +109,7 @@ function normalizePermalink(permalink: string, pageRelPath: string): string {
  * A `permalink` field, or `steno.permalink`, overrides the file-derived route.
  * Root `404.md` is always emitted as `/404.html` for static-host compatibility.
  */
-export function resolvePageRoute(page: MarkdownPage, shortUrls: boolean): PageRoute {
+export function resolvePageRoute(page: RoutablePage, shortUrls: boolean): PageRoute {
   const normalizedRelPath = page.relPath.replaceAll("\\", "/");
   if (normalizedRelPath === "404.md" && readPermalink(page) === undefined) {
     return { url: "/404.html", outputPath: "404.html" };
@@ -142,15 +153,10 @@ export function resolvePageRoute(page: MarkdownPage, shortUrls: boolean): PageRo
 /** Resolves a page's output file beneath the configured output directory. */
 export function resolvePageOutputPath(
   outputDir: string,
-  page: MarkdownPage,
+  page: RoutablePage,
   shortUrls: boolean,
 ): string {
   return join(outputDir, resolvePageRoute(page, shortUrls).outputPath);
-}
-
-export function isPathInsideOrEqual(candidate: string, parent: string): boolean {
-  const rel = relative(parent, candidate);
-  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
 export function commonAncestorDir(paths: string[]): string {

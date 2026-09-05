@@ -1,4 +1,9 @@
-import { dirname } from "@std/path";
+import { dirname, isAbsolute, relative } from "@std/path";
+
+export function isPathInsideOrEqual(candidate: string, parent: string): boolean {
+  const rel = relative(parent, candidate);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
 
 /** Creates `path`'s parent directory (recursively) if it doesn't exist. */
 export function ensureParentDirSync(path: string): void {
