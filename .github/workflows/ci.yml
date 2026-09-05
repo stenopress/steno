@@ -64,6 +64,9 @@ jobs:
       - name: Test installed product (simulated publish)
         run: deno task test:installed
 
+      - name: Test benchmark safeguards
+        run: deno task test:benchmarks
+
       - name: Run performance benchmarks
         run: deno bench -A --json benchmarks > benchmark-results.json
 
