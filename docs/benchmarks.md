@@ -52,7 +52,11 @@ keeping transactional staging and promotion in place. Fixture creation happens o
 ```sh
 deno task bench:report
 deno task bench:check
+deno task bench:trends
 ```
 
 Run this on an otherwise idle machine. The performance gate checks averages against committed
 budgets; this report also publishes sample count, minimum, p75, and p99 latency for the curious.
+The trends command stores its local history under `benchmarks/.bench-history`, compares each run
+with the last accepted baseline, and exits unsuccessfully when an average regresses by more than
+20%. Set `STENO_BENCH_TREND_THRESHOLD` to a non-negative ratio to override that limit locally.
