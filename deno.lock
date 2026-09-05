@@ -41,7 +41,7 @@
     "jsr:@steno/plugin-tailwind@0.3.0": "0.3.0",
     "jsr:@steno/steno@0.10": "0.10.0",
     "npm:imagescript@*": "1.3.1",
-    "npm:marked@18.0.10": "18.0.10",
+    "npm:marked@18.0.11": "18.0.11",
     "npm:sharp@~0.33.5": "0.33.5",
     "npm:shiki@^4.3.0": "4.3.1"
   },
@@ -489,8 +489,8 @@
     "is-arrayish@0.3.4": {
       "integrity": "sha512-m6UrgzFVUYawGBh1dUsWR5M2Clqic9RVXC/9f8ceNlv2IcO9j9J/z8UoCLPqtsPBFNzEpfR3xftohbfqDx8EQA=="
     },
-    "marked@18.0.10": {
-      "integrity": "sha512-FJeH4bRpYoXiggcgriCGItKCSv3xkngJc4QCZ/rkQCogU3VYaLxYJoZl8Nw/b4+x7iij/pd+09mZ6A1dXzpL0A==",
+    "marked@18.0.11": {
+      "integrity": "sha512-HnslJfsZkRPBDJRHvVtAaWlZHEpSu7u8LgQuJCELjRKuWR+hpq4A7sLq3p8HaI9ypVoXDXxV34CsQJEe1+J5Aw==",
       "bin": true
     },
     "mdast-util-to-hast@13.2.1": {
@@ -688,7 +688,7 @@
       "jsr:@std/path@1.1.6",
       "jsr:@std/toml@1.0.11",
       "jsr:@std/yaml@1.2.0",
-      "npm:marked@18.0.10"
+      "npm:marked@18.0.11"
     ]
   }
 }
