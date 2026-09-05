@@ -36,7 +36,9 @@
     "bench:trends": "deno run -A ./benchmarks/bench_trends.ts",
     "doc:check": "deno doc --lint mod.ts",
     "check:api-compat": "deno check api_compat/theme.ts api_compat/plugin.ts api_compat/embedding.ts",
-    "check": "deno task fmt:check && deno lint && deno check mod.ts && deno task doc:check && deno task check:api-compat && deno task test:all",
+    "check:architecture": "deno test --allow-read tools/architecture_test.ts",
+    "check:maintainability": "deno run --allow-read tools/maintainability.ts",
+    "check": "deno task fmt:check && deno lint && deno check mod.ts && deno task doc:check && deno task check:api-compat && deno task check:architecture && deno task check:maintainability && deno task test:all",
     "fmt": "deno x prettier --write .",
     "fmt:check": "deno x prettier --check ."
   },

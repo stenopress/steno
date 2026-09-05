@@ -93,6 +93,17 @@ Deno.test({
 });
 
 Deno.test({
+  name: "page_config: keeps valid head entries",
+  fn: () => {
+    const overrides = resolvePageConfigOverrides(
+      { steno: { head: [{ tag: "meta", name: "robots", content: "noindex" }] } },
+      "draft.md",
+    );
+    assertEquals(overrides.head, [{ tag: "meta", name: "robots", content: "noindex" }]);
+  },
+});
+
+Deno.test({
   name: "page_config: accepts a valid navigation tree",
   fn: () => {
     const overrides = resolvePageConfigOverrides(
@@ -157,6 +168,49 @@ Deno.test({
         ),
       Error,
       `at "steno.navigation[0].children[0].title": expected a string`,
+    );
+  },
+});
+
+Deno.test({
+  name: "page_config: rejects a non-string navigation URL",
+  fn: () => {
+    assertThrows(
+      () =>
+        resolvePageConfigOverrides(
+          { steno: { navigation: [{ title: "Docs", url: 42 }] } },
+          "post.md",
+        ),
+      Error,
+      `at "steno.navigation[0].url": expected a string`,
+    );
+  },
+});
+
+Deno.test({
+  name: "page_config: rejects non-array navigation children",
+  fn: () => {
+    assertThrows(
+      () =>
+        resolvePageConfigOverrides(
+          { steno: { navigation: [{ title: "Docs", children: {} }] } },
+          "post.md",
+        ),
+      Error,
+      `at "steno.navigation[0].children": expected an array`,
+    );
+  },
+});
+
+Deno.test({
+  name: "page_config: ignores omitted optional fields",
+  fn: () => {
+    assertEquals(
+      resolvePageConfigOverrides(
+        { steno: { title: undefined, themeConfig: undefined, navigation: undefined } },
+        "post.md",
+      ),
+      {},
     );
   },
 });

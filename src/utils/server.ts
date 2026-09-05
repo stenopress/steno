@@ -1,6 +1,6 @@
 import { contentType } from "@std/media-types";
 import { basename, dirname, extname, join, relative, resolve } from "@std/path";
-import { isPathInsideOrEqual } from "../core/path_utils.ts";
+import { isPathInsideOrEqual } from "./fs.ts";
 import { buildError, changeDetected, devServerReady } from "./output.ts";
 import { errorMessage } from "./text.ts";
 
