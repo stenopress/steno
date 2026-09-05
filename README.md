@@ -226,6 +226,7 @@ the test environment, averages, and tail latency instead of presenting one resul
 deno task bench
 deno task bench:check
 deno task bench:report
+deno task bench:trends
 ```
 
 ## CLI

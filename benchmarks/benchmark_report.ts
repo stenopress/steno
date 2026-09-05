@@ -110,11 +110,13 @@ ${table(microRows)}
 \`\`\`sh
 deno task bench:report
 deno task bench:check
+deno task bench:trends
 \`\`\`
 
 Run on an otherwise idle machine. The performance gate evaluates averages
 against committed budgets; this report additionally publishes sample count,
-minimum, p75, and p99 latency.
+minimum, p75, and p99 latency. The trends command compares a run with the
+last accepted local baseline and rejects average regressions above 20%.
 `;
 
 await Deno.writeTextFile(outputPath, report);
