@@ -65,5 +65,17 @@
     "template": "{@html text | markdown_inline}",
     "context": { "text": "**hello**" },
     "output": "<strong>hello</strong>"
+  },
+  {
+    "name": "filter pipes require a base expression",
+    "template": "{| upper}",
+    "context": {},
+    "errorCode": "TAU_PARSE_EMPTY"
+  },
+  {
+    "name": "raw HTML filter pipes require a base expression",
+    "template": "{@html   | upper}",
+    "context": {},
+    "errorCode": "TAU_PARSE_EMPTY"
   }
 ]

@@ -1,9 +1,23 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { render } from "./tau.ts";
+import { TauError } from "./tau_error.ts";
+import { TauParser } from "./tau_parser.ts";
 
 function evaluate(expression: string, context: Record<string, unknown> = {}) {
   return render({ template: expression, context, components: {} });
 }
+
+Deno.test("tau filters: missing base expressions fail during parsing", () => {
+  for (const template of ["{| upper}", "{   | upper}", "{@html | upper}", "{@html   | upper}"]) {
+    const error = assertThrows(
+      () => new TauParser(template, "empty-filter.tau").parseBlock(),
+      TauError,
+      "Expression before a filter cannot be empty.",
+    );
+    assertEquals(error.code, "TAU_PARSE_EMPTY");
+    assertEquals(error.filePath, "empty-filter.tau");
+  }
+});
 
 Deno.test("tau filters: slugify normalizes accents and preserves Unicode letters", async () => {
   for (const [value, expected] of [

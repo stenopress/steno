@@ -545,9 +545,13 @@ export class TauParser {
 
   private parseFilteredExpression(raw: string): Node {
     const parts = splitTopLevel(raw, "|");
+    const expression = parts[0].trim();
+    if (!expression) {
+      this.throwError("Expression before a filter cannot be empty.", "TAU_PARSE_EMPTY");
+    }
     return {
       type: "expression",
-      expression: parts[0].trim(),
+      expression,
       filters: parts.slice(1).map((f) => {
         const term = f.trim();
         const paren = term.indexOf("(");
