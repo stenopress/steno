@@ -2,6 +2,7 @@ import type { StenoPlugin } from "../../types.ts";
 import type { Theme } from "../../theme/theme.ts";
 import type { SiteConfig } from "../../types.ts";
 import { getIsolatedPluginSignature } from "../../plugins/isolated_plugin.ts";
+import { pluginSourceRevisions } from "../../plugins/source_revision.ts";
 
 export function createBuildSignature(
   config: SiteConfig,
@@ -17,6 +18,7 @@ export function createBuildSignature(
     }
     return {
       name: plugin.name,
+      sourceRevision: pluginSourceRevisions.get(plugin),
       transformAst: plugin.transformAst?.toString() ?? null,
       transformHtml: plugin.transformHtml?.toString() ?? null,
       beforeBuild: plugin.beforeBuild?.toString() ?? null,

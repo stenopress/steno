@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { Steno, StenoDiagnosticError } from "../../mod.ts";
+import { resolvePluginWatchDirs } from "./config.ts";
 
 interface Fixture {
   tempDir: string;
@@ -102,6 +103,56 @@ function initialLoad(steno: Steno): Promise<unknown> {
 }
 
 export function registerStenoTests(): void {
+  Deno.test(
+    "Steno: reloads changed trusted local source and invalidates captured hook output",
+    async () => {
+      const f = createFixture();
+      try {
+        f.writeConfig("");
+        const pluginPath = join(f.tempDir, "counting-plugin.ts");
+        const source = (value: string) =>
+          `const value = ${JSON.stringify(value)};
+export default () => ({ name: "local", transformHtml: () => value });`;
+        Deno.writeTextFileSync(pluginPath, source("first"));
+        const originalTime = Deno.statSync(pluginPath).mtime!;
+        const steno = new Steno(f.configPath, false);
+        await initialLoad(steno);
+        const rebuild = () =>
+          (steno as unknown as { executeBuild: (dev: boolean) => Promise<void> }).executeBuild(
+            true,
+          );
+        await rebuild();
+        const output = join(f.tempDir, "dist", "index.html");
+        assertStringIncludes(Deno.readTextFileSync(output), "first");
+        Deno.writeTextFileSync(pluginPath, source("other"));
+        Deno.utimeSync(pluginPath, originalTime, originalTime);
+        await rebuild();
+        assertStringIncludes(Deno.readTextFileSync(output), "other");
+        assertEquals(
+          resolvePluginWatchDirs({
+            title: "Test",
+            description: "",
+            author: "",
+            plugins: [`file://${pluginPath}`],
+            pluginSourcePolicy: { allowLocal: true },
+          }),
+          [f.tempDir],
+        );
+        assertEquals(
+          resolvePluginWatchDirs({
+            title: "Test",
+            description: "",
+            author: "",
+            plugins: [`file://${pluginPath}`],
+          }),
+          [],
+        );
+      } finally {
+        f.cleanup();
+      }
+    },
+  );
+
   Deno.test({
     name: "Steno: reuses a trusted plugin instance across rebuilds when config.plugins is unchanged",
     permissions: { read: true, write: true, run: true, env: true },

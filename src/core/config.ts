@@ -1,7 +1,9 @@
 import { parse as parseToml } from "@std/toml";
 import { parse as parseYaml } from "@std/yaml";
+import { dirname, fromFileUrl } from "@std/path";
 import { loadIsolatedPlugin } from "../plugins/isolated_plugin.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
+import { pluginSourceRevisions } from "../plugins/source_revision.ts";
 import type { PluginEntry, PluginSourcePolicy, SiteConfig, StenoPlugin } from "../types.ts";
 import { DEFAULT_DEV_PORT } from "../utils/server.ts";
 import { errorMessage } from "../utils/text.ts";
@@ -11,6 +13,49 @@ import { validateSiteConfig } from "./config_validation.ts";
 type PluginFactory = (options: Record<string, unknown>) => StenoPlugin | Promise<StenoPlugin>;
 
 type ResolvedPluginSourcePolicy = Required<PluginSourcePolicy>;
+
+/** Local trusted entry points eligible for development reloads. */
+export function resolvePluginWatchDirs(config: SiteConfig): string[] {
+  return [
+    ...new Set(
+      trustedLocalSources(config).flatMap((source) => {
+        try {
+          return [dirname(fromFileUrl(source))];
+        } catch {
+          return [];
+        }
+      }),
+    ),
+  ];
+}
+
+function trustedLocalSources(config: SiteConfig): string[] {
+  if (!resolvePluginSourcePolicy(config).allowLocal) return [];
+  return (config.plugins ?? []).flatMap((configured) => {
+    const entry = toPluginEntry(configured);
+    return entry && entry.mode !== "isolated" && entry.package.startsWith("file://")
+      ? [entry.package]
+      : [];
+  });
+}
+
+/** Content revisions also detect edits that preserve file size and modification time. */
+export async function getPluginSourceRevisions(
+  config: SiteConfig,
+): Promise<Record<string, string>> {
+  const revisions: Record<string, string> = {};
+  for (const source of trustedLocalSources(config)) {
+    try {
+      const bytes = await Deno.readFile(new URL(source));
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      revisions[source] = Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    } catch {
+      // The loader reports missing or unreadable sources through its normal diagnostics.
+      revisions[source] = "unavailable";
+    }
+  }
+  return revisions;
+}
 
 export function resolvePluginSourcePolicy(config: SiteConfig): ResolvedPluginSourcePolicy {
   const policy =
@@ -261,6 +306,7 @@ async function verifyPluginIntegrity(entry: PluginEntry): Promise<void> {
 export async function loadPlugins(
   config: SiteConfig,
   diagnostics: DiagnosticBag = new DiagnosticBag(),
+  sourceRevisions: Record<string, string> = {},
 ): Promise<StenoPlugin[]> {
   if (!config.plugins?.length) return [];
 
@@ -316,7 +362,13 @@ export async function loadPlugins(
         continue;
       }
 
-      const mod = await import(packageName);
+      let importSpecifier = packageName;
+      if (packageName.startsWith("file://") && sourceRevisions[packageName]) {
+        const url = new URL(packageName);
+        url.searchParams.set("steno_revision", sourceRevisions[packageName]);
+        importSpecifier = url.href;
+      }
+      const mod = await import(importSpecifier);
       const factory = mod.default ?? mod;
 
       if (typeof factory !== "function") {
@@ -341,6 +393,9 @@ export async function loadPlugins(
         continue;
       }
 
+      if (sourceRevisions[packageName]) {
+        pluginSourceRevisions.set(plugin, sourceRevisions[packageName]);
+      }
       plugins.push(plugin);
     } catch (err) {
       if (entry.mode === "isolated") {
