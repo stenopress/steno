@@ -111,6 +111,85 @@ Markdown source-file includes, see [Content](content.md).
 
 ## Sharing boilerplate across layouts
 
+For a theme with article, page, index, and section layouts, use **component composition**: put the
+document shell in a registered `Base` component, and let each layout supply its body as children.
+This is the recommended pattern for sharing a base layout in Tau. Template-level `extends` and
+block overrides are not required; `extends` in `theme.yaml` instead merges entire themes.
+
+```yaml
+# theme.yaml
+components:
+  base: components/Base.tau
+```
+
+```html
+<!-- components/Base.tau -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{title} · {site.title}</title>
+  </head>
+  <body>
+    <header><a href="/">{site.title}</a></header>
+    <main>{@children}</main>
+    <footer>{site.title}</footer>
+  </body>
+</html>
+```
+
+```html
+<!-- layouts/article.tau -->
+<Base title={title}>
+  <article>
+    <h1>{title}</h1>
+    {#if author}<p>By {author}</p>{/if}
+    {@html content}
+  </article>
+</Base>
+```
+
+The child markup is rendered in the calling layout's context, so it can read `author`, `content`,
+and collections. `Base` receives `title` explicitly, plus the shared `site`, `theme`, and globals.
+It emits the already-rendered body with `{@children}` (equivalent to `{@html children}`); writing
+`{children}` would escape the HTML. Keep the document tags in `Base` so each output has exactly one
+document shell.
+
+Use the same wrapper in every layout and extract repeated body fragments into smaller components:
+
+| Template              | Responsibility                                                        |
+| --------------------- | --------------------------------------------------------------------- |
+| `Base` component      | Document, head metadata, site header, main, footer                    |
+| `article` layout      | Article heading, byline, compiled Markdown                            |
+| `page` layout         | Page heading and compiled Markdown                                    |
+| `index` layout        | Introductory Markdown and `collections.posts.items`                   |
+| `section` layout      | Section introduction and `collections[collection].items`              |
+| `EntryList` component | List markup shared by index and section; receives `entries` as a prop |
+
+For section pages, set `collection: guides` (or another configured collection name) in frontmatter.
+Keep a `layout` layout as the default for pages without a `layout` field. It can reuse the page
+template. If the base needs page-specific head metadata, pass values such as `description` as props
+and conditionally render the corresponding tags inside its `<head>`. Pass `assets` explicitly too
+when the base references the asset manifest. Components do not inherit it from the page.
+
+The complete [multi-layout theme example](examples/multi-layout/mod.ts) exports a `StenoTheme` with
+all four layouts, a default layout, and shared `Base` and `EntryList` components. It uses the same
+composition rules as directory themes; to split it into files, place each layout string under
+`layouts/` and register each component string under `components:` in `theme.yaml`.
+
+From a repository checkout, run its rendering tests:
+
+```sh
+deno test -A src/theme/composition_example_test.ts
+```
+
+These render every layout, check the shared shell, metadata escaping, Markdown insertion and
+collection links, and exercise missing optional metadata and empty collections. To use the example
+outside this checkout, copy the module and change its type import from `../../../mod.ts` to
+`jsr:@steno/steno`, then point your site's `theme` setting at the copied module.
+
+### Including identical fragments
+
 Tau has no `extends`/layout-inheritance syntax, but `{@include}` already covers the common case that
 would motivate one: a `<head>` block (charset, viewport, favicons, stylesheet links, and similar)
 repeated identically across every layout in a theme.
@@ -142,16 +221,16 @@ components:
 <!-- layouts/article.tau -->
 <html>
   {@include "Head"}
-  <meta property="og:type" content="article" />
   <body>
     {@html content}
   </body>
 </html>
 ```
 
-A layout can still add a few tags of its own directly after the include - `{@include}` only replaces
-the parts that are actually identical everywhere; it isn't a slot system and doesn't let a child
-layout override part of what it includes.
+`{@include}` replaces the parts that are identical everywhere; it does not let a child layout
+override part of what it includes. When an include contains the entire `<head>`, put additional
+metadata inside that component's `<head>`, not after the include in the calling layout. Prefer the
+`Base` composition pattern above when sharing the surrounding document structure as well.
 
 ## Safety limits
 
