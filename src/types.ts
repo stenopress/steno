@@ -412,6 +412,8 @@ export interface StenoTheme {
   layouts: Record<string, string>;
   /** Named Tau component templates. */
   components?: Record<string, string>;
+  /** Trusted, theme-scoped helpers usable as Tau calls and pipe filters. */
+  functions?: Record<string, (...args: unknown[]) => unknown>;
   /** Static assets keyed by output-relative path. */
   assets?: Record<string, string | Uint8Array | URL>;
   /** Validation and default schema for theme configuration. */

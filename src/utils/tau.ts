@@ -11,6 +11,8 @@ export interface TauOptions {
   context: Record<string, unknown>;
   /** Named component templates available during rendering. */
   components: Record<string, string>;
+  /** Scoped helpers available as calls and pipe filters, overriding built-ins. */
+  functions?: Record<string, (...args: unknown[]) => unknown>;
   /** Source path included in parse and render errors. */
   filePath?: string;
   /** Resolves an include path to Tau template source. */
@@ -39,7 +41,7 @@ type CompiledTemplateFn = (
 ) => Promise<string>;
 
 interface TauHelpers {
-  filters: Record<string, FilterFunction>;
+  filter: (name: string, value: unknown, ...args: unknown[]) => unknown;
   append: (target: string[], value: unknown, escape: boolean) => void;
   get: (obj: unknown, key: unknown, optional: boolean) => unknown;
   isIterable: (value: unknown) => boolean;
@@ -162,11 +164,8 @@ function compileNodes(
     } else if (node.type === "expression") {
       let expr = compileExpression(node.expression!, currentLocals);
       for (const filter of node.filters || []) {
-        if (!Object.hasOwn(filters, filter.name)) {
-          throw new TauError("TAU_UNKNOWN_FILTER", `Unknown Tau filter "${filter.name}".`);
-        }
         const args = filter.args.map((arg) => compileExpression(arg, currentLocals));
-        expr = `(await helpers.filters.${filter.name}(${[expr, ...args].join(", ")}))`;
+        expr = `(await helpers.filter(${[JSON.stringify(filter.name), expr, ...args].join(", ")}))`;
       }
       code += `helpers.append(${target}, ${expr}, true);\n`;
     } else if (node.type === "html") {
@@ -326,7 +325,14 @@ async function renderWithCompiledTemplate(
   }
 
   const helpers = {
-    filters,
+    filter: (name: string, value: unknown, ...args: unknown[]) => {
+      const registry =
+        options.functions && Object.hasOwn(options.functions, name) ? options.functions : filters;
+      if (!Object.hasOwn(registry, name) || typeof registry[name] !== "function") {
+        throw new TauError("TAU_UNKNOWN_FILTER", `Unknown Tau filter "${name}".`);
+      }
+      return registry[name](value, ...args);
+    },
     append: (target: string[], value: unknown, escape: boolean) => {
       const output = escape ? escapeHtml(value) : String(value ?? "");
       state.outputBytes += utf8ByteLength(output);
@@ -457,7 +463,10 @@ async function renderWithCompiledTemplate(
 
   try {
     try {
-      return await renderFn(options.context, helpers);
+      return await renderFn(
+        options.functions ? { ...options.context, ...options.functions } : options.context,
+        helpers,
+      );
     } catch (error) {
       if (error instanceof TauError) throw error;
       throw new TauError(

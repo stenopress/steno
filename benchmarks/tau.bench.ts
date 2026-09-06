@@ -111,6 +111,16 @@ Deno.bench("tau render (simple)", { group: "tau", baseline: true }, async () => 
   });
 });
 
+Deno.bench("tau render (scoped helpers)", { group: "tau" }, async () => {
+  const output = await render({
+    template: "{label(title)} {title | label}",
+    context: simpleContext,
+    components: {},
+    functions: { label: (value) => String(value).toUpperCase() },
+  });
+  if (output !== "STENO BENCH STENO BENCH") throw new Error("Scoped helper output changed.");
+});
+
 Deno.bench("tau render (components + loops)", { group: "tau" }, async () => {
   await render({
     template: layoutTemplate,

@@ -111,3 +111,51 @@ own chain fails to load with a clear "circular extends chain" error instead of h
    A local directory with neither a theme manifest nor one of those three files fails to load.
 3. Any other specifier (`jsr:`, `npm:`, or `https:`) is imported directly as a module exporting a
    `StenoTheme`.
+
+## Theme functions
+
+Register trusted helpers on a module theme with `functions`. The same helper works as an
+inline call or a pipe filter; filters pass the piped value as the first argument.
+
+```typescript
+const theme: StenoTheme = {
+  name: "my-theme",
+  version: "1.0.0",
+  layouts: { layout: '{translate("hello")} {"hello" | translate}' },
+  functions: {
+    translate: (key: unknown) => (key === "hello" ? "Hello" : String(key)),
+  },
+};
+```
+
+For a directory theme, point `theme.yaml` at a local module inside the theme directory:
+
+```yaml
+functions: ./functions.ts
+```
+
+```typescript
+// functions.ts
+export default {
+  translate: (key: unknown) => String(key).toUpperCase(),
+  link: (path: unknown) => `/docs/${String(path)}`,
+};
+```
+
+Helpers may be synchronous or asynchronous. They are available in layouts, components, and
+includes, and receive only their explicit arguments. Pass page or theme values as arguments
+when needed. Results are HTML-escaped in `{helper()}`; use `{@html helper()}` only for trusted
+HTML. Names must be valid Tau identifiers. Registered helpers take precedence over page
+variables and built-in filters with the same name, without changing another theme's registry.
+`mergeTheme` and directory `extends` merge helpers by name, with the child winning.
+
+Helper modules execute trusted JavaScript with the build process's permissions, just like
+module themes; they are not sandboxed plugins. YAML accepts only `./` paths contained within
+the theme directory, including after symlink resolution. Helpers can import their own
+dependencies. Development reloads refresh the entry module; restart the process after changing
+its imported dependencies.
+
+Compiled Tau templates remain shared, but helpers are resolved for each render. Since function
+closures cannot be serialized reliably, themes with helpers invalidate persistent page caches
+when a new theme instance is loaded. Repeated builds with the same instance retain a stable
+signature. Themes without helpers keep their existing cache behavior.

@@ -6,6 +6,7 @@ import { parse as parseYaml } from "@std/yaml";
 import { transpile } from "@deno/emit";
 import { isRecord } from "../utils/text.ts";
 import { copyThemeAssets } from "./assets.ts";
+import { loadThemeFunctions, validateThemeFunctions } from "./functions.ts";
 import { resolveSchemaDefaults, type ThemeConfig, validateThemeConfig } from "./config.ts";
 
 export type { ThemeConfig } from "./config.ts";
@@ -75,6 +76,7 @@ interface ThemeDirectoryMetadata {
   defaultConfig?: ThemeConfig;
   configSchema?: Record<string, ThemeConfigField>;
   extends?: string;
+  functions?: string;
 }
 
 /** A directory theme's own data plus the source paths its layouts/components loaded from. */
@@ -87,7 +89,7 @@ interface LoadedDirectoryTheme {
 /**
  * Merges a base theme with overrides, producing a new `StenoTheme`.
  *
- * `layouts`, `components`, `assets`, `configSchema`, and `defaultConfig` are
+ * `layouts`, `components`, `functions`, `assets`, `configSchema`, and `defaultConfig` are
  * merged shallowly by key (override wins per key, unset base keys survive).
  * `name`, `version`, and `plugins` are replaced wholesale when present in
  * `overrides`. Use this instead of a raw object spread when extending a
@@ -100,6 +102,7 @@ export function mergeTheme(base: StenoTheme, overrides: Partial<StenoTheme>): St
     version: overrides.version ?? base.version,
     layouts: { ...base.layouts, ...overrides.layouts },
     components: { ...base.components, ...overrides.components },
+    functions: { ...base.functions, ...overrides.functions },
     assets: { ...base.assets, ...overrides.assets },
     configSchema: { ...base.configSchema, ...overrides.configSchema },
     defaultConfig: { ...base.defaultConfig, ...overrides.defaultConfig },
@@ -119,6 +122,7 @@ export class Theme {
   /** The merged configuration options (defaults + user overrides). */
   public config: ThemeConfig;
   private themeData: StenoTheme;
+  private readonly functionsSignature?: string;
   private layoutPaths: Record<string, string> = {};
   private componentPaths: Record<string, string> = {};
   /** An array of plugins bundled with this theme. */
@@ -148,7 +152,16 @@ export class Theme {
       throw new Error(`Theme "${themeData.name}" declares no layouts - it needs at least one.`);
     }
 
-    this.themeData = themeData;
+    validateThemeFunctions(themeData.functions);
+    const functions =
+      themeData.functions && Object.keys(themeData.functions).length > 0
+        ? { ...themeData.functions }
+        : undefined;
+    this.themeData = { ...themeData, functions };
+    if (functions) {
+      // Closures cannot be serialized; never reuse a previous instance's page cache.
+      this.functionsSignature = crypto.randomUUID();
+    }
     this.name = themeData.name;
     this.version = themeData.version;
     this.plugins = themeData.plugins ?? [];
@@ -235,6 +248,7 @@ export class Theme {
       assets,
       defaultConfig: metadata.defaultConfig || {},
       configSchema: metadata.configSchema,
+      functions: await loadThemeFunctions(dir, metadata.functions),
     };
 
     if (!metadata.extends) {
@@ -442,6 +456,7 @@ export class Theme {
       template,
       context,
       components: this.themeData.components || {},
+      functions: this.themeData.functions,
       filePath,
       includeResolver: (path) => {
         const component = this.themeData.components?.[path];
@@ -497,6 +512,7 @@ export class Theme {
     config: ThemeConfig;
     layouts: [string, string][];
     components: [string, string][];
+    functions?: string;
   } {
     const sortEntries = (obj: Record<string, string> = {}) =>
       Object.entries(obj).sort(([l], [r]) => l.localeCompare(r));
@@ -507,6 +523,7 @@ export class Theme {
       config: this.config,
       layouts: sortEntries(this.themeData.layouts),
       components: sortEntries(this.themeData.components),
+      functions: this.functionsSignature,
     };
   }
 
