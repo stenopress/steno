@@ -121,6 +121,35 @@ Deno.test("theme config: malformed union schemas do not masquerade as branch mis
         { value: "valid" },
       ),
     Error,
-    "invalid pattern",
+    'Invalid schema for theme "invalid" at "themeConfig.value": contains invalid pattern',
   );
 });
+
+Deno.test(
+  "theme config: missing types and unions report schema errors before value validation",
+  () => {
+    for (const field of [{}, { enum: ["allowed"] }, { required: true }]) {
+      for (const value of ["value", undefined]) {
+        assertThrows(
+          () => validateThemeConfig("invalid", { value: field }, { value }),
+          Error,
+          'Invalid schema for theme "invalid" at "themeConfig.value": must declare type, oneOf, or anyOf.',
+        );
+      }
+    }
+    for (const keyword of ["oneOf", "anyOf"] as const) {
+      assertThrows(
+        () =>
+          validateThemeConfig(
+            "invalid",
+            {
+              value: { [keyword]: [{ type: "string" }, {}] },
+            },
+            { value: "valid" },
+          ),
+        Error,
+        'Invalid schema for theme "invalid" at "themeConfig.value": must declare type, oneOf, or anyOf.',
+      );
+    }
+  },
+);
