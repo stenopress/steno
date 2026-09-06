@@ -25,6 +25,34 @@ Fields support `required`, `default`, `description`, and `enum`. Strings support
 `maxLength`, and `pattern`; numbers support `minimum` and `maximum`; arrays support `items`,
 `minItems`, and `maxItems`; objects support nested `properties` and `additionalProperties: false`.
 
+Use `oneOf` to require exactly one matching alternative, or `anyOf` to require at least one. Each
+alternative is a full field schema, including nested objects, arrays, or unions. A union may omit
+`type`; when supplied, `type` and all other outer constraints also apply. For example:
+
+```yaml
+configSchema:
+  accent_color:
+    default: indigo
+    oneOf:
+      - type: string
+      - type: array
+        minItems: 1
+        items:
+          anyOf:
+            - type: string
+              enum: [indigo, rose]
+            - type: object
+              additionalProperties: false
+              properties:
+                h: { type: number, required: true, minimum: 0, maximum: 360 }
+                s: { type: number, required: true, minimum: 0, maximum: 100 }
+                l: { type: number, required: true, minimum: 0, maximum: 100 }
+```
+
+Alternatives must be non-empty arrays. Overlapping alternatives such as `number` and `integer`
+reject integers under `oneOf`, but accept them under `anyOf`. Put `default` and `required` on the
+containing field: Steno does not choose defaults from union alternatives.
+
 Schema defaults, `defaultConfig`, and site `themeConfig` get applied in that order, then validated.
 The top-level merge is shallow, but schema validation and defaults can go recursive. Undeclared
 top-level keys are allowed, for backwards compatibility. An invalid value fails theme loading with a
@@ -85,8 +113,8 @@ theme/
 `extends` accepts one of the three bundled specifiers (`jsr:@steno/theme-minimal`,
 `jsr:@steno/theme-docs-minimal`, `jsr:@steno/theme-marketing-minimal`, resolved from Steno's own
 packaged copy, no network request) or a local path starting with `.`, `/`, or `file://` - relative
-paths resolve against the extending theme's own directory, not the current working directory, so
-the theme keeps working regardless of where `steno build` runs from. Arbitrary `jsr:`, `npm:`, or
+paths resolve against the extending theme's own directory, not the current working directory, so the
+theme keeps working regardless of where `steno build` runs from. Arbitrary `jsr:`, `npm:`, or
 `https:` module specifiers aren't accepted here - a directory theme's `extends` always resolves to
 another `theme.yaml` directory, never an importable `StenoTheme` module; use `mergeTheme` from a
 module theme instead if you need that.

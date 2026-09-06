@@ -14,8 +14,12 @@ function valuesEqual(left: unknown, right: unknown): boolean {
   }
 }
 
+class ConfigValidationError extends Error {}
+
 function configError(themeName: string, path: string, message: string): never {
-  throw new Error(`Invalid configuration for theme "${themeName}" at "${path}": ${message}`);
+  throw new ConfigValidationError(
+    `Invalid configuration for theme "${themeName}" at "${path}": ${message}`,
+  );
 }
 
 function validateField(
@@ -24,6 +28,33 @@ function validateField(
   value: unknown,
   path: string,
 ): void {
+  for (const keyword of ["oneOf", "anyOf"] as const) {
+    const alternatives = field[keyword];
+    if (alternatives === undefined) continue;
+    if (!Array.isArray(alternatives) || alternatives.length === 0) {
+      throw new Error(
+        `Invalid schema for theme "${themeName}" at "${path}": ${keyword} must be a non-empty array.`,
+      );
+    }
+    let matches = 0;
+    for (const alternative of alternatives) {
+      try {
+        validateField(themeName, alternative, value, path);
+        matches++;
+      } catch (error) {
+        if (!(error instanceof ConfigValidationError)) throw error;
+      }
+    }
+    if (matches === 0 || (keyword === "oneOf" && matches !== 1)) {
+      configError(
+        themeName,
+        path,
+        `must match ${
+          keyword === "oneOf" ? "exactly one" : "at least one"
+        } ${keyword} alternative (matched ${matches}).`,
+      );
+    }
+  }
   if (field.enum && !field.enum.some((candidate) => valuesEqual(candidate, value))) {
     configError(themeName, path, `must be one of ${JSON.stringify(field.enum)}.`);
   }
@@ -35,7 +66,7 @@ function validateField(
       : field.type === "object"
         ? isRecord(value)
         : field.type === actualType;
-  if (!validType) {
+  if (!validType && (field.type !== undefined || (!field.oneOf && !field.anyOf))) {
     configError(themeName, path, `expected ${field.type}, received ${actualType}.`);
   }
 
@@ -63,10 +94,10 @@ function validateString(
   try {
     expression = new RegExp(field.pattern);
   } catch {
-    configError(
-      themeName,
-      path,
-      `schema contains invalid pattern ${JSON.stringify(field.pattern)}.`,
+    throw new Error(
+      `Invalid configuration for theme "${themeName}" at "${path}": schema contains invalid pattern ${JSON.stringify(
+        field.pattern,
+      )}.`,
     );
   }
   if (!expression.test(value)) {
