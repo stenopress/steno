@@ -38,7 +38,12 @@ export async function loadThemeFunctions(
   const root = await Deno.realPath(dir);
   const path = await Deno.realPath(resolve(dir, modulePath));
   const within = relative(root, path);
-  if (within === ".." || within.startsWith("../") || isAbsolute(within)) {
+  if (
+    within === ".." ||
+    within.startsWith("../") ||
+    within.startsWith("..\\") ||
+    isAbsolute(within)
+  ) {
     throw new Error('Theme "functions" module must be inside its theme directory.');
   }
   const url = toFileUrl(path);
