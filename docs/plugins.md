@@ -107,9 +107,12 @@ you add one, especially one you didn't write yourself. Every plugin declares a `
   without restriction. Theme-bundled plugins run at this level too, unless you turn them off with
   `allowThemePlugins: false`.
 
-In `steno dev`, a trusted plugin's factory only runs again when `config.plugins` actually changes -
-editing content doesn't re-trigger it, so a plugin with real init cost (Shiki loading its grammars,
-for example) only pays that cost once per dev session, not once per rebuild. Isolated plugins don't
+In `steno dev`, trusted plugin factories run again when `config.plugins`, the source policy, or a
+trusted local `file://` entry point's contents change. Local entry point directories are watched,
+including those outside `content/`. Editing content doesn't re-trigger factories. Changes to local
+entry points invalidate rendered pages even when hook functions themselves haven't changed.
+Imported dependencies remain cached by Deno; restart dev after editing a plugin's dependencies or
+adding a plugin directory outside the paths already watched. Isolated plugins don't
 get this: their worker is intentionally torn down at the end of every build (part of the sandbox's
 threat model, see [plugin sandbox](plugin_sandbox.md)), so an isolated entry always reloads on the
 next rebuild regardless. `steno build` is unaffected either way - it loads plugins exactly once per

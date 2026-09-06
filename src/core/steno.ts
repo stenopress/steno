@@ -5,7 +5,13 @@ import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
 import { startDevServer, startPreviewServer } from "../utils/server.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
 import { resolveCachePath } from "./build/cache.ts";
-import { loadPlugins, resolveDevPort, resolvePluginSourcePolicy } from "./config.ts";
+import {
+  getPluginSourceRevisions,
+  loadPlugins,
+  resolveDevPort,
+  resolvePluginSourcePolicy,
+  resolvePluginWatchDirs,
+} from "./config.ts";
 import { DiagnosticBag, enforceDiagnostics } from "./diagnostics.ts";
 import { getEnvironmentFilePaths, loadEnvironmentFiles } from "./environment.ts";
 import { type ResolvedProject, resolveProject } from "./project.ts";
@@ -66,7 +72,7 @@ export class Steno {
    * config or switching a theme takes effect without restarting `dev`.
    *
    * Trusted site plugins are re-instantiated only when `config.plugins`
-   * actually changed since the last call - re-running every trusted
+   * or a local entry point's source changed since the last call - re-running every trusted
    * plugin's factory (which can do real work, like Shiki loading its
    * grammars) on every dev-server rebuild was pure waste when nothing
    * about the plugin config changed. Isolated plugins are exempt: their
@@ -101,8 +107,10 @@ export class Steno {
         (entry as { mode?: string }).mode === "isolated",
     );
     const sourcePolicy = resolvePluginSourcePolicy(project.config);
+    const sourceRevisions = await getPluginSourceRevisions(project.config);
     const pluginsSignature = JSON.stringify({
       plugins: configuredPlugins,
+      sourceRevisions,
       allowLocal: sourcePolicy.allowLocal,
       allowRemoteHttp: sourcePolicy.allowRemoteHttp,
       allowNodeBuiltins: sourcePolicy.allowNodeBuiltins,
@@ -112,7 +120,7 @@ export class Steno {
     if (!hasIsolatedPlugin && this.sitePluginsSignature === pluginsSignature) {
       sitePlugins = this.sitePlugins;
     } else {
-      sitePlugins = await loadPlugins(project.config, diagnostics);
+      sitePlugins = await loadPlugins(project.config, diagnostics, sourceRevisions);
       this.sitePlugins = sitePlugins;
       this.sitePluginsSignature = hasIsolatedPlugin ? null : pluginsSignature;
     }
@@ -218,6 +226,7 @@ export class Steno {
     const watchDirs = themeWatchDir
       ? [contentDir, themeWatchDir, this.configPath, ...envFiles]
       : [contentDir, this.configPath, ...envFiles];
+    watchDirs.push(...resolvePluginWatchDirs(project.config));
     await startDevServer(
       outputDir,
       () => this.executeBuild(true),
