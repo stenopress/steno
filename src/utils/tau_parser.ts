@@ -525,7 +525,7 @@ export class TauParser {
     if (!expression) {
       this.throwError("HTML expression cannot be empty.", "TAU_PARSE_EMPTY");
     }
-    return { type: "html", expression };
+    return { ...this.parseFilteredExpression(expression), type: "html" };
   }
 
   private parseVariableBlock(): Node {
@@ -540,7 +540,10 @@ export class TauParser {
     const raw = this.input.substring(start, this.pos).trim();
     this.consume("}");
     if (!raw) this.throwError("Expression cannot be empty.", "TAU_PARSE_EMPTY");
+    return this.parseFilteredExpression(raw);
+  }
 
+  private parseFilteredExpression(raw: string): Node {
     const parts = splitTopLevel(raw, "|");
     return {
       type: "expression",

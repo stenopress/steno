@@ -233,6 +233,22 @@ renders as `<ul>\n  <li>a</li><li>b</li>\n</ul>` instead of leaving a blank line
   `null`/`undefined` render as an empty string.
 - `upper` and `lower` stringify and change case; a falsy input renders as an empty string.
 - `url` validates a value for use in a URL attribute; see below.
+- `slugify` normalizes accents, lowercases, and joins runs of non-letter/non-digit characters
+  with `-`, trimming leading and trailing hyphens. Unicode letters and digits are preserved;
+  `null`/`undefined` become empty strings. For example, `"Crème & Tea"` becomes `"creme-tea"`.
+  This formats a string; it does not change a page's output path.
+- `pluralize(singular, plural)` selects `singular` when the numeric input is exactly `1`, and
+  `plural` otherwise. Defaults are `""` and `"s"`: `{count} post{count | pluralize}`.
+  Supply complete words for irregular forms: `{count | pluralize("person", "people")}`.
+- `number_format(locale, digits)` formats numeric values and numeric strings using
+  `Intl.NumberFormat`. Defaults are `"en-US"` and at most `3` fractional digits; `digits` must
+  be an integer from 0 to 20. For example, `{price | number_format("de-DE", 2)}` renders
+  `1234.567` as `1.234,57`. Nullish/empty inputs become empty strings; non-finite or non-numeric
+  values are returned as strings. Invalid locales or precision produce a render error.
+- `markdown_inline` renders inline Markdown with the same Marked dependency used by Steno,
+  without paragraph wrappers or block headings. Use `{@html label | markdown_inline}` to emit
+  the HTML; ordinary `{label | markdown_inline}` escapes it. Nullish inputs become empty strings.
+  This filter does not sanitize HTML or link URLs; use raw output only with trusted Markdown.
 
 Filters chain left to right: `{value | truncate(20) | upper}` truncates first, then uppercases the
 result. A filter may be sync or async (see [Async function calls](#async-function-calls)).

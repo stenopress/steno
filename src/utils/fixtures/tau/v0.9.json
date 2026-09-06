@@ -53,5 +53,17 @@
     "template": "{flag ? \"yes\" : \"no\"} / {missing ?? \"fallback\"}",
     "context": { "flag": true },
     "output": "yes / fallback"
+  },
+  {
+    "name": "extended built-in filters compose in expressions",
+    "template": "{title | slugify}: {count | number_format} {count | pluralize(\"person\", \"people\")}",
+    "context": { "title": "Crème & Tea", "count": 1200 },
+    "output": "creme-tea: 1,200 people"
+  },
+  {
+    "name": "inline markdown filter requires explicit raw HTML output",
+    "template": "{@html text | markdown_inline}",
+    "context": { "text": "**hello**" },
+    "output": "<strong>hello</strong>"
   }
 ]
