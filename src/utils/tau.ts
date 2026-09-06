@@ -2,6 +2,7 @@ import { type Node, TauParser } from "./tau_parser.ts";
 import { TauError } from "./tau_error.ts";
 import { errorMessage, hasControlCharacters, utf8ByteLength } from "./text.ts";
 import { BLOCKED_EXPRESSION_NAMES, compileExpression } from "./tau_expr.ts";
+import { marked } from "marked";
 
 /** Options accepted by the Tau template renderer. */
 export interface TauOptions {
@@ -109,6 +110,30 @@ export const filters: Record<string, FilterFunction> = Object.assign(Object.crea
   },
   upper: (val: unknown) => (val ? String(val).toUpperCase() : ""),
   lower: (val: unknown) => (val ? String(val).toLowerCase() : ""),
+  slugify: (val: unknown) =>
+    String(val ?? "")
+      .normalize("NFKD")
+      .toLowerCase()
+      .replace(/\p{M}/gu, "")
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, ""),
+  pluralize: (val: unknown, singular: unknown = "", plural: unknown = "s") =>
+    String(Number(val) === 1 ? singular : plural),
+  number_format: (val: unknown, locale: unknown = "en-US", digits: unknown = 3) => {
+    if (val === null || val === undefined || val === "") return "";
+    const value = Number(val);
+    if (!Number.isFinite(value)) return String(val);
+    const maximumFractionDigits = Number(digits);
+    if (
+      !Number.isInteger(maximumFractionDigits) ||
+      maximumFractionDigits < 0 ||
+      maximumFractionDigits > 20
+    ) {
+      throw new Error("number_format precision must be an integer between 0 and 20.");
+    }
+    return new Intl.NumberFormat(String(locale), { maximumFractionDigits }).format(value);
+  },
+  markdown_inline: (val: unknown) => marked.parseInline(String(val ?? ""), { async: false }),
   url: (val: unknown) => {
     if (val === null || val === undefined) return "";
     const value = String(val).trim();
@@ -161,16 +186,13 @@ function compileNodes(
       const nextLocals = new Set(currentLocals);
       nextLocals.add(node.letName!);
       currentLocals = nextLocals;
-    } else if (node.type === "expression") {
+    } else if (node.type === "expression" || node.type === "html") {
       let expr = compileExpression(node.expression!, currentLocals);
       for (const filter of node.filters || []) {
         const args = filter.args.map((arg) => compileExpression(arg, currentLocals));
         expr = `(await helpers.filter(${[JSON.stringify(filter.name), expr, ...args].join(", ")}))`;
       }
-      code += `helpers.append(${target}, ${expr}, true);\n`;
-    } else if (node.type === "html") {
-      const expr = compileExpression(node.expression!, currentLocals);
-      code += `helpers.append(${target}, ${expr}, false);\n`;
+      code += `helpers.append(${target}, ${expr}, ${node.type === "expression"});\n`;
     } else if (node.type === "include") {
       code += `await helpers.resolveInclude(${JSON.stringify(
         node.includePath,

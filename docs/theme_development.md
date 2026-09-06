@@ -101,7 +101,8 @@ Expressions are JavaScript expressions and are HTML-escaped:
 ```
 
 Use `{@html expression}` only for trusted HTML, such as Steno's generated `content`. Built-in
-filters are `date`, `truncate(length)`, `upper`, and `lower`; see
+filters include `date`, `truncate(length)`, `upper`, `lower`, `slugify`, `pluralize`,
+`number_format`, and `markdown_inline`; see
 [Built-in filters](tau_syntax.md#built-in-filters) for their defaults and edge-case behavior. Invoke
 a component with `<Header />`; props may be literals, expressions (`title={title}`), or shorthand
 (`{title}`).
