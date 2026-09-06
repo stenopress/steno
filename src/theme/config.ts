@@ -14,8 +14,22 @@ function valuesEqual(left: unknown, right: unknown): boolean {
   }
 }
 
+class ConfigValidationError extends Error {}
+
+function schemaError(themeName: string, path: string, message: string): never {
+  throw new Error(`Invalid schema for theme "${themeName}" at "${path}": ${message}`);
+}
+
 function configError(themeName: string, path: string, message: string): never {
-  throw new Error(`Invalid configuration for theme "${themeName}" at "${path}": ${message}`);
+  throw new ConfigValidationError(
+    `Invalid configuration for theme "${themeName}" at "${path}": ${message}`,
+  );
+}
+
+function validateFieldDeclaration(themeName: string, field: ThemeConfigField, path: string): void {
+  if (field.type === undefined && field.oneOf === undefined && field.anyOf === undefined) {
+    schemaError(themeName, path, "must declare type, oneOf, or anyOf.");
+  }
 }
 
 function validateField(
@@ -24,19 +38,47 @@ function validateField(
   value: unknown,
   path: string,
 ): void {
+  validateFieldDeclaration(themeName, field, path);
+  for (const keyword of ["oneOf", "anyOf"] as const) {
+    const alternatives = field[keyword];
+    if (alternatives === undefined) continue;
+    if (!Array.isArray(alternatives) || alternatives.length === 0) {
+      schemaError(themeName, path, `${keyword} must be a non-empty array.`);
+    }
+    let matches = 0;
+    for (const alternative of alternatives) {
+      try {
+        validateField(themeName, alternative, value, path);
+        matches++;
+      } catch (error) {
+        if (!(error instanceof ConfigValidationError)) throw error;
+      }
+    }
+    if (matches === 0 || (keyword === "oneOf" && matches !== 1)) {
+      configError(
+        themeName,
+        path,
+        `must match ${
+          keyword === "oneOf" ? "exactly one" : "at least one"
+        } ${keyword} alternative (matched ${matches}).`,
+      );
+    }
+  }
   if (field.enum && !field.enum.some((candidate) => valuesEqual(candidate, value))) {
     configError(themeName, path, `must be one of ${JSON.stringify(field.enum)}.`);
   }
 
-  const actualType = Array.isArray(value) ? "array" : value === null ? "null" : typeof value;
-  const validType =
-    field.type === "integer"
-      ? typeof value === "number" && Number.isInteger(value)
-      : field.type === "object"
-        ? isRecord(value)
-        : field.type === actualType;
-  if (!validType) {
-    configError(themeName, path, `expected ${field.type}, received ${actualType}.`);
+  if (field.type !== undefined) {
+    const actualType = Array.isArray(value) ? "array" : value === null ? "null" : typeof value;
+    const validType =
+      field.type === "integer"
+        ? typeof value === "number" && Number.isInteger(value)
+        : field.type === "object"
+          ? isRecord(value)
+          : field.type === actualType;
+    if (!validType) {
+      configError(themeName, path, `expected ${field.type}, received ${actualType}.`);
+    }
   }
 
   if (typeof value === "string") validateString(themeName, field, value, path);
@@ -63,11 +105,7 @@ function validateString(
   try {
     expression = new RegExp(field.pattern);
   } catch {
-    configError(
-      themeName,
-      path,
-      `schema contains invalid pattern ${JSON.stringify(field.pattern)}.`,
-    );
+    schemaError(themeName, path, `contains invalid pattern ${JSON.stringify(field.pattern)}.`);
   }
   if (!expression.test(value)) {
     configError(themeName, path, `must match pattern ${JSON.stringify(field.pattern)}.`);
@@ -129,6 +167,7 @@ export function validateThemeConfig(
     const path = `${prefix}.${key}`;
     const value = config[key];
     if (value === undefined) {
+      validateFieldDeclaration(themeName, field, path);
       if (field.required) configError(themeName, path, "is required.");
       continue;
     }

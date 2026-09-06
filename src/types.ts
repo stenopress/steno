@@ -289,7 +289,11 @@ export interface PageConfigOverrides {
  */
 export interface ThemeConfigField {
   /** Expected configuration value type. */
-  type: "string" | "number" | "integer" | "boolean" | "array" | "object";
+  type?: "string" | "number" | "integer" | "boolean" | "array" | "object";
+  /** Value must match exactly one alternative; type may be omitted for unions. */
+  oneOf?: readonly ThemeConfigField[];
+  /** Value must match at least one alternative; type may be omitted for unions. */
+  anyOf?: readonly ThemeConfigField[];
   /** Value used when the theme user omits this field. */
   default?: unknown;
   /** Human-readable guidance for theme users. */
