@@ -41,7 +41,7 @@ suffix/prefix.
 ```ebnf
 template        = { text | interpolation | raw_html | include | comment
                   | if_block | each_block | let_binding | component
-                  | children_slot } ;
+                  | children_slot | named_slot } ;
 interpolation   = "{", expression, { "|", filter }, "}" ;
 filter          = identifier, [ "(", [ expression, { ",", expression } ], ")" ] ;
 raw_html        = "{@html ", expression, "}" ;
@@ -57,8 +57,10 @@ each_block      = "{", ["-"], "#each ", expression, " as ", identifier,
                   "{", ["-"], "/each", ["-"], "}" ;
 let_binding     = "{#let ", identifier, " = ", expression, "}" ;
 children_slot   = "{@children}" ;
+named_slot      = "{@slot ", identifier, "}" ;
+slot_content    = "{#slot ", identifier, "}", template, "{/slot}" ;
 component       = "<", upper_identifier, { whitespace, prop }, [ whitespace ],
-                  ( "/>" | ">", template, "</", upper_identifier, ">" ) ;
+                  ( "/>" | ">", { template | slot_content }, "</", upper_identifier, ">" ) ;
 prop            = identifier
                 | identifier, "=", quoted_string
                 | identifier, "={", expression, "}"
@@ -183,7 +185,30 @@ with `{@children}`, a zero-argument tag equivalent to `{@html children}`:
 ```
 
 A component with no `{@children}` in its template silently ignores any children content passed to
-it. There is only one, unnamed slot per component; Tau 0.9 does not have named slots.
+it.
+
+Declare named content with `{#slot name}...{/slot}` directly inside a component call. Render it with
+`{@slot name}` in the component template:
+
+```tau
+<!-- component: Panel.tau -->
+<section><header>{@slot header}</header>{@children}<footer>{@slot footer}</footer></section>
+
+<!-- usage -->
+<Panel>
+  {#slot header}<h2>{post.title}</h2>{/slot}
+  <p>{post.excerpt}</p>
+  {#slot footer}<a href="/posts">All posts</a>{/slot}
+</Panel>
+```
+
+Named content is excluded from `{@children}`. Each slot is rendered once in the caller's scope,
+before the component runs, and inserted without double escaping. Missing and empty slots produce an
+empty string. Slot names must be identifiers and unique within the call; prototype-related names and
+the `__tau` prefix are forbidden. Declarations must be direct children of the component, but their
+contents can contain conditionals, loops, includes, and nested components. Bindings declared inside
+one slot stay inside that slot. Named slots are available as `slots.name` in the component context
+(for example, `{#if slots?.footer}...{/if}`); nested components receive their own slots.
 
 ## Whitespace control
 

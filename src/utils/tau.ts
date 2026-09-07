@@ -252,6 +252,20 @@ function compileNodes(
         )}`;
         propsEntries.push(`children: ${childTarget}.join("")`);
       }
+      if (node.slots && Object.keys(node.slots).length > 0) {
+        const slotEntries: string[] = [];
+        for (const [name, content] of Object.entries(node.slots)) {
+          const slotTarget = `__tauSlot${state.nextId++}`;
+          code += `const ${slotTarget} = [];\n{\n${compileNodes(
+            content,
+            currentLocals,
+            slotTarget,
+            state,
+          )}}\n`;
+          slotEntries.push(`${JSON.stringify(name)}: ${slotTarget}.join("")`);
+        }
+        propsEntries.push(`slots: { ${slotEntries.join(", ")} }`);
+      }
       const propsObj = `{ ${propsEntries.join(", ")} }`;
       code += `await helpers.renderComponent(${JSON.stringify(
         node.componentName,
@@ -469,6 +483,7 @@ async function renderWithCompiledTemplate(
               globals,
               site: parentContext.site,
               theme: parentContext.theme,
+              slots: undefined,
               ...props,
             },
           },

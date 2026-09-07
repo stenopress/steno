@@ -129,6 +129,15 @@ Deno.bench("tau render (components + loops)", { group: "tau" }, async () => {
   });
 });
 
+Deno.bench("tau render (named slots + loops)", { group: "tau" }, async () => {
+  const output = await render({
+    template: `{#each posts as post}<Panel>{#slot header}<h2>{post.title}</h2>{/slot}<p>{post.excerpt}</p></Panel>{/each}`,
+    context: { posts },
+    components: { Panel: `<article>{@slot header}{@children}</article>` },
+  });
+  if (!output.includes("<h2>Post 20</h2>")) throw new Error("Named slot output missing");
+});
+
 Deno.bench("tau render (list of 1000 items)", { group: "tau-scale", baseline: true }, async () => {
   await render({
     template: largeListTemplate,

@@ -1,5 +1,14 @@
 [
   {
+    "name": "named slots preserve unnamed children and caller scope",
+    "template": "{#each posts as post}<Card>{#slot header}<h2>{post}</h2>{/slot}<p>Body</p>{#slot footer}End{/slot}</Card>{/each}",
+    "context": { "posts": ["A&B", "C"] },
+    "components": {
+      "Card": "{@slot header}{@children}<footer>{@slot footer}{@slot missing}</footer>"
+    },
+    "output": "<h2>A&amp;B</h2><p>Body</p><footer>End</footer><h2>C</h2><p>Body</p><footer>End</footer>"
+  },
+  {
     "name": "comments are removed and produce no output",
     "template": "a{# note: internal only #}b",
     "context": {},

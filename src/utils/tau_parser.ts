@@ -15,6 +15,7 @@ export interface Node {
   alternate?: Node[];
   componentName?: string;
   props?: Record<string, string>;
+  slots?: Record<string, Node[]>;
   includePath?: string;
   /** Whitespace-control: trim the sibling text immediately before this node. */
   trimBefore?: boolean;
@@ -239,7 +240,9 @@ export class TauParser {
   }
 
   private matchBlockKeyword(): boolean {
-    return this.match("{#if ") || this.match("{#each ") || this.match("{#let ");
+    return (
+      this.match("{#if ") || this.match("{#each ") || this.match("{#let ") || this.match("{#slot ")
+    );
   }
 
   private matchCommentStart(): boolean {
@@ -255,7 +258,7 @@ export class TauParser {
     this.consume("#}");
   }
 
-  public parseBlock(endTags: string[] = []): Node[] {
+  public parseBlock(endTags: string[] = [], slots?: Record<string, Node[]>): Node[] {
     this.depth++;
     if (this.depth > this.maxParseDepth) {
       this.throwError(
@@ -282,6 +285,20 @@ export class TauParser {
           if (node.trimBefore) trimTrailingWhitespace(nodes);
           nodes.push(node);
           if (node.trimAfter) this.pendingTrimStart = true;
+        } else if (this.match("{#slot ")) {
+          if (!slots) this.throwError("Named slots must be direct children of a component.");
+          const name = this.parseSlotName("{#slot ");
+          if (Object.hasOwn(slots, name)) this.throwError(`Duplicate slot "${name}".`);
+          slots[name] = this.parseBlock(["{/slot}"]);
+          if (!this.match("{/slot}")) {
+            this.throwError('Unclosed slot. Expected "{/slot}".', "TAU_PARSE_UNCLOSED_BLOCK");
+          }
+          this.consume("{/slot}");
+        } else if (this.match("{@slot ")) {
+          const name = this.parseSlotName("{@slot ");
+          nodes.push({ type: "html", expression: `slots?.${name}` });
+        } else if (this.match("{/slot}")) {
+          this.throwError("Unexpected closing slot tag.");
         } else if (this.match("{#let ")) nodes.push(this.parseLetBlock());
         else if (this.matchCommentStart()) this.parseCommentBlock();
         else if (this.match("{@include ")) nodes.push(this.parseIncludeBlock());
@@ -309,6 +326,24 @@ export class TauParser {
     }
     this.consume(prefix);
     return false;
+  }
+
+  private parseSlotName(prefix: string): string {
+    this.consume(prefix);
+    const start = this.pos;
+    while (this.pos < this.input.length && this.peek() !== "}") this.pos++;
+    if (this.pos === this.input.length) {
+      this.throwError("Unclosed slot tag.", "TAU_PARSE_UNCLOSED_BLOCK");
+    }
+    const name = this.input.substring(start, this.pos).trim();
+    assertIdentifier(name, "slot name", (message) =>
+      this.throwError(message, "TAU_INVALID_IDENTIFIER"),
+    );
+    if (["__proto__", "constructor", "prototype"].includes(name)) {
+      this.throwError(`Unsafe slot name "${name}".`, "TAU_UNSAFE_PROP");
+    }
+    this.consume("}");
+    return name;
   }
 
   private parseIfBlock(prefix = "{#if "): Node {
@@ -622,7 +657,8 @@ export class TauParser {
     }
 
     const closeTag = `</${componentName}>`;
-    const consequent = this.parseBlock([closeTag]);
+    const slots: Record<string, Node[]> = Object.create(null);
+    const consequent = this.parseBlock([closeTag], slots);
     if (!this.match(closeTag)) {
       this.throwError(
         `Unclosed component "<${componentName}>". Expected "${closeTag}".`,
@@ -630,7 +666,7 @@ export class TauParser {
       );
     }
     this.consume(closeTag);
-    return { type: "component", componentName, props, consequent };
+    return { type: "component", componentName, props, consequent, slots };
   }
 
   private parseTextNode(endTags: string[]): Node {
@@ -641,6 +677,9 @@ export class TauParser {
         this.match("{#if ") ||
         this.match("{#each ") ||
         this.match("{#let ") ||
+        this.match("{#slot ") ||
+        this.match("{@slot ") ||
+        this.match("{/slot}") ||
         this.match("{@html ") ||
         this.match("{@children}") ||
         this.match("{@include ") ||

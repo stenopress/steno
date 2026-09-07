@@ -3,6 +3,65 @@ import { filters, render } from "./tau.ts";
 import { formatTauError, TauError } from "./tau_error.ts";
 
 export function registerTauTests(): void {
+  Deno.test("tau: named slots have independent bindings and nested component scope", async () => {
+    assertEquals(
+      await render({
+        template: `{#let title = "Caller"}<Card title="Component">{#slot header}{#let label = title}<Label text={label} />{/slot}{#slot footer}{#let label = "Footer"}{label}{/slot}Body</Card>`,
+        context: {},
+        components: {
+          Card: `{title}|{@slot header}|{@children}|{@slot footer}|<Empty />`,
+          Label: `<b>{text}</b>`,
+          Empty: `{@slot header}`,
+        },
+      }),
+      "Component|<b>Caller</b>|Body|Footer|",
+    );
+  });
+
+  Deno.test("tau: missing and empty slots render empty", async () => {
+    assertEquals(
+      await render({
+        template: `<Card /><Card>{#slot header}{/slot}</Card>`,
+        context: { globals: { slots: { header: "must not leak" } } },
+        components: { Card: `({@slot header})` },
+      }),
+      "()()",
+    );
+  });
+
+  Deno.test("tau: named slots reject invalid declarations", async () => {
+    for (const template of [
+      `{#slot header}Outside{/slot}`,
+      `<Card>{#if true}{#slot header}Nested{/slot}{/if}</Card>`,
+      `<Card>{#slot header}One{/slot}{#slot header}Two{/slot}</Card>`,
+      `<Card>{#slot header}Unclosed</Card>`,
+      `<Card>{#slot invalid-name}Invalid{/slot}</Card>`,
+      `<Card>{#slot __proto__}Unsafe{/slot}</Card>`,
+      `{@slot constructor}`,
+      `{/slot}`,
+    ]) {
+      await assertRejects(
+        () => render({ template, context: {}, components: { Card: "" } }),
+        TauError,
+      );
+    }
+  });
+
+  Deno.test("tau: named slot rendering enforces iteration and output limits", async () => {
+    for (const limits of [{ maxIterations: 1 }, { maxOutputBytes: 1 }]) {
+      await assertRejects(
+        () =>
+          render({
+            template: `<Card>{#slot header}{#each items as item}{item}{/each}{/slot}</Card>`,
+            context: { items: ["a", "b"] },
+            components: { Card: "{@slot header}" },
+            limits,
+          }),
+        TauError,
+      );
+    }
+  });
+
   Deno.test("tau: CLI diagnostics include source, code, and suggestion", () => {
     const error = new TauError("TAU_UNKNOWN_FILTER", 'Unknown filter "typo".', {
       filePath: "content/index.md",
