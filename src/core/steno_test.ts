@@ -103,9 +103,10 @@ function initialLoad(steno: Steno): Promise<unknown> {
 }
 
 export function registerStenoTests(): void {
-  Deno.test(
-    "Steno: reloads changed trusted local source and invalidates captured hook output",
-    async () => {
+  Deno.test({
+    name: "Steno: reloads changed trusted local source and invalidates captured hook output",
+    permissions: { read: true, write: true, run: true, env: true },
+    fn: async () => {
       const f = createFixture();
       try {
         f.writeConfig("");
@@ -151,7 +152,7 @@ export default () => ({ name: "local", transformHtml: () => value });`;
         f.cleanup();
       }
     },
-  );
+  });
 
   Deno.test({
     name: "Steno: reuses a trusted plugin instance across rebuilds when config.plugins is unchanged",
