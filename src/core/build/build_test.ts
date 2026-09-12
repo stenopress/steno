@@ -411,7 +411,11 @@ export function registerBuildTests(): void {
       ]);
 
       rendered.length = 0;
+      const aboutPath = join(f.contentDir, "about.md");
+      const originalTime = Deno.statSync(aboutPath).mtime!;
       f.writePage("about.md", `---\ntitle: "About"\n---\nUpdated about page.`);
+      // Reproduce writes sharing a filesystem timestamp without relying on timing.
+      Deno.utimeSync(aboutPath, originalTime, originalTime);
       await steno.build();
       assertEquals(rendered, [join(f.outputDir, "about.html")]);
 

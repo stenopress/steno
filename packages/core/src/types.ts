@@ -1,0 +1,439 @@
+/**
+ * A trusted, in-process plugin package and its optional initialization options.
+ *
+ * Plugins execute with the permissions granted to the Steno process.
+ */
+export interface PluginEntry {
+  /** Explicit `jsr:`, `npm:`, `file:`, or HTTP module specifier. */
+  package: string;
+  /** Values passed to the plugin during initialization. */
+  options?: Record<string, unknown>;
+  /** Execute in-process (`trusted`) or in a restricted subprocess (`isolated`). */
+  mode?: "trusted" | "isolated";
+  /** Capability grants for an isolated plugin. All capabilities default to denied. */
+  permissions?: IsolatedPluginPermissions;
+  /** Maximum time for initialization or an individual hook call. */
+  timeoutMs?: number;
+  /** Maximum serialized response size for an individual worker message. */
+  maxOutputBytes?: number;
+  /** Maximum V8 heap size for the isolated worker. */
+  memoryMb?: number;
+  /** Frozen Deno lockfile used for the isolated plugin's remote module graph. */
+  lockFile?: string;
+  /** Optional SHA-256 integrity value for supported plugin sources. */
+  integrity?: string;
+}
+
+/** Explicit capabilities that may be granted to an isolated plugin process. */
+export interface IsolatedPluginPermissions {
+  /** Filesystem paths the plugin may read. */
+  read?: string[];
+  /** Filesystem paths the plugin may write. */
+  write?: string[];
+  /** Hosts the plugin may contact. */
+  net?: string[];
+  /** Environment variables the plugin may access. */
+  env?: string[];
+  /** Executables the plugin may launch. */
+  run?: string[];
+  /** Dynamic libraries the plugin may load through FFI. */
+  ffi?: string[];
+  /** System information categories the plugin may inspect. */
+  sys?: string[];
+  /** Hosts from which the plugin module graph may be imported. */
+  import?: string[];
+}
+
+/**
+ * Source-policy controls for top-level plugin module specifiers.
+ *
+ * This policy is not an execution sandbox. It does not inspect transitive
+ * imports or reduce the permissions available to plugin code.
+ */
+export interface PluginSourcePolicy {
+  /** Allow top-level plugin specifiers using `file://`. */
+  allowLocal?: boolean;
+  /** Allow top-level plugin specifiers using `http://` or `https://`. */
+  allowRemoteHttp?: boolean;
+  /**
+   * Allow top-level plugin specifiers using `node:`.
+   *
+   * This does not block Node built-ins imported transitively by another
+   * allowed plugin.
+   */
+  allowNodeBuiltins?: boolean;
+  /**
+   * Allow trusted plugins bundled by the active theme to run in-process.
+   *
+   * Theme plugins inherit the permissions granted to Steno.
+   */
+  allowThemePlugins?: boolean;
+}
+
+/** @deprecated Use {@link PluginSourcePolicy}; this policy is not a sandbox. */
+export type PluginSecurityConfig = PluginSourcePolicy;
+
+/** A single field definition in a collection frontmatter schema. */
+export interface CollectionFieldSchema {
+  /** Expected frontmatter value type. */
+  type: "string" | "number" | "boolean" | "array";
+  /** Whether every item must define the field. */
+  required?: boolean;
+}
+
+/** Configuration for sorting, filtering, and limiting a collection. */
+export interface CollectionConfig {
+  /** Frontmatter field used to sort items. */
+  sortBy?: string;
+  /** Sort direction. */
+  order?: "asc" | "desc";
+  /** Maximum number of items retained after filtering and sorting. */
+  limit?: number;
+  /** Frontmatter values that collection items must match. */
+  filter?: Record<string, unknown>;
+  /** Frontmatter fields validated for every collection item. */
+  schema?: Record<string, CollectionFieldSchema>;
+}
+
+/** A navigation entry exposed to fallback documentation themes. */
+export interface NavigationNode {
+  /** Visible navigation label. */
+  title: string;
+  /** Optional destination URL. */
+  url?: string;
+  /** Nested navigation entries. */
+  children?: NavigationNode[];
+}
+
+/** Common fields shared by managed document head tags. */
+export interface HeadTagBase {
+  /** Stable merge identity. Page entries with the same key replace site entries. */
+  key?: string;
+}
+
+/** A managed `<meta>` tag. Omitting `tag` preserves the original meta syntax. */
+export interface MetaHeadTag extends HeadTagBase {
+  /** Explicit tag discriminator; omitted values are treated as metadata. */
+  tag?: "meta";
+  /** Standard metadata name such as `description`. */
+  name?: string;
+  /** Property metadata name such as `og:title`. */
+  property?: string;
+  /** HTTP-equivalent directive name. */
+  httpEquiv?: string;
+  /** Document character encoding. */
+  charset?: string;
+  /** Metadata value. */
+  content?: string;
+}
+
+/** A managed `<link>` tag. */
+export interface LinkHeadTag extends HeadTagBase {
+  /** Link-tag discriminator. */
+  tag: "link";
+  /** Relationship between the document and resource. */
+  rel: string;
+  /** Resource URL. */
+  href: string;
+  /** Resource MIME type. */
+  type?: string;
+  /** Media query controlling when the resource applies. */
+  media?: string;
+  /** Icon or image size hint. */
+  sizes?: string;
+  /** Cross-origin request mode. */
+  crossOrigin?: string;
+  /** Referrer policy for the request. */
+  referrerPolicy?: string;
+}
+
+/** A managed external or inline `<script>` tag. */
+export interface ScriptHeadTag extends HeadTagBase {
+  /** Script-tag discriminator. */
+  tag: "script";
+  /** External script URL. */
+  src?: string;
+  /** Inline script source. */
+  content?: string;
+  /** Script MIME type or module marker. */
+  type?: string;
+  /** Whether the external script executes asynchronously. */
+  async?: boolean;
+  /** Whether execution is deferred until parsing completes. */
+  defer?: boolean;
+  /** Whether the script is excluded from module-capable browsers. */
+  noModule?: boolean;
+  /** Subresource Integrity digest. */
+  integrity?: string;
+  /** Cross-origin request mode. */
+  crossOrigin?: string;
+  /** Referrer policy for the request. */
+  referrerPolicy?: string;
+}
+
+/** A validated metadata, link, or script entry managed in the document head. */
+export type HeadTag = MetaHeadTag | LinkHeadTag | ScriptHeadTag;
+
+/** The top-level site configuration loaded from `content/.steno/config.*`. */
+export interface SiteConfig {
+  /** Default site and page title. */
+  title: string;
+  /** Default site and page description. */
+  description: string;
+  /** Default content author. */
+  author: string;
+  /** Managed document head entries. */
+  head?: HeadTag[];
+  /** Content directory override. */
+  contentDir?: string;
+  /** Build output directory. */
+  output?: string;
+  /**
+   * Directory, relative to `contentDir`, whose contents are copied verbatim
+   * to the output root. Defaults to `public`; set to `false` to disable.
+   */
+  publicDir?: string | false;
+  /** Plugin module specifiers or detailed plugin entries. */
+  plugins?: Array<string | PluginEntry>;
+  /** Named collection definitions. */
+  collections?: Record<string, CollectionConfig>;
+  /** Source-path to destination-path redirect mappings. */
+  redirects?: Record<string, string>;
+  /** Whether directory URLs omit `index.html`. */
+  shortUrls?: boolean;
+  /**
+   * Whether theme CSS/JS assets get a content hash baked into their output
+   * filename (e.g. `style.css` -> `style.a1b2c3d4.css`), so redeploys don't
+   * need a manual CDN cache purge. Defaults to `true`; set to `false` to
+   * keep source filenames as-is.
+   */
+  hashAssets?: boolean;
+  /**
+   * Whether output is minified (comments and extraneous whitespace
+   * stripped) before being written to the output directory. `true`/`false`
+   * applies to everything minification covers; an object turns individual
+   * kinds on or off - `css` for theme CSS assets, `html` for rendered
+   * pages (`<pre>`/`<script>`/`<style>`/`<textarea>` contents are always
+   * left untouched). Each kind defaults to `true`.
+   */
+  minify?: boolean | { css?: boolean; html?: boolean };
+  /** Development server port. */
+  devPort?: number;
+  /** Theme module specifier or local path. */
+  theme?: string;
+  /** Values supplied to the active theme. */
+  themeConfig?: Record<string, unknown>;
+  /** Global values exposed to templates. */
+  globals?: Record<string, unknown>;
+  /** Allowed plugin source and execution modes. */
+  pluginSourcePolicy?: PluginSourcePolicy;
+  /** Free-form, project-specific configuration not covered by other fields. */
+  custom?: {
+    /** Stylesheets injected by the fallback theme. */
+    stylesheets?: string[];
+    /** @deprecated Use top-level `shortUrls` instead. */
+    shortUrls?: boolean;
+    /** @deprecated Use top-level `devPort` instead. */
+    devPort?: number;
+    /** @deprecated Use top-level `theme` instead. */
+    theme?: string;
+    /** @deprecated Use top-level `themeConfig` instead. */
+    themeConfig?: Record<string, unknown>;
+    /** @deprecated Use top-level `globals` instead. */
+    globals?: Record<string, unknown>;
+    /** @deprecated Use top-level `pluginSourcePolicy` instead. */
+    pluginSourcePolicy?: PluginSourcePolicy;
+    /** @deprecated Use top-level `pluginSourcePolicy`. */
+    pluginSecurity?: PluginSecurityConfig;
+    [key: string]: unknown;
+  };
+  /** Site-wide navigation tree. */
+  navigation?: NavigationNode[];
+  /** Generated page metadata exposed to after-build plugins. */
+  pages?: Array<{
+    /** Output-relative page path. */
+    slug: string;
+    /** Page title from frontmatter or content discovery. */
+    title?: string;
+    /** Optional page description. */
+    description?: string;
+    /** Optional publication date. */
+    date?: string | Date;
+  }>;
+}
+
+/** Presentation-facing site settings that frontmatter may override per page. */
+export interface PageConfigOverrides {
+  /** Page-specific title. */
+  title?: string;
+  /** Page-specific description. */
+  description?: string;
+  /** Page-specific author. */
+  author?: string;
+  /** Head entries merged with site-wide entries. */
+  head?: HeadTag[];
+  /** Page-specific navigation tree. */
+  navigation?: NavigationNode[];
+  /** Shallow overrides for the active theme configuration. */
+  themeConfig?: Record<string, unknown>;
+  /** Shallow overrides for template globals. */
+  globals?: Record<string, unknown>;
+}
+
+/**
+ * A field in a theme-owned configuration schema.
+ *
+ * Themes may describe nested objects and arrays, provide defaults, and enforce
+ * common value constraints. Undeclared top-level configuration keys remain
+ * allowed for backwards compatibility.
+ */
+export interface ThemeConfigField {
+  /** Expected configuration value type. */
+  type?: "string" | "number" | "integer" | "boolean" | "array" | "object";
+  /** Value must match exactly one alternative; type may be omitted for unions. */
+  oneOf?: readonly ThemeConfigField[];
+  /** Value must match at least one alternative; type may be omitted for unions. */
+  anyOf?: readonly ThemeConfigField[];
+  /** Value used when the theme user omits this field. */
+  default?: unknown;
+  /** Human-readable guidance for theme users. */
+  description?: string;
+  /** Whether the field must be supplied or defaulted. */
+  required?: boolean;
+  /** Exact values accepted by the field. */
+  enum?: readonly unknown[];
+  /** Minimum string length. */
+  minLength?: number;
+  /** Maximum string length. */
+  maxLength?: number;
+  /** Regular expression that string values must match. */
+  pattern?: string;
+  /** Inclusive minimum numeric value. */
+  minimum?: number;
+  /** Inclusive maximum numeric value. */
+  maximum?: number;
+  /** Schema applied to every array item. */
+  items?: ThemeConfigField;
+  /** Minimum array length. */
+  minItems?: number;
+  /** Maximum array length. */
+  maxItems?: number;
+  /** Schemas for named object properties. */
+  properties?: Record<string, ThemeConfigField>;
+  /** Whether undeclared object properties are accepted. */
+  additionalProperties?: boolean;
+}
+
+/**
+ * A Markdown AST token exposed to transformation plugins.
+ *
+ * At runtime, `transformAst` receives - and must return - `marked`'s actual
+ * `Token` objects (from `marked.lexer()`), not plain objects shaped like
+ * this interface. `MarkdownToken` declares only the fields every token kind
+ * is guaranteed to have, so it's independent of `marked`'s own exported type
+ * names; it deliberately does **not** claim you can construct a minimal
+ * `{ type, raw }` object and hand it back; the tokens flow straight into
+ * `marked.parser()` afterward, which needs each token's real, kind-specific
+ * fields (a heading's `depth`, a list's `ordered`/`items`, a code block's
+ * `lang`, and so on) to render correctly. To read or set those, narrow on
+ * `type` and cast (`token as unknown as SomeMarkedTokenShape`) - never
+ * construct a plain object of this shape and expect full rendering from it.
+ */
+export interface MarkdownToken {
+  /** Token kind, such as `heading`, `paragraph`, or `text`. Always present. */
+  type: string;
+  /** Original Markdown source represented by the token. Always present. */
+  raw: string;
+  /** Plain-text token content when the token kind provides it. */
+  text?: string;
+  /** Nested inline or block tokens when the token kind provides them. */
+  tokens?: MarkdownToken[];
+}
+
+/**
+ * Markdown token list accepted and returned by AST transformation hooks -
+ * the exact value `marked.lexer()` produces, typed as `MarkdownToken[]` plus
+ * its `links` property. See {@link MarkdownToken} for what that means for a
+ * `transformAst` implementation.
+ */
+export interface MarkdownTokens extends Array<MarkdownToken> {
+  /** Reference-link definitions collected while lexing Markdown. */
+  links: Record<
+    string,
+    {
+      /** Link destination. */
+      href: string;
+      /** Optional link title. */
+      title?: string | null;
+    }
+  >;
+}
+
+/**
+ * A trusted plugin hook contract used by Steno and themes.
+ *
+ * Hooks run in-process with the permissions granted to Steno.
+ */
+export interface StenoPlugin {
+  /** Stable plugin name used in diagnostics. */
+  name: string;
+  /** Transforms parsed Markdown tokens before HTML rendering. */
+  transformAst?: (tokens: MarkdownTokens) => MarkdownTokens | Promise<MarkdownTokens>;
+  /** Transforms rendered page HTML. */
+  transformHtml?: (html: string) => string | Promise<string>;
+  /** Runs once before a site build begins. */
+  beforeBuild?: (config: SiteConfig) => void | Promise<void>;
+  /** Runs after an individual page is written to staging. */
+  afterPage?: (page: GeneratedPage) => void | Promise<void>;
+  /** Runs once after a site build completes. */
+  afterBuild?: (config: SiteConfig) => void | Promise<void>;
+}
+
+/** A generated page passed to build and plugin lifecycle hooks. */
+export interface GeneratedPage {
+  /**
+   * Kept for backward compatibility only — means the staging path in
+   * `StenoPlugin.afterPage`, but the final published path in
+   * `StenoHooks.afterPage`. Prefer `finalPath`/`stagingPath` below, which
+   * are always both populated regardless of which hook you're in.
+   */
+  path: string;
+  /** Generated HTML for the page. */
+  html: string;
+  /** Final published path. Always populated by steno's own build pipeline. */
+  finalPath?: string;
+  /** Writable staging path. Always populated by steno's own build pipeline. */
+  stagingPath?: string;
+}
+
+/** The data contract for a loaded theme. */
+export interface StenoTheme {
+  /** Theme name shown in diagnostics. */
+  name: string;
+  /** Theme package version. */
+  version: string;
+  /** Named Tau layout templates. */
+  layouts: Record<string, string>;
+  /** Named Tau component templates. */
+  components?: Record<string, string>;
+  /** Trusted, theme-scoped helpers usable as Tau calls and pipe filters. */
+  functions?: Record<string, (...args: unknown[]) => unknown>;
+  /** Static assets keyed by output-relative path. */
+  assets?: Record<string, string | Uint8Array | URL>;
+  /** Validation and default schema for theme configuration. */
+  configSchema?: Record<string, ThemeConfigField>;
+  /** Theme configuration values applied before user overrides. */
+  defaultConfig?: Record<string, unknown>;
+  /** Trusted build plugins bundled by the theme. */
+  plugins?: StenoPlugin[];
+}
+
+/** Lifecycle hooks exposed to Steno callers. */
+export interface StenoHooks {
+  /** Runs once before a site build begins. */
+  beforeBuild?: (config: SiteConfig) => void | Promise<void>;
+  /** Runs after an individual page is generated. */
+  afterPage?: (page: GeneratedPage) => void | Promise<void>;
+  /** Runs once after a site build completes. */
+  afterBuild?: (config: SiteConfig) => void | Promise<void>;
+}

@@ -1,7 +1,12 @@
-import { fromFileUrl, join, relative, resolve } from "@std/path";
+import { dirname, fromFileUrl, join, relative, resolve } from "@std/path";
 
 const root = resolve(fromFileUrl(new URL("..", import.meta.url)));
-const roots = [join(root, "src"), join(root, "packages/init/src")];
+const roots = [
+  join(root, "src"),
+  join(root, "packages/init/src"),
+  join(dirname(fromFileUrl(import.meta.resolve("@steno/core"))), "src"),
+  join(dirname(fromFileUrl(import.meta.resolve("@steno/tau"))), "src"),
+];
 const warningLines = 600;
 const maximumLines = 900;
 

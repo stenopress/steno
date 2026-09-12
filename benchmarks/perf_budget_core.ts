@@ -11,6 +11,7 @@ export const BENCH_BUDGETS_NS: Readonly<Record<string, number>> = {
   "build (atomic incremental, 1 changed page of 1000)": 275 * NS_PER_MS,
   "pipeline (typical page parse->markdown->tau)": 250 * NS_PER_US,
   "pipeline (large page parse->markdown->tau)": 1_000 * NS_PER_US,
+  "core (prepared page context->layout)": 250 * NS_PER_US,
   "tau render (simple)": 8 * NS_PER_US,
   "tau render (list of 1000 items)": 6 * NS_PER_MS,
   "parseFrontmatter (yaml)": 6 * NS_PER_US,
