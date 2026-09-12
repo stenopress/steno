@@ -29,6 +29,12 @@ steno/
 
 ## Local Workflow
 
+Core lives in `packages/core` and is published independently as `@steno/core`.
+Check out `stenopress/tau` as `../tau` beside Steno. The root `deno.json` includes
+Core as a workspace member and links Tau locally, retaining versioned JSR dependencies.
+Run `deno task check`, `deno task --cwd packages/core check`, and Tau's checks,
+plus Steno's performance benchmarks. See [the release procedure](docs/releasing-shared-packages.md).
+
 Ensure you have the latest version of Deno installed. Once the repository is cloned, use the
 following native tasks for development:
 
