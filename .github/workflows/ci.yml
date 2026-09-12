@@ -11,10 +11,22 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: steno
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          path: steno
+
+      - name: Checkout Tau
+        uses: actions/checkout@v4
+        with:
+          repository: stenopress/tau
+          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
+          path: tau
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -27,7 +39,7 @@ jobs:
           path: |
             ~/.cache/deno
             ~/.deno
-          key: ${{ runner.os }}-deno-${{ hashFiles('deno.lock') }}
+          key: ${{ runner.os }}-deno-${{ hashFiles('steno/deno.lock', 'tau/deno.lock') }}
           restore-keys: |
             ${{ runner.os }}-deno-
 
@@ -42,6 +54,12 @@ jobs:
 
       - name: Check public API documentation
         run: deno task doc:check
+
+      - name: Check package boundaries and compatibility
+        run: deno task check:api-compat && deno task check:architecture && deno task check:maintainability
+
+      - name: Test standalone engines
+        run: deno task --cwd ../tau check && deno task --cwd packages/core check
 
       - name: Run unit and conformance tests
         run: deno task test:unit
@@ -90,6 +108,6 @@ jobs:
         with:
           name: benchmark-report-${{ runner.os }}
           path: |
-            benchmark-report.md
-            benchmark-results.json
+            steno/benchmark-report.md
+            steno/benchmark-results.json
           retention-days: 30

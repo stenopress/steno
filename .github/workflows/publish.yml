@@ -13,6 +13,7 @@ on:
           - themes
           - init
           - migrate
+          - core
 
 jobs:
   quality:
@@ -27,18 +28,53 @@ jobs:
       github.event_name == 'release' &&
       github.event.release.target_commitish == 'main'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: steno
     permissions:
       contents: read
       id-token: write
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: steno
+
+      - uses: actions/checkout@v4
+        with:
+          repository: stenopress/tau
+          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
+          path: tau
 
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
+      - run: deno task check:registry
+      - run: deno task test:registry
       - run: deno publish
+
+  publish-core:
+    needs: quality
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'core'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: steno
+      - uses: actions/checkout@v4
+        with:
+          repository: stenopress/tau
+          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
+          path: tau
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.9.4"
+      - run: deno publish
+        working-directory: steno/packages/core
 
   publish-themes:
     needs: quality
