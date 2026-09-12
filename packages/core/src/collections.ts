@@ -40,11 +40,11 @@ export interface MarkdownPage {
 
 /**
  * Caches parsed pages across scans, keyed by full path, so an unchanged
- * file (same mtime) can skip a re-read and re-parse of its frontmatter.
+ * file (same mtime and size) can skip a re-read and re-parse of its frontmatter.
  * Callers own the map's lifetime — e.g. the dev server keeps one alive
  * across rebuilds so only edited files pay the read+parse cost.
  */
-export type MarkdownPageCache = Map<string, { mtimeMs: number; page: MarkdownPage }>;
+export type MarkdownPageCache = Map<string, { mtimeMs: number; size?: number; page: MarkdownPage }>;
 
 /** A named collection of content items. */
 export interface Collection {
@@ -102,14 +102,15 @@ export async function collectMarkdownPages(
     FILE_READ_CONCURRENCY,
     async ({ fullPath, relPath }) => {
       if (pageCache) {
-        const mtimeMs = (await Deno.stat(fullPath)).mtime?.getTime();
+        const stat = await Deno.stat(fullPath);
+        const mtimeMs = stat.mtime?.getTime();
         // Null mtime: platform doesn't report one, skip caching.
         if (mtimeMs !== undefined) {
           const cached = pageCache.get(fullPath);
-          if (cached && cached.mtimeMs === mtimeMs) return cached.page;
+          if (cached && cached.mtimeMs === mtimeMs && cached.size === stat.size) return cached.page;
 
           const page = await readMarkdownPage(fullPath, relPath);
-          pageCache.set(fullPath, { mtimeMs, page });
+          pageCache.set(fullPath, { mtimeMs, size: stat.size, page });
           return page;
         }
       }

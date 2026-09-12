@@ -20,7 +20,7 @@ export interface BuildState {
   pages: Map<string, BuildStateEntry>;
   /**
    * Reused across rebuilds (e.g. by the dev server) so `collectMarkdownPages`
-   * can skip re-reading and re-parsing files whose mtime hasn't changed.
+   * can skip re-reading and re-parsing files whose mtime and size haven't changed.
    */
   pageCache?: MarkdownPageCache;
 }
