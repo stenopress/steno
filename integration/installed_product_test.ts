@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { dirname, fromFileUrl, join, relative } from "@std/path";
+import { dirname, fromFileUrl, join, relative, toFileUrl } from "@std/path";
 
 // This suite does not exercise the repository checkout directly. It
 // simulates the exact file set `deno publish` would ship (via
@@ -13,6 +13,7 @@ import { dirname, fromFileUrl, join, relative } from "@std/path";
 const integrationDir = dirname(fromFileUrl(import.meta.url));
 const repositoryRoot = dirname(integrationDir);
 const decoder = new TextDecoder();
+const useRegistry = Deno.env.get("STENO_TEST_REGISTRY") === "1";
 
 /**
  * Runs `deno publish --dry-run` against the real repository and returns the
@@ -20,37 +21,67 @@ const decoder = new TextDecoder();
  * `--allow-dirty` because this suite may run against an uncommitted working
  * tree (e.g. mid-review, in CI on a PR branch before squash).
  */
-async function publishedFileManifest(): Promise<string[]> {
+async function publishedFileManifest(packageRoot = repositoryRoot): Promise<string[]> {
   const result = await new Deno.Command(Deno.execPath(), {
     args: ["publish", "--dry-run", "--allow-dirty"],
-    cwd: repositoryRoot,
+    cwd: packageRoot,
     stdout: "piped",
     stderr: "piped",
   }).output();
   const output = decoder.decode(result.stdout) + decoder.decode(result.stderr);
   assertEquals(result.success, true, output);
 
-  const files = [...output.matchAll(/file:\/\/(\S+)/g)].map((match) =>
-    decodeURIComponent(match[1]),
+  const files = [...output.matchAll(/^\s+file:\/\/(\S+) \(/gm)].map((match) =>
+    fromFileUrl(`file://${match[1]}`),
   );
   assert(
-    files.length > 10,
+    files.length > 2,
     `expected a substantial published file list, got ${files.length}:\n${output}`,
   );
   return files;
 }
 
-/** Copies exactly `files` (absolute paths under `repositoryRoot`) into a
- * fresh temp directory, preserving their relative layout. */
+/** Installs only publishable files from each package into clean sibling directories.
+ * Local links substitute for the unpublished registry versions during extraction. */
 async function materializeInstalledCopy(files: string[]): Promise<string> {
-  const installDir = await Deno.makeTempDir({ prefix: "steno-installed-" });
-  for (const file of files) {
-    const rel = relative(repositoryRoot, file);
-    const dest = join(installDir, rel);
-    await Deno.mkdir(dirname(dest), { recursive: true });
-    await Deno.copyFile(file, dest);
+  const installRoot = await Deno.makeTempDir({ prefix: "steno-installed-" });
+  const packages = [
+    { name: "steno", root: repositoryRoot, files },
+    ...(await Promise.all(
+      (useRegistry ? [] : ["core", "tau"]).map(async (name) => {
+        const root = dirname(fromFileUrl(import.meta.resolve(`@steno/${name}`)));
+        return { name, root, files: await publishedFileManifest(root) };
+      }),
+    )),
+    ...(await Promise.all(
+      ["theme-minimal", "theme-docs-minimal", "theme-marketing-minimal"].map(async (name) => {
+        const root = join(repositoryRoot, "packages", name);
+        return { name, root, files: await publishedFileManifest(root) };
+      }),
+    )),
+  ];
+  for (const pkg of packages) {
+    for (const file of pkg.files) {
+      const rel = relative(pkg.root, file);
+      assert(!rel.startsWith(".."), `manifest includes a file outside ${pkg.name}: ${file}`);
+      const packageDir = pkg.name === "core" ? join("steno", "packages", "core") : pkg.name;
+      const dest = join(installRoot, packageDir, rel);
+      await Deno.mkdir(dirname(dest), { recursive: true });
+      await Deno.copyFile(file, dest);
+    }
   }
-  return installDir;
+  if (useRegistry) {
+    const configPath = join(installRoot, "steno", "deno.json");
+    const config = JSON.parse(await Deno.readTextFile(configPath));
+    delete config.links;
+    delete config.workspace;
+    config.minimumDependencyAge = {
+      age: "P1D",
+      exclude: ["jsr:@steno/core", "jsr:@steno/tau"],
+    };
+    await Deno.writeTextFile(configPath, JSON.stringify(config));
+  }
+  return join(installRoot, "steno");
 }
 
 interface FixtureOptions {
@@ -82,6 +113,7 @@ async function runCli(installDir: string, siteRoot: string, args: string[]): Pro
   const result = await new Deno.Command(Deno.execPath(), {
     args: ["run", "-A", join(installDir, "mod.ts"), ...args],
     cwd: siteRoot,
+    env: useRegistry ? { DENO_DIR: join(dirname(installDir), "deno-cache") } : undefined,
     stdout: "piped",
     stderr: "piped",
   }).output();
@@ -165,6 +197,34 @@ Deno.test({
   },
 });
 
+Deno.test({
+  name: "installed product: isolated plugin worker resolves from the Core package",
+  permissions: { env: true, read: true, run: true, write: true },
+  fn: async () => {
+    const installDir = await installedCopy();
+    const site = await createFixture();
+    try {
+      const pluginPath = join(site, "plugin.ts");
+      await Deno.writeTextFile(
+        pluginPath,
+        `export default () => ({ name: "installed-isolated", transformHtml: (html: string) => html + "<p>Isolated Core worker</p>" });`,
+      );
+      await Deno.writeTextFile(
+        join(site, "content/.steno/config.yml"),
+        `pluginSourcePolicy:\n  allowLocal: true\nplugins:\n  - package: "${toFileUrl(pluginPath).href}"\n    mode: isolated\n`,
+        { append: true },
+      );
+      await runCli(installDir, site, ["build", "--config", "content/.steno/config.yml"]);
+      assertStringIncludes(
+        await Deno.readTextFile(join(site, "dist/index.html")),
+        "<p>Isolated Core worker</p>",
+      );
+    } finally {
+      await removeDir(site);
+    }
+  },
+});
+
 for (const theme of ["theme-minimal", "theme-docs-minimal", "theme-marketing-minimal"]) {
   Deno.test({
     name: `installed product: bundled ${theme} builds against the published package`,
@@ -172,7 +232,7 @@ for (const theme of ["theme-minimal", "theme-docs-minimal", "theme-marketing-min
     fn: async () => {
       const installDir = await installedCopy();
       const site = await createFixture({
-        theme: join(repositoryRoot, "packages", theme),
+        theme: toFileUrl(join(dirname(installDir), theme, "mod.ts")).href,
       });
       try {
         await runCli(installDir, site, ["build", "--config", "content/.steno/config.yml"]);
