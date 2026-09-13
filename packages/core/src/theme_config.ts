@@ -1,6 +1,7 @@
 import { isRecord } from "./text.ts";
 import type { ThemeConfigField } from "./types.ts";
 
+/** Resolved configuration values passed to a theme. */
 export type ThemeConfig = Record<string, unknown>;
 
 class ConfigValidationError extends Error {}
