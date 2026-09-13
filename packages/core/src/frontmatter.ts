@@ -24,22 +24,13 @@ export function parseFrontmatter(
   const body = content.slice(closingIndex + closingMarker.length);
 
   let frontmatter;
-  if (delimiter === "---") {
-    try {
-      frontmatter = parseYaml(frontmatterContent);
-    } catch (error) {
-      const fileStr = filePath ? ` in "${filePath}"` : "";
-      const errMsg = errorMessage(error);
-      throw new Error(`Failed to parse YAML frontmatter${fileStr}: ${errMsg}`);
-    }
-  } else {
-    try {
-      frontmatter = parseToml(frontmatterContent);
-    } catch (error) {
-      const fileStr = filePath ? ` in "${filePath}"` : "";
-      const errMsg = errorMessage(error);
-      throw new Error(`Failed to parse TOML frontmatter${fileStr}: ${errMsg}`);
-    }
+  try {
+    frontmatter =
+      delimiter === "---" ? parseYaml(frontmatterContent) : parseToml(frontmatterContent);
+  } catch (error) {
+    const format = delimiter === "---" ? "YAML" : "TOML";
+    const fileStr = filePath ? ` in "${filePath}"` : "";
+    throw new Error(`Failed to parse ${format} frontmatter${fileStr}: ${errorMessage(error)}`);
   }
 
   const normalizedFrontmatter =
