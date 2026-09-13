@@ -11,10 +11,10 @@
  * @module
  */
 
-import type { NavigationNode } from "./types.ts";
-import { isRecord } from "./text.ts";
 import type { Diagnostic } from "./diagnostics.ts";
 import { DiagnosticBag } from "./diagnostics.ts";
+import { isRecord } from "./text.ts";
+import type { NavigationNode } from "./types.ts";
 
 function invalid(
   diagnostics: DiagnosticBag,
@@ -301,53 +301,46 @@ export function validateSiteConfig(
   configPath: string,
   diagnostics: DiagnosticBag = new DiagnosticBag(),
 ): Diagnostic[] {
-  // title/description/author are optional here even though SiteConfig
-  // declares them non-optional - that reflects the shape once resolved,
-  // not a requirement that a human type them into every config.yml.
-  // Configured projects fill in the same defaults zero-config mode already
-  // does (see resolveConfiguredSiteMetadata in project.ts): description/
-  // author default to "", and title is derived from content/index.md the
-  // same way a page's own title infers from its H1. Only a wrong type is
-  // an error here.
-  for (const field of ["title", "description", "author"] as const) {
-    checkOptionalString(raw, field, diagnostics, configPath);
-  }
+  // primitive field checks
+  (["title", "description", "author", "contentDir", "output", "theme"] as const).forEach((f) =>
+    checkOptionalString(raw, f, diagnostics, configPath),
+  );
 
-  for (const field of ["contentDir", "output", "theme"] as const) {
-    checkOptionalString(raw, field, diagnostics, configPath);
-  }
-  for (const field of ["shortUrls", "hashAssets"] as const) {
-    checkOptionalBoolean(raw, field, diagnostics, configPath);
-  }
-  for (const field of ["themeConfig", "globals", "custom"] as const) {
-    checkOptionalRecord(raw, field, diagnostics, configPath);
-  }
+  (["shortUrls", "hashAssets"] as const).forEach((f) =>
+    checkOptionalBoolean(raw, f, diagnostics, configPath),
+  );
 
-  checkMinify(raw, diagnostics, configPath);
-  checkDevPort(raw, diagnostics, configPath);
-  checkPublicDir(raw, diagnostics, configPath);
-  checkCollections(raw, diagnostics, configPath);
-  checkRedirects(raw, diagnostics, configPath);
-  checkPluginSourcePolicy(raw, diagnostics, configPath);
-  checkPlugins(raw, diagnostics, configPath);
+  (["themeConfig", "globals", "custom"] as const).forEach((f) =>
+    checkOptionalRecord(raw, f, diagnostics, configPath),
+  );
 
+  // custom shape checks
+  [
+    checkMinify,
+    checkDevPort,
+    checkPublicDir,
+    checkCollections,
+    checkRedirects,
+    checkPluginSourcePolicy,
+    checkPlugins,
+  ].forEach((fn) => fn(raw, diagnostics, configPath));
+
+  // conditional / deeper validation
   if (raw.navigation !== undefined) {
     checkNavigationEntries(raw.navigation, diagnostics, configPath, "navigation");
   }
   if (raw.head !== undefined && !Array.isArray(raw.head)) {
     invalid(diagnostics, configPath, "head", "an array");
-    // Deeper per-entry validation (type/attrs) happens at build time in
-    // validateHeadTags(), which already produces a precise error - no need
-    // to duplicate that logic here once the top-level shape is right.
   }
 
-  const unknownKeys = Object.keys(raw).filter((key) => !KNOWN_CONFIG_KEYS.has(key));
-  if (unknownKeys.length > 0) {
+  // unknown key detection
+  const unknownKeys = Object.keys(raw).filter((k) => !KNOWN_CONFIG_KEYS.has(k));
+  if (unknownKeys.length) {
     diagnostics.add({
       code: "config-unknown-key",
       severity: "warning",
       message: `Unrecognized key${unknownKeys.length === 1 ? "" : "s"}: ${unknownKeys
-        .map((key) => `"${key}"`)
+        .map((k) => `"${k}"`)
         .join(", ")}. Check for a typo, or nest project-specific fields under "custom".`,
       file: configPath,
     });
