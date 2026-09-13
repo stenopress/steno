@@ -9,6 +9,9 @@ jobs:
   cross-platform:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: steno
     strategy:
       fail-fast: false
       matrix:
@@ -17,6 +20,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          path: steno
+
+      - name: Checkout Tau
+        uses: actions/checkout@v4
+        with:
+          repository: stenopress/tau
+          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
+          path: tau
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -27,7 +39,7 @@ jobs:
           path: |
             ~/.cache/deno
             ~/.deno
-          key: ${{ runner.os }}-real-sites-deno-${{ hashFiles('deno.lock') }}
+          key: ${{ runner.os }}-real-sites-deno-${{ hashFiles('steno/deno.lock') }}
           restore-keys: |
             ${{ runner.os }}-real-sites-deno-
             ${{ runner.os }}-deno-

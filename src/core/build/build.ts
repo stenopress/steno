@@ -1,20 +1,17 @@
 import { join, resolve } from "@std/path";
-import { marked } from "marked";
-import { runAstTransforms, runHtmlTransforms } from "../../plugins/plugins.ts";
-import type { PageRenderContext } from "../../theme/theme.ts";
+import { createPageContext, renderMarkdown, renderPage } from "@steno/core/render";
 import type { SiteConfig } from "../../types.ts";
 import { mapWithConcurrency } from "../../utils/concurrency.ts";
 import { ensureParentDirSync, fileExists } from "../../utils/fs.ts";
 import { buildComplete, debugBuildStart, debugPageContext } from "../../utils/output.ts";
-import { errorMessage, hashContent, minifyHtml } from "../../utils/text.ts";
+import { errorMessage, hashContent } from "../../utils/text.ts";
 import type { CollectionMap } from "../collections.ts";
 import { buildCollections, collectMarkdownPages } from "../collections.ts";
 import { resolveMinifyCss, resolveMinifyHtml, resolveShortUrls } from "../config.ts";
 import { loadDataFiles } from "../data.ts";
 import { DiagnosticBag, enforceDiagnostics } from "../diagnostics.ts";
-import { injectHeadTags, mergeHeadTags, validateHeadTags } from "../head.ts";
+import { validateHeadTags } from "../head.ts";
 import { processIncludes } from "../includes.ts";
-import { resolvePageConfigOverrides } from "../page_config.ts";
 import {
   resolveMarkdownScanIgnorePaths,
   resolvePageRoute,
@@ -323,70 +320,38 @@ export async function buildSite({
 
         let htmlContent = htmlCache.get(page.fullPath);
         if (htmlContent === undefined) {
-          let tokens = marked.lexer(processedBody);
-          tokens = await runAstTransforms(tokens, plugins);
-          htmlContent = await runHtmlTransforms(marked.parser(tokens), plugins);
+          htmlContent = await renderMarkdown(processedBody, plugins);
           htmlCache.set(page.fullPath, htmlContent);
         }
 
-        const layoutName =
-          typeof page.frontmatter.layout === "string" ? page.frontmatter.layout : "layout";
-
-        const pageOverrides = resolvePageConfigOverrides(page.frontmatter, page.relPath);
-        const pageGlobals = { ...globalVars, ...pageOverrides.globals };
-        const pageHead = mergeHeadTags(siteHead, pageOverrides.head);
-        const pageSite = {
-          ...config,
-          ...(pageOverrides.title !== undefined ? { title: pageOverrides.title } : {}),
-          ...(pageOverrides.description !== undefined
-            ? { description: pageOverrides.description }
-            : {}),
-          ...(pageOverrides.author !== undefined ? { author: pageOverrides.author } : {}),
+        const {
+          context: pageContext,
           head: pageHead,
-          ...(pageOverrides.navigation !== undefined
-            ? { navigation: pageOverrides.navigation }
-            : {}),
-        };
-        const { steno: _steno, ...pageFrontmatter } = page.frontmatter;
-        let pageThemeConfig: Record<string, unknown> | undefined;
-        try {
-          pageThemeConfig = theme?.resolveConfig(pageOverrides.themeConfig);
-        } catch (error) {
-          throw new Error(
-            `Invalid per-page configuration in "${page.relPath}": ${errorMessage(error)}`,
-          );
-        }
-
-        const pageContext: PageRenderContext = {
-          ...pageFrontmatter,
-          ...pageGlobals,
-          ...publicEnv,
-          env: publicEnv,
-          globals: pageGlobals,
-          site: pageSite,
-          theme: theme
-            ? { name: theme.name, version: theme.version, ...pageThemeConfig }
-            : undefined,
+          layout: layoutName,
+        } = createPageContext({
+          page,
+          config,
+          theme,
+          siteHead,
+          globals: globalVars,
+          publicEnv,
           collections: await getCollections(),
           data,
-          title:
-            (typeof page.frontmatter.title === "string" ? page.frontmatter.title : undefined) ||
-            page.title ||
-            config.title,
           assets: themeAssets,
-        };
+        });
 
         if (verbose) {
           debugPageContext(outputPath, theme && layoutName, pageContext);
         }
 
-        const layoutContent = theme
-          ? await theme.renderLayout(layoutName, htmlContent, pageContext)
-          : htmlContent;
-        const injectedContent = injectHeadTags(layoutContent, pageHead);
-        const renderedContent = resolveMinifyHtml(config)
-          ? minifyHtml(injectedContent)
-          : injectedContent;
+        const renderedContent = await renderPage({
+          content: htmlContent,
+          context: pageContext,
+          layout: layoutName,
+          head: pageHead,
+          theme,
+          minify: resolveMinifyHtml(config),
+        });
 
         return {
           page,

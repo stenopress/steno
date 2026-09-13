@@ -1,0 +1,49 @@
+{
+  "name": "@steno/core",
+  "version": "0.1.0-rc.1",
+  "exports": {
+    ".": "./mod.ts",
+    "./template": "./src/template.ts",
+    "./render": "./src/render.ts",
+    "./types": "./src/types.ts",
+    "./plugins": "./src/plugins.ts",
+    "./frontmatter": "./src/frontmatter.ts",
+    "./collections": "./src/collections.ts",
+    "./paths": "./src/path_utils.ts",
+    "./fs": "./src/fs.ts",
+    "./concurrency": "./src/concurrency.ts",
+    "./config": "./src/config.ts",
+    "./head": "./src/head.ts",
+    "./page-config": "./src/page_config.ts",
+    "./theme-config": "./src/theme_config.ts",
+    "./theme": "./src/theme.ts",
+    "./theme-functions": "./src/functions.ts",
+    "./assets": "./src/assets.ts",
+    "./text": "./src/text.ts",
+    "./isolated-worker": "./src/isolated_worker.ts",
+    "./isolated-plugin": "./src/isolated_plugin.ts",
+    "./diagnostics": "./src/diagnostics.ts",
+    "./config-validation": "./src/config_validation.ts",
+    "./isolated-protocol": "./src/isolated_protocol.ts"
+  },
+  "license": "MIT",
+  "publish": {
+    "include": ["mod.ts", "src/**/*.ts", "README.md", "LICENSE.txt"],
+    "exclude": ["**/*_test.ts"]
+  },
+  "imports": {
+    "@steno/tau": "jsr:@steno/tau@0.1.0-rc.1",
+    "@std/assert": "jsr:@std/assert@1.0.19",
+    "@std/path": "jsr:@std/path@1.1.6",
+    "@std/toml": "jsr:@std/toml@1.0.11",
+    "@std/yaml": "jsr:@std/yaml@1.2.0",
+    "@deno/emit": "jsr:@deno/emit@0.46.0",
+    "marked": "npm:marked@18.0.11"
+  },
+  "tasks": {
+    "test": "deno test --allow-read tests",
+    "fmt:check": "deno x prettier --check .",
+    "check": "deno task fmt:check && deno check mod.ts && deno doc --lint mod.ts && deno lint && deno task test"
+  },
+  "fmt": { "lineWidth": 100 }
+}

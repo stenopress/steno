@@ -81,10 +81,7 @@ export function resolveThemeConfig(config: SiteConfig): Record<string, unknown> 
   return config.themeConfig ?? config.custom?.themeConfig;
 }
 
-/** Resolves whether directory URLs omit `index.html`. Defaults to `false`. */
-export function resolveShortUrls(config: SiteConfig): boolean {
-  return config.shortUrls ?? config.custom?.shortUrls ?? false;
-}
+export { resolveShortUrls } from "@steno/core/config";
 
 /** Resolves the development server port. */
 export function resolveDevPort(config: SiteConfig): number {

@@ -19,7 +19,7 @@ steno/
 │   ├── theme/           # Theme rendering runtime and Tau integrations
 │   ├── utils/           # Parser utilities, CLI arguments, file systems, and dev servers
 │   └── types.ts         # Shared public TypeScript type definitions and contracts
-├── packages/             # Official themes and the init scaffolder
+├── packages/             # Shared Core library, official themes, and init scaffolder
 ├── benchmarks/           # Benchmark suite, budgets, and report generation
 ├── integration/          # Real-site and ecosystem compatibility tests
 └── test/                 # Unit test fixtures and the sandbox dev project
@@ -28,6 +28,63 @@ steno/
 ---
 
 ## Local Workflow
+
+Core lives in `packages/core` and is published independently as `@steno/core`.
+Check out `stenopress/tau` as `../tau` beside Steno. The root `deno.json` includes
+Core as a workspace member and links Tau locally, retaining versioned JSR dependencies.
+Run `deno task check`, `deno task --cwd packages/core check`, and Tau's checks,
+plus Steno's performance benchmarks. See [Releasing packages](#releasing-packages).
+
+## Releasing packages
+
+Steno is published as `@steno/steno`, Core from `packages/core` as `@steno/core`,
+and Tau from its own repository as `@steno/tau`. Keep Core changes and their
+Steno integration in the same PR. Core must not import Steno.
+
+Before release, run these commands from the Steno repository root:
+
+```sh
+deno task check
+deno task test:ecosystem
+deno task bench:check
+```
+
+`check` includes Core's checks. Run `deno task check` in Tau when changing it.
+For performance-sensitive changes, compare repeated before/after benchmarks on
+the same machine and Deno version; passing absolute budgets alone does not prove parity.
+
+CI checks out Tau using the full commit SHA in the repository variable `TAU_REF`.
+Keep that pin aligned with the intended dependency version. Core comes from the
+same Steno checkout and needs no separate repository pin.
+
+Update package versions, dependency specifiers, and the workspace lockfile together.
+Publish prereleases in dependency order: Tau, Core, then Steno. Core can be published
+with the manual `core` target in Steno's **Publish** workflow. Its JSR publishing
+authorization must point to `stenopress/steno` for GitHub Actions publication.
+
+After publishing Core and Tau, validate the candidate Steno package:
+
+```sh
+deno task check:registry
+deno task test:registry
+```
+
+The registry tests remove local links and workspace membership from a temporary
+installation and use a fresh Deno cache. They cover build, doctor, isolated plugins,
+and the official themes. Steno's publishing workflow requires these checks.
+
+After publishing a Steno prerelease, build an existing site using that exact JSR
+version without local links. Compare its output with the stable version and preview
+it before deployment. Repeat the checks for stable versions; retain the previous
+site lockfile and deployment artifact for rollback.
+
+### Filter cache behavior
+
+Adding, replacing, or removing a custom filter invalidates the build cache.
+Custom filter identities are process-local, so their disk caches are not reused
+across processes. Unchanged built-in filters retain persistent caching. Replace
+a custom filter when changing its captured configuration: mutations inside an
+unchanged closure cannot be detected automatically.
 
 Ensure you have the latest version of Deno installed. Once the repository is cloned, use the
 following native tasks for development:

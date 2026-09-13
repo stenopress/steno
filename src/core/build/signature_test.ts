@@ -1,6 +1,24 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { createBuildSignature } from "./signature.ts";
 import type { SiteConfig } from "../../types.ts";
+import { filters } from "../../utils/tau.ts";
+
+Deno.test("signature: adding, replacing and deleting custom filters invalidates caches", () => {
+  const factory = (value: string) => () => value;
+  const config = makeConfig();
+  const original = createBuildSignature(config);
+  try {
+    filters.signatureTest = factory("first");
+    const first = createBuildSignature(config);
+    assertNotEquals(first, original);
+    assertEquals(first, createBuildSignature(config));
+    filters.signatureTest = factory("second");
+    assertNotEquals(createBuildSignature(config), first);
+  } finally {
+    delete filters.signatureTest;
+  }
+  assertEquals(createBuildSignature(config), original);
+});
 
 function makeConfig(overrides: Partial<SiteConfig> = {}): SiteConfig {
   return { title: "Test", description: "", author: "", ...overrides };

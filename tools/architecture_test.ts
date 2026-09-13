@@ -1,8 +1,10 @@
 import { assertEquals } from "@std/assert";
-import { dirname, fromFileUrl, join, normalize, relative, resolve } from "@std/path";
+import { dirname, fromFileUrl, isAbsolute, join, normalize, relative, resolve } from "@std/path";
 
 const root = resolve(fromFileUrl(new URL("..", import.meta.url)));
 const sourceRoot = join(root, "src");
+const coreRoot = dirname(fromFileUrl(import.meta.resolve("@steno/core")));
+const tauRoot = dirname(fromFileUrl(import.meta.resolve("@steno/tau")));
 const importPattern = /\b(?:import|export)\s+(?:type\s+)?(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
 
 async function sourceFiles(dir: string): Promise<string[]> {
@@ -20,17 +22,57 @@ async function sourceFiles(dir: string): Promise<string[]> {
 function localImports(file: string, source: string): string[] {
   return [...source.matchAll(importPattern)]
     .map((match) => match[1])
-    .filter((specifier) => specifier.startsWith("."))
-    .map((specifier) => normalize(resolve(dirname(file), specifier)));
+    .filter((specifier) => specifier.startsWith(".") || specifier.startsWith("@steno/"))
+    .map((specifier) =>
+      normalize(
+        specifier.startsWith(".")
+          ? resolve(dirname(file), specifier)
+          : fromFileUrl(import.meta.resolve(specifier)),
+      ),
+    );
 }
+
+Deno.test("architecture: extracted packages cannot depend on their consumers", async () => {
+  const violations: string[] = [];
+  for (const packageRoot of [coreRoot, tauRoot]) {
+    for (const file of [
+      join(packageRoot, "mod.ts"),
+      ...(await sourceFiles(join(packageRoot, "src"))),
+    ]) {
+      const source = await Deno.readTextFile(file);
+      for (const target of localImports(file, source)) {
+        const allowedRoots = packageRoot === tauRoot ? [tauRoot] : [coreRoot, tauRoot];
+        if (
+          !allowedRoots.some((allowed) => {
+            const rel = relative(allowed, target).replaceAll("\\", "/");
+            return rel !== ".." && !rel.startsWith("../") && !isAbsolute(rel);
+          })
+        ) {
+          violations.push(`${file} -> ${target}`);
+        }
+      }
+      for (const match of source.matchAll(importPattern)) {
+        if (/^(?:jsr:)?(?:@steno\/steno|@stenopress\/press)(?:$|[\/@])/.test(match[1])) {
+          violations.push(`Consumer dependency: ${file} -> ${match[1]}`);
+        }
+      }
+      if (packageRoot === tauRoot) {
+        for (const match of source.matchAll(importPattern)) {
+          if (!match[1].startsWith(".")) violations.push(`Tau external dependency: ${match[1]}`);
+        }
+      }
+    }
+  }
+  assertEquals(violations, []);
+});
 
 Deno.test("architecture: internal dependencies follow layer boundaries", async () => {
   const violations: string[] = [];
   for (const file of await sourceFiles(sourceRoot)) {
-    const from = relative(sourceRoot, file);
+    const from = relative(sourceRoot, file).replaceAll("\\", "/");
     const imports = localImports(file, await Deno.readTextFile(file));
     for (const target of imports) {
-      const to = relative(sourceRoot, target);
+      const to = relative(sourceRoot, target).replaceAll("\\", "/");
       if (from.startsWith("utils/") && /^(core|theme|plugins)\//.test(to)) {
         violations.push(`${from} -> ${to}`);
       }
@@ -43,7 +85,14 @@ Deno.test("architecture: internal dependencies follow layer boundaries", async (
 });
 
 Deno.test("architecture: production module graph has no cycles", async () => {
-  const files = await sourceFiles(sourceRoot);
+  const files = [
+    join(root, "mod.ts"),
+    join(coreRoot, "mod.ts"),
+    join(tauRoot, "mod.ts"),
+    ...(
+      await Promise.all([sourceRoot, join(coreRoot, "src"), join(tauRoot, "src")].map(sourceFiles))
+    ).flat(),
+  ];
   const fileSet = new Set(files.map(normalize));
   const graph = new Map<string, string[]>();
   for (const file of files) {
