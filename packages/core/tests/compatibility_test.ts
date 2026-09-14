@@ -1,9 +1,9 @@
-import { registerFrontmatterTests } from "../src/frontmatter_test.ts";
-import { registerConfigValidationTests } from "../src/config_validation_test.ts";
-import { registerHeadTests } from "../src/head_test.ts";
-import { registerPathUtilsTests } from "../src/path_utils_test.ts";
 import { assertEquals } from "@std/assert";
+import { registerConfigValidationTests } from "../src/config_validation_test.ts";
+import { registerFrontmatterTests } from "../src/frontmatter_test.ts";
+import { registerHeadTests } from "../src/head_test.ts";
 import "../src/page_config_test.ts";
+import { registerPathUtilsTests } from "../src/path_utils_test.ts";
 import "../src/text_test.ts";
 
 Deno.test("public api: Core export contract is intentional", async () => {
@@ -11,7 +11,7 @@ Deno.test("public api: Core export contract is intentional", async () => {
     await Deno.readTextFile(new URL("../deno.json", import.meta.url)),
   ) as { exports: Record<string, string> };
   const output = await new Deno.Command(Deno.execPath(), {
-    args: ["doc", "--json", new URL("../mod.ts", import.meta.url).pathname],
+    args: ["doc", "--json", new URL("../mod.ts", import.meta.url).href],
   }).output();
 
   assertEquals(Object.keys(manifest.exports).sort(), [

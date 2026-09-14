@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { filters, render, runStenoCli, Steno, Theme } from "../mod.ts";
+import type { StenoTheme as LegacyStenoTheme } from "./theme/types.ts";
 import type {
   MarkdownTokens,
   PluginEntry,
@@ -9,7 +10,6 @@ import type {
   StenoPlugin,
   StenoTheme,
 } from "./types.ts";
-import type { StenoTheme as LegacyStenoTheme } from "./theme/types.ts";
 
 export function registerPublicApiTests(): void {
   Deno.test("public api: Steno export contract is intentional", async () => {
@@ -17,7 +17,7 @@ export function registerPublicApiTests(): void {
       await Deno.readTextFile(new URL("../deno.json", import.meta.url)),
     ) as { exports: string };
     const output = await new Deno.Command(Deno.execPath(), {
-      args: ["doc", "--json", new URL("../mod.ts", import.meta.url).pathname],
+      args: ["doc", "--json", new URL("../mod.ts", import.meta.url).href],
     }).output();
 
     assertEquals(manifest.exports, "./mod.ts");
