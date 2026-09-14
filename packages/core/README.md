@@ -193,7 +193,7 @@ prepared page inputs does not write files or start an HTTP server.
 
 ## API
 
-The root export provides:
+Core's root export is its stable, general-purpose surface. It intentionally provides:
 
 - `parseFrontmatter`, `collectMarkdownPages`, and `buildCollections`
 - `renderMarkdown`, `createPageContext`, and `renderPage`
@@ -204,8 +204,13 @@ The root export provides:
 - `render`, `filters`, `getTauCacheStats`, and `clearTauCache`
 - shared types, including `SiteConfig`, `StenoPlugin`, and `StenoTheme`
 
-Modules are also available through package subpaths such as `/render`, `/theme`,
-`/collections`, `/frontmatter`, `/plugins`, and `/types`.
+All listed subpaths are public contracts too: `/assets`, `/collections`, `/concurrency`, `/config`,
+`/config-validation`, `/diagnostics`, `/frontmatter`, `/fs`, `/head`, `/isolated-plugin`,
+`/isolated-protocol`, `/isolated-worker`, `/page-config`, `/paths`, `/plugins`, `/render`,
+`/template`, `/text`, `/theme`, `/theme-config`, `/theme-functions`, and `/types`.
+
+Do not import other `src/` files directly. The root and listed subpaths are compatibility-tested;
+adding, removing, or renaming an export is a public API change.
 See the [API reference](https://jsr.io/@steno/core@0.1.0-rc.1/doc) for signatures
 and the complete export list.
 
