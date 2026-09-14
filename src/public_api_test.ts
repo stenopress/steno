@@ -12,6 +12,73 @@ import type {
 import type { StenoTheme as LegacyStenoTheme } from "./theme/types.ts";
 
 export function registerPublicApiTests(): void {
+  Deno.test("public api: Steno export contract is intentional", async () => {
+    const manifest = JSON.parse(
+      await Deno.readTextFile(new URL("../deno.json", import.meta.url)),
+    ) as { exports: string };
+    const output = await new Deno.Command(Deno.execPath(), {
+      args: ["doc", "--json", new URL("../mod.ts", import.meta.url).pathname],
+    }).output();
+
+    assertEquals(manifest.exports, "./mod.ts");
+    assertEquals(output.success, true);
+
+    const document = JSON.parse(new TextDecoder().decode(output.stdout)) as {
+      nodes: Record<string, { symbols: { name: string }[] }>;
+    };
+    const module = Object.values(document.nodes)[0];
+
+    assertEquals(
+      module.symbols.map(({ name }) => name).sort(),
+      [
+        "Collection",
+        "CollectionConfig",
+        "CollectionFieldSchema",
+        "CollectionItem",
+        "CollectionMap",
+        "CoreTheme",
+        "Diagnostic",
+        "FilterFunction",
+        "GeneratedPage",
+        "HeadTag",
+        "HeadTagBase",
+        "IsolatedPluginPermissions",
+        "LinkHeadTag",
+        "MarkdownToken",
+        "MarkdownTokens",
+        "MetaHeadTag",
+        "NavigationNode",
+        "PageConfigOverrides",
+        "PageRenderContext",
+        "PluginEntry",
+        "PluginSecurityConfig",
+        "PluginSourcePolicy",
+        "ScriptHeadTag",
+        "SiteConfig",
+        "Steno",
+        "StenoDiagnosticError",
+        "StenoHooks",
+        "StenoPlugin",
+        "StenoTheme",
+        "TauCacheStats",
+        "TauError",
+        "TauErrorCode",
+        "TauErrorLocation",
+        "TauLimits",
+        "TauOptions",
+        "Theme",
+        "ThemeConfig",
+        "ThemeConfigField",
+        "clearTauCache",
+        "filters",
+        "getTauCacheStats",
+        "mergeTheme",
+        "render",
+        "runStenoCli",
+      ],
+    );
+  });
+
   Deno.test("public api: root exports are available", () => {
     assertEquals(typeof Steno, "function");
     assertEquals(typeof Theme, "function");
