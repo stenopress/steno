@@ -33,11 +33,11 @@ Steno publishes three deliberately small API surfaces. The package root and the 
 table are the complete public import contract. An implementation file being reachable inside a
 checkout does not make it public.
 
-| Package | Use it for | Public entrypoints |
-| --- | --- | --- |
-| `jsr:@steno/steno` | Building or embedding a complete Steno site | root only |
-| `jsr:@steno/core` | Reusing Steno's content, rendering, theme, and plugin primitives in another host | root, `/assets`, `/collections`, `/concurrency`, `/config`, `/config-validation`, `/diagnostics`, `/frontmatter`, `/fs`, `/head`, `/isolated-plugin`, `/isolated-protocol`, `/isolated-worker`, `/page-config`, `/paths`, `/plugins`, `/render`, `/template`, `/text`, `/theme`, `/theme-config`, `/theme-functions`, and `/types` |
-| `jsr:@steno/tau` | Rendering Tau templates without Steno or Markdown support | root, `/expression`, and `/parser` |
+| Package            | Use it for                                                                       | Public entrypoints                                                                                                                                                                                                                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsr:@steno/steno` | Building or embedding a complete Steno site                                      | root only                                                                                                                                                                                                                                                                                                                          |
+| `jsr:@steno/core`  | Reusing Steno's content, rendering, theme, and plugin primitives in another host | root, `/assets`, `/collections`, `/concurrency`, `/config`, `/config-validation`, `/diagnostics`, `/frontmatter`, `/fs`, `/head`, `/isolated-plugin`, `/isolated-protocol`, `/isolated-worker`, `/page-config`, `/paths`, `/plugins`, `/render`, `/template`, `/text`, `/theme`, `/theme-config`, `/theme-functions`, and `/types` |
+| `jsr:@steno/tau`   | Rendering Tau templates without Steno or Markdown support                        | root, `/expression`, and `/parser`                                                                                                                                                                                                                                                                                                 |
 
 The root package exposes Steno's generator and CLI (`Steno`, `runStenoCli`), its theme and
 collection surface, Tau rendering and errors, diagnostics, and the configuration, plugin, theme,
