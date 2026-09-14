@@ -48,8 +48,7 @@ plugins against the current checkout. It verifies optimized images, sitemap and 
 highlighted HTML, and generated utility CSS. The same suite builds every bundled theme and checks
 its published assets.
 
-These network-dependent checks run in the release CI gate. There is currently no published
-`@steno/theme-citrine` package to pin; add it here once a release or repository commit exists.
+These network-dependent checks run in the release CI gate.
 
 ## Installed product
 
