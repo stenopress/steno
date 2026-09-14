@@ -41,7 +41,7 @@
     "marked": "npm:marked@18.0.11"
   },
   "tasks": {
-    "test": "deno test --allow-read tests",
+    "test": "deno test --allow-read --allow-run tests",
     "fmt:check": "deno x prettier --check .",
     "check": "deno task fmt:check && deno check mod.ts && deno doc --lint mod.ts && deno lint && deno task test"
   },
