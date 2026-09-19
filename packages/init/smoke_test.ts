@@ -1,8 +1,17 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
-import { join } from "@std/path";
+import { fromFileUrl, join } from "@std/path";
 import { runOnboarding, type ThemeChoice } from "./src/onboarding.ts";
 
 const themes: ThemeChoice[] = ["minimal", "docs-minimal", "marketing-minimal"];
+const useSourceCandidate = Deno.env.get("STENO_INIT_SMOKE_SOURCE") === "1";
+
+function publishedSmokeImports(theme: ThemeChoice): Record<string, string> {
+  return {
+    "@steno/steno": "jsr:@steno/steno@^0.12.0",
+    [`jsr:@steno/theme-${theme}@^0.12.0`]: new URL(`../theme-${theme}/mod.ts`, import.meta.url)
+      .href,
+  };
+}
 
 Deno.test({
   name: "generated projects: every official theme builds without edits",
@@ -22,32 +31,49 @@ Deno.test({
           theme,
         });
 
+        const configPath = join(projectDir, "content", ".steno", "config.yml");
+        const sourceTheme = new URL(`../theme-${theme}/mod.ts`, import.meta.url).href;
+        if (useSourceCandidate) {
+          const config = await Deno.readTextFile(configPath);
+          await Deno.writeTextFile(
+            configPath,
+            config.replace(/^theme:\s+.*$/m, `theme: ${sourceTheme}`),
+          );
+        }
+
         const importMapPath = join(projectDir, "smoke-import-map.json");
-        await Deno.writeTextFile(
-          importMapPath,
-          JSON.stringify({
-            imports: {
-              "@steno/steno": "jsr:@steno/steno@^0.12.0",
-              [`jsr:@steno/theme-${theme}@^0.12.0`]: new URL(
-                `../theme-${theme}/mod.ts`,
-                import.meta.url,
-              ).href,
-            },
-          }),
-        );
+        if (!useSourceCandidate) {
+          await Deno.writeTextFile(
+            importMapPath,
+            JSON.stringify({ imports: publishedSmokeImports(theme) }),
+          );
+        }
+
+        const command = useSourceCandidate
+          ? [
+              "run",
+              `--config=${fromFileUrl(new URL("../../deno.json", import.meta.url))}`,
+              "--allow-read",
+              "--allow-write=.",
+              "--allow-net=jsr.io",
+              "--allow-env",
+              new URL("../../mod.ts", import.meta.url).href,
+              "build",
+            ]
+          : [
+              "run",
+              "--minimum-dependency-age=0",
+              `--import-map=${importMapPath}`,
+              "--allow-read",
+              "--allow-write=.",
+              "--allow-net=jsr.io",
+              "--allow-env",
+              "@steno/steno",
+              "build",
+            ];
 
         const result = await new Deno.Command(Deno.execPath(), {
-          args: [
-            "run",
-            "--minimum-dependency-age=0",
-            `--import-map=${importMapPath}`,
-            "--allow-read",
-            "--allow-write=.",
-            "--allow-net=jsr.io",
-            "--allow-env",
-            "@steno/steno",
-            "build",
-          ],
+          args: command,
           cwd: projectDir,
           env: { ...Deno.env.toObject(), NO_COLOR: "1" },
           stdout: "piped",

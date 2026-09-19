@@ -4,6 +4,22 @@ on:
   schedule:
     - cron: "23 3 * * *"
   workflow_dispatch:
+    inputs:
+      steno_sha:
+        description: "Full Steno candidate commit SHA (defaults to the dispatched commit)"
+        required: false
+        type: string
+      tau_sha:
+        description: "Full Tau candidate commit SHA (required for a candidate release gate)"
+        required: true
+        type: string
+
+env:
+  DENO_VERSION: "2.9.4"
+  STENO_REF: ${{ inputs.steno_sha || github.sha }}
+  TAU_REF: ${{ inputs.tau_sha || vars.TAU_REF || 'v0.1.0' }}
+  REQUESTED_STENO_SHA: ${{ inputs.steno_sha }}
+  REQUESTED_TAU_SHA: ${{ inputs.tau_sha }}
 
 jobs:
   cross-platform:
@@ -18,20 +34,34 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
+      - name: Validate requested release refs
+        working-directory: .
+        shell: bash
+        run: |
+          for ref in "$REQUESTED_STENO_SHA" "$REQUESTED_TAU_SHA"; do
+            if [[ -n "$ref" && ! "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
+              echo "Release refs must be full 40-character commit SHAs." >&2
+              exit 1
+            fi
+          done
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ env.STENO_REF }}
           path: steno
 
       - name: Checkout Tau
         uses: actions/checkout@v4
         with:
           repository: stenopress/tau
-          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
+          ref: ${{ env.TAU_REF }}
           path: tau
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
 
       - name: Cache Deno dependencies
         uses: actions/cache@v4
@@ -39,10 +69,40 @@ jobs:
           path: |
             ~/.cache/deno
             ~/.deno
-          key: ${{ runner.os }}-real-sites-deno-${{ hashFiles('steno/deno.lock') }}
+          key: ${{ runner.os }}-real-sites-deno-${{ hashFiles('steno/deno.lock', 'tau/deno.lock') }}
           restore-keys: |
             ${{ runner.os }}-real-sites-deno-
             ${{ runner.os }}-deno-
 
       - name: Test representative sites
         run: deno task test:sites
+
+      - name: Test generated projects
+        run: deno task --cwd packages/init test:smoke
+        env:
+          STENO_INIT_SMOKE_SOURCE: "1"
+
+      - name: Publish validation summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Cross-platform release validation"
+            echo
+            echo "- Steno requested ref: \`$STENO_REF\`"
+            echo "- Steno checked-out SHA: \`$(git rev-parse HEAD)\`"
+            echo "- Tau requested ref: \`$TAU_REF\`"
+            echo "- Tau checked-out SHA: \`$(git -C ../tau rev-parse HEAD)\`"
+            echo "- Deno version: \`$(deno --version | head -n 1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Capture failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          git status --short
+          git -C ../tau status --short
+          git log -1 --oneline
+          git -C ../tau log -1 --oneline
+          deno --version
+          deno info --json || true
