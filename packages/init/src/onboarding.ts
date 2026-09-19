@@ -587,12 +587,10 @@ author: ${toYamlString(author)}
 ${toPluginList(plugins, communityPlugins)}contentDir: ${toYamlString(contentDirName)}
 output: ${toYamlString(outputDirName)}
 devPort: ${devPort}
-
-custom:
-  shortUrls: ${shortUrls}
-  theme: ${toYamlString(resolvedTheme)}
-  themeConfig:
-    author: ${toYamlString(author)}
+shortUrls: ${shortUrls}
+theme: ${toYamlString(resolvedTheme)}
+themeConfig:
+  author: ${toYamlString(author)}
 `,
   );
 
