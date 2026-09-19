@@ -14,6 +14,52 @@ const integrationDir = dirname(fromFileUrl(import.meta.url));
 const repositoryRoot = dirname(integrationDir);
 const decoder = new TextDecoder();
 const useRegistry = Deno.env.get("STENO_TEST_REGISTRY") === "1";
+const themePackageNames = [
+  "theme-minimal",
+  "theme-docs-minimal",
+  "theme-marketing-minimal",
+] as const;
+
+interface RegistryConsumerPackages {
+  steno: string;
+  themes: Record<(typeof themePackageNames)[number], string>;
+}
+
+function registryConsumerPackages(): RegistryConsumerPackages | undefined {
+  const versions = {
+    steno: Deno.env.get("STENO_REGISTRY_STENO_VERSION"),
+    "theme-minimal": Deno.env.get("STENO_REGISTRY_THEME_MINIMAL_VERSION"),
+    "theme-docs-minimal": Deno.env.get("STENO_REGISTRY_THEME_DOCS_MINIMAL_VERSION"),
+    "theme-marketing-minimal": Deno.env.get("STENO_REGISTRY_THEME_MARKETING_MINIMAL_VERSION"),
+  };
+  const supplied = Object.values(versions).filter((version) => version !== undefined);
+  if (supplied.length === 0) return undefined;
+
+  assertEquals(
+    supplied.length,
+    4,
+    "Clean registry consumer tests require an exact version for Steno and every official theme.",
+  );
+
+  for (const [name, version] of Object.entries(versions)) {
+    assert(
+      typeof version === "string" &&
+        /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version),
+      `Expected an exact semver version for ${name}, got ${JSON.stringify(version)}.`,
+    );
+  }
+
+  return {
+    steno: versions.steno!,
+    themes: {
+      "theme-minimal": versions["theme-minimal"]!,
+      "theme-docs-minimal": versions["theme-docs-minimal"]!,
+      "theme-marketing-minimal": versions["theme-marketing-minimal"]!,
+    },
+  };
+}
+
+const registryConsumer = registryConsumerPackages();
 
 /**
  * Runs `deno publish --dry-run` against the real repository and returns the
@@ -54,7 +100,7 @@ async function materializeInstalledCopy(files: string[]): Promise<string> {
       }),
     )),
     ...(await Promise.all(
-      ["theme-minimal", "theme-docs-minimal", "theme-marketing-minimal"].map(async (name) => {
+      themePackageNames.map(async (name) => {
         const root = join(repositoryRoot, "packages", name);
         return { name, root, files: await publishedFileManifest(root) };
       }),
@@ -120,6 +166,40 @@ async function runCli(installDir: string, siteRoot: string, args: string[]): Pro
   const output = decoder.decode(result.stdout) + decoder.decode(result.stderr);
   assertEquals(result.success, true, output);
   return output;
+}
+
+/**
+ * Runs a published JSR package as a consumer would. The child process has a
+ * brand-new cache and explicitly ignores every config and lock file, so its
+ * module graph cannot be satisfied by this repository's workspace or lock.
+ */
+async function runRegistryCli(
+  packages: RegistryConsumerPackages,
+  siteRoot: string,
+  args: string[],
+): Promise<string> {
+  const cache = await Deno.makeTempDir({ prefix: "steno-registry-cache-" });
+  try {
+    const result = await new Deno.Command(Deno.execPath(), {
+      args: [
+        "run",
+        "--no-config",
+        "--no-lock",
+        "-A",
+        `jsr:@steno/steno@${packages.steno}`,
+        ...args,
+      ],
+      cwd: siteRoot,
+      env: { DENO_DIR: cache },
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    const output = decoder.decode(result.stdout) + decoder.decode(result.stderr);
+    assertEquals(result.success, true, output);
+    return output;
+  } finally {
+    await removeDir(cache);
+  }
 }
 
 async function removeDir(path: string): Promise<void> {
@@ -211,7 +291,9 @@ Deno.test({
       );
       await Deno.writeTextFile(
         join(site, "content/.steno/config.yml"),
-        `pluginSourcePolicy:\n  allowLocal: true\nplugins:\n  - package: "${toFileUrl(pluginPath).href}"\n    mode: isolated\n`,
+        `pluginSourcePolicy:\n  allowLocal: true\nplugins:\n  - package: "${
+          toFileUrl(pluginPath).href
+        }"\n    mode: isolated\n`,
         { append: true },
       );
       await runCli(installDir, site, ["build", "--config", "content/.steno/config.yml"]);
@@ -225,7 +307,7 @@ Deno.test({
   },
 });
 
-for (const theme of ["theme-minimal", "theme-docs-minimal", "theme-marketing-minimal"]) {
+for (const theme of themePackageNames) {
   Deno.test({
     name: `installed product: bundled ${theme} builds against the published package`,
     permissions: { env: true, read: true, run: true, write: true },
@@ -243,4 +325,103 @@ for (const theme of ["theme-minimal", "theme-docs-minimal", "theme-marketing-min
       }
     },
   });
+}
+
+if (registryConsumer) {
+  Deno.test({
+    name: "registry consumer: published Steno builds from a fresh cache",
+    permissions: { env: true, read: true, run: true, write: true },
+    fn: async () => {
+      const site = await createFixture();
+      try {
+        await runRegistryCli(registryConsumer, site, [
+          "build",
+          "--config",
+          "content/.steno/config.yml",
+        ]);
+        assertStringIncludes(
+          await Deno.readTextFile(join(site, "dist/index.html")),
+          "Installed build works",
+        );
+      } finally {
+        await removeDir(site);
+      }
+    },
+  });
+
+  Deno.test({
+    name: "registry consumer: published Steno doctor succeeds from a fresh cache",
+    permissions: { env: true, read: true, run: true, write: true },
+    fn: async () => {
+      const site = await createFixture();
+      try {
+        const output = await runRegistryCli(registryConsumer, site, [
+          "doctor",
+          "--config",
+          "content/.steno/config.yml",
+        ]);
+        assertStringIncludes(output.toLowerCase(), "all checks passed");
+      } finally {
+        await removeDir(site);
+      }
+    },
+  });
+
+  Deno.test({
+    name: "registry consumer: isolated local plugin resolves from published Core",
+    permissions: { env: true, read: true, run: true, write: true },
+    fn: async () => {
+      const site = await createFixture();
+      try {
+        const pluginPath = join(site, "plugin.ts");
+        await Deno.writeTextFile(
+          pluginPath,
+          `export default () => ({ name: "registry-isolated", transformHtml: (html: string) => html + "<p>Published Core worker</p>" });`,
+        );
+        await Deno.writeTextFile(
+          join(site, "content/.steno/config.yml"),
+          `pluginSourcePolicy:\n  allowLocal: true\nplugins:\n  - package: "${
+            toFileUrl(pluginPath).href
+          }"\n    mode: isolated\n`,
+          { append: true },
+        );
+        await runRegistryCli(registryConsumer, site, [
+          "build",
+          "--config",
+          "content/.steno/config.yml",
+        ]);
+        assertStringIncludes(
+          await Deno.readTextFile(join(site, "dist/index.html")),
+          "<p>Published Core worker</p>",
+        );
+      } finally {
+        await removeDir(site);
+      }
+    },
+  });
+
+  for (const theme of themePackageNames) {
+    Deno.test({
+      name: `registry consumer: published ${theme} builds from a fresh cache`,
+      permissions: { env: true, read: true, run: true, write: true },
+      fn: async () => {
+        const site = await createFixture({
+          theme: `jsr:@steno/${theme}@${registryConsumer.themes[theme]}`,
+        });
+        try {
+          await runRegistryCli(registryConsumer, site, [
+            "build",
+            "--config",
+            "content/.steno/config.yml",
+          ]);
+          assertStringIncludes(
+            await Deno.readTextFile(join(site, "dist/index.html")),
+            "Installed build works",
+          );
+        } finally {
+          await removeDir(site);
+        }
+      },
+    });
+  }
 }

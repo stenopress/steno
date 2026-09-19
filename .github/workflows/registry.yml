@@ -2,6 +2,27 @@ name: Registry integration
 
 on:
   workflow_dispatch:
+    inputs:
+      steno_version:
+        description: Exact published @steno/steno version to consume
+        required: true
+        default: 0.12.0
+        type: string
+      theme_minimal_version:
+        description: Exact published @steno/theme-minimal version to consume
+        required: true
+        default: 0.12.0
+        type: string
+      theme_docs_minimal_version:
+        description: Exact published @steno/theme-docs-minimal version to consume
+        required: true
+        default: 0.12.0
+        type: string
+      theme_marketing_minimal_version:
+        description: Exact published @steno/theme-marketing-minimal version to consume
+        required: true
+        default: 0.12.0
+        type: string
 
 jobs:
   registry:
@@ -20,3 +41,10 @@ jobs:
           deno-version: "2.9.4"
       - run: deno task check:registry && deno task test:registry
         working-directory: steno
+      - run: deno task test:installed
+        working-directory: steno
+        env:
+          STENO_REGISTRY_STENO_VERSION: ${{ inputs.steno_version }}
+          STENO_REGISTRY_THEME_MINIMAL_VERSION: ${{ inputs.theme_minimal_version }}
+          STENO_REGISTRY_THEME_DOCS_MINIMAL_VERSION: ${{ inputs.theme_docs_minimal_version }}
+          STENO_REGISTRY_THEME_MARKETING_MINIMAL_VERSION: ${{ inputs.theme_marketing_minimal_version }}
