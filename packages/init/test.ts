@@ -140,7 +140,7 @@ Deno.test("onboarding: writes top-level project, theme, and short URL configurat
   assertMatch(config, /shortUrls: false/);
   assertMatch(config, /devPort: 6100/);
   assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.12\.0"/);
-  assertMatch(config, /themeConfig:\n  author: "Tester"/);
+  assertMatch(config, /themeConfig:\n\s{2}author: "Tester"/);
   assertEquals(config.includes("custom:"), false);
   assertEquals(fileExists(dir, "src", "index.md"), true);
 
