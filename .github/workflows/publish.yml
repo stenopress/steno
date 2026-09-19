@@ -1,31 +1,74 @@
-name: Publish
+name: Release package set
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
-      target:
-        description: Package group to publish
+      steno_sha:
+        description: Full Steno commit SHA containing the reviewed version graph
         required: true
-        type: choice
-        options:
-          - themes
-          - init
-          - core
+        type: string
+      tau_sha:
+        description: Full SHA for an already-published Tau package
+        required: true
+        type: string
+      tau_version:
+        description: Exact published @steno/tau version provided by tau_sha
+        required: true
+        type: string
+      publish:
+        description: Publish after all validation gates pass
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-${{ inputs.steno_sha }}
+  cancel-in-progress: false
 
 jobs:
-  quality:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.release.target_commitish == 'main'
-    uses: ./.github/workflows/ci.yml
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate immutable release refs
+        shell: bash
+        env:
+          STENO_SHA: ${{ inputs.steno_sha }}
+          TAU_SHA: ${{ inputs.tau_sha }}
+          TAU_VERSION: ${{ inputs.tau_version }}
+        run: |
+          for ref in "$STENO_SHA" "$TAU_SHA"; do
+            if [[ ! "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
+              echo "Release refs must be full 40-character commit SHAs." >&2
+              exit 1
+            fi
+          done
+          if [[ ! "$TAU_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Tau must be an exact semver version." >&2
+            exit 1
+          fi
 
-  publish-steno:
+  quality:
+    needs: preflight
+    uses: ./.github/workflows/ci.yml
+    with:
+      steno_sha: ${{ inputs.steno_sha }}
+      tau_sha: ${{ inputs.tau_sha }}
+
+  registry:
     needs: quality
-    if: >-
-      github.event_name == 'release' &&
-      github.event.release.target_commitish == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.9.4"
+
+      - name: Verify published Tau from a clean registry state
+        run: deno check --no-config --no-lock jsr:@steno/tau@${{ inputs.tau_version }}
+
+  publish:
+    needs: registry
+    if: inputs.publish
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,91 +76,68 @@ jobs:
     permissions:
       contents: read
       id-token: write
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Steno
+        uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.steno_sha }}
           path: steno
 
-      - uses: actions/checkout@v4
+      - name: Checkout Tau workspace dependency
+        uses: actions/checkout@v4
         with:
           repository: stenopress/tau
-          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
+          ref: ${{ inputs.tau_sha }}
           path: tau
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - run: deno task check:registry
-      - run: deno task test:registry
-      - run: deno publish
-
-  publish-core:
-    needs: quality
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'core'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: steno
-      - uses: actions/checkout@v4
-        with:
-          repository: stenopress/tau
-          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
-          path: tau
-      - uses: denoland/setup-deno@v2
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
         with:
           deno-version: "2.9.4"
-      - run: deno publish
+
+      - name: Publish Core
+        run: deno publish
         working-directory: steno/packages/core
 
-  publish-themes:
-    needs: quality
-    if: >-
-      github.event_name == 'workflow_dispatch' &&
-      inputs.target == 'themes'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
+      - name: Verify published Core from a clean registry state
+        run: |
+          CORE_VERSION="$(deno eval --print 'JSON.parse(Deno.readTextFileSync("packages/core/deno.json")).version')"
+          deno check --no-config --no-lock "jsr:@steno/core@$CORE_VERSION"
 
-    strategy:
-      matrix:
-        package:
-          - packages/theme-minimal
-          - packages/theme-docs-minimal
-          - packages/theme-marketing-minimal
+      - name: Publish Steno
+        run: deno publish
 
-    steps:
-      - uses: actions/checkout@v4
+      - name: Publish theme-minimal
+        run: deno publish
+        working-directory: steno/packages/theme-minimal
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
+      - name: Publish theme-docs-minimal
+        run: deno publish
+        working-directory: steno/packages/theme-docs-minimal
 
-      - run: deno publish
-        working-directory: ${{ matrix.package }}
+      - name: Publish theme-marketing-minimal
+        run: deno publish
+        working-directory: steno/packages/theme-marketing-minimal
 
-  publish-init:
-    needs: quality
-    if: >-
-      github.event_name == 'workflow_dispatch' &&
-      inputs.target == 'init'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
+      - name: Publish init
+        run: deno publish
+        working-directory: steno/packages/init
 
-    steps:
-      - uses: actions/checkout@v4
+      - name: Verify the publishable package set from clean caches
+        run: deno task test:registry
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - run: deno publish
-        working-directory: packages/init
+      - name: Write release summary
+        if: always()
+        shell: bash
+        env:
+          STENO_SHA: ${{ inputs.steno_sha }}
+          TAU_SHA: ${{ inputs.tau_sha }}
+          TAU_VERSION: ${{ inputs.tau_version }}
+        run: |
+          {
+            echo "## Package release"
+            echo
+            echo "- Steno SHA: \`$STENO_SHA\`"
+            echo "- Tau: \`$TAU_VERSION\` from \`$TAU_SHA\` (published before this workflow)"
+            echo "- Publication order: Core, Steno, official themes, init"
+          } >> "$GITHUB_STEP_SUMMARY"
