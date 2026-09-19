@@ -7,6 +7,15 @@ on:
       - master
   pull_request:
   workflow_call:
+    inputs:
+      steno_sha:
+        description: Exact Steno commit to validate
+        required: false
+        type: string
+      tau_sha:
+        description: Exact Tau commit to validate
+        required: false
+        type: string
 
 jobs:
   quality:
@@ -19,13 +28,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.steno_sha || github.sha }}
           path: steno
 
       - name: Checkout Tau
         uses: actions/checkout@v4
         with:
           repository: stenopress/tau
-          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
+          ref: ${{ inputs.tau_sha || vars.TAU_REF || 'v0.1.0' }}
           path: tau
 
       - name: Setup Deno
