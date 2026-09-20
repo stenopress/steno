@@ -73,7 +73,7 @@ Deno.test("onboarding: config.yml uses JSR theme package for minimal", async () 
   const dir = await scaffold({ theme: "minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.12\.0"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.13\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -82,7 +82,7 @@ Deno.test("onboarding: config.yml uses JSR theme package for docs-minimal", asyn
   const dir = await scaffold({ theme: "docs-minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-docs-minimal@\^0\.12\.0"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-docs-minimal@\^0\.13\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
@@ -139,7 +139,7 @@ Deno.test("onboarding: writes top-level project, theme, and short URL configurat
   assertMatch(config, /output: "public"/);
   assertMatch(config, /shortUrls: false/);
   assertMatch(config, /devPort: 6100/);
-  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.12\.0"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.13\.0"/);
   assertMatch(config, /themeConfig:\n\s{2}author: "Tester"/);
   assertEquals(config.includes("custom:"), false);
   assertEquals(fileExists(dir, "src", "index.md"), true);
@@ -168,7 +168,7 @@ Deno.test(
     });
 
     const config = readFile(dir, "content", ".steno", "config.yml");
-    assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.12\.0"/);
+    assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.13\.0"/);
 
     await Deno.remove(dir, { recursive: true });
   },
@@ -178,7 +178,7 @@ Deno.test("onboarding: config.yml uses JSR theme package for marketing-minimal",
   const dir = await scaffold({ theme: "marketing-minimal" });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
-  assertMatch(config, /theme: "jsr:@steno\/theme-marketing-minimal@\^0\.12\.0"/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-marketing-minimal@\^0\.13\.0"/);
 
   await Deno.remove(dir, { recursive: true });
 });
