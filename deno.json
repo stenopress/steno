@@ -50,6 +50,10 @@
   },
   "workspace": ["./packages/core"],
   "links": ["../tau"],
+  "minimumDependencyAge": {
+    "age": "P1D",
+    "exclude": ["jsr:@steno/core", "jsr:@steno/tau"]
+  },
   "imports": {
     "@steno/core": "jsr:@steno/core@0.1.0",
     "@steno/tau": "jsr:@steno/tau@0.9.0",

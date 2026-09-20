@@ -12,6 +12,7 @@ import { dirname, fromFileUrl, join, relative, toFileUrl } from "@std/path";
 
 const integrationDir = dirname(fromFileUrl(import.meta.url));
 const repositoryRoot = dirname(integrationDir);
+const registryConfig = join(repositoryRoot, "tools", "registry-deno.json");
 const decoder = new TextDecoder();
 const useRegistry = Deno.env.get("STENO_TEST_REGISTRY") === "1";
 const themePackageNames = [
@@ -183,7 +184,8 @@ async function runRegistryCli(
     const result = await new Deno.Command(Deno.execPath(), {
       args: [
         "run",
-        "--no-config",
+        "--config",
+        registryConfig,
         "--no-lock",
         "-A",
         `jsr:@steno/steno@${packages.steno}`,

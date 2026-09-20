@@ -86,13 +86,19 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Steno registry policy
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.steno_sha }}
+          path: steno
+
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: "2.9.4"
 
       - name: Verify published Tau from a clean registry state
-        run: deno check --no-config --no-lock jsr:@steno/tau@${{ inputs.tau_version }}
+        run: deno check --config steno/tools/registry-deno.json --no-lock jsr:@steno/tau@${{ inputs.tau_version }}
 
   publish:
     needs: registry
@@ -130,7 +136,7 @@ jobs:
       - name: Verify published Core from a clean registry state
         run: |
           CORE_VERSION="$(deno eval --print 'JSON.parse(Deno.readTextFileSync("packages/core/deno.json")).version')"
-          deno check --no-config --no-lock "jsr:@steno/core@$CORE_VERSION"
+          deno check --config tools/registry-deno.json --no-lock "jsr:@steno/core@$CORE_VERSION"
 
       - name: Publish Steno
         run: deno publish
