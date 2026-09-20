@@ -43,6 +43,10 @@ async function writeFixture(root: string): Promise<void> {
       JSON.stringify({
         version: stenoVersion,
         imports: { "@steno/steno": `jsr:@steno/steno@^${stenoVersion}` },
+        minimumDependencyAge: {
+          age: "P1D",
+          exclude: ["jsr:@steno/core", "jsr:@steno/steno", "jsr:@steno/tau"],
+        },
       }),
     );
     await write(`${rootPath}/mod.ts`, `export default { version: "${stenoVersion}" };\n`);
@@ -94,6 +98,31 @@ Deno.test("release version check reports mismatched first-party references", asy
     assertEquals(failures.length, 1);
     assertStringIncludes(failures[0], "packages/theme-minimal/README.md");
     assertStringIncludes(failures[0], "0.12.0");
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("release version check requires theme transitive dependency exclusions", async () => {
+  const root = await Deno.makeTempDir({ prefix: "steno_release_version_" });
+  try {
+    await writeFixture(root);
+    await Deno.writeTextFile(
+      join(root, "packages/theme-minimal/deno.json"),
+      JSON.stringify({
+        version: stenoVersion,
+        imports: { "@steno/steno": `jsr:@steno/steno@^${stenoVersion}` },
+        minimumDependencyAge: {
+          age: "P1D",
+          exclude: ["jsr:@steno/steno", "jsr:@steno/tau"],
+        },
+      }),
+    );
+
+    const failures = await checkReleaseVersions(root, tauVersion);
+    assertEquals(failures.length, 1);
+    assertStringIncludes(failures[0], "packages/theme-minimal/deno.json");
+    assertStringIncludes(failures[0], "minimumDependencyAge.exclude");
   } finally {
     await Deno.remove(root, { recursive: true });
   }

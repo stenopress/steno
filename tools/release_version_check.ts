@@ -4,6 +4,10 @@ type Manifest = {
   name?: unknown;
   version?: unknown;
   imports?: Record<string, unknown>;
+  minimumDependencyAge?: {
+    age?: unknown;
+    exclude?: unknown;
+  };
 };
 
 export type ReleaseVersions = {
@@ -82,6 +86,24 @@ function expectOnlyVersions(
   }
 }
 
+function expectStringArray(
+  failures: string[],
+  location: string,
+  expected: string[],
+  actual: unknown,
+): void {
+  if (!Array.isArray(actual) || actual.length !== expected.length) {
+    failures.push(
+      `${location}: expected ${JSON.stringify(expected)}, found ${JSON.stringify(actual)}`,
+    );
+    return;
+  }
+
+  for (const [index, value] of actual.entries()) {
+    expectEqual(failures, `${location}[${index}]`, expected[index], value);
+  }
+}
+
 function activeLine(stenoVersion: string): string | undefined {
   const match = /^(\d+)\.(\d+)\.\d+(?:-[0-9A-Za-z.-]+)?$/.exec(stenoVersion);
   return match ? `| v${match[1]}.${match[2]}.x   | Yes` : undefined;
@@ -143,6 +165,18 @@ export async function checkReleaseVersions(root: string, tauVersion: string): Pr
       `${manifestPath} imports.@steno/steno`,
       `jsr:@steno/steno@^${versions.steno}`,
       manifest.imports?.["@steno/steno"],
+    );
+    expectEqual(
+      failures,
+      `${manifestPath} minimumDependencyAge.age`,
+      "P1D",
+      manifest.minimumDependencyAge?.age,
+    );
+    expectStringArray(
+      failures,
+      `${manifestPath} minimumDependencyAge.exclude`,
+      ["jsr:@steno/core", "jsr:@steno/steno", "jsr:@steno/tau"],
+      manifest.minimumDependencyAge?.exclude,
     );
 
     const modPath = `${packageRoot}/mod.ts`;
