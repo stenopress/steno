@@ -120,7 +120,7 @@ Deno.test("onboarding: pins a custom @steno/steno version in deno.json", async (
   await Deno.remove(dir, { recursive: true });
 });
 
-Deno.test("onboarding: respects custom content/output dirs, short URLs, and dev port", async () => {
+Deno.test("onboarding: writes top-level project, theme, and short URL configuration", async () => {
   const dir = await Deno.makeTempDir({ prefix: "steno_init_test_" });
   await runOnboarding(dir, {
     title: "Test Site",
@@ -139,6 +139,9 @@ Deno.test("onboarding: respects custom content/output dirs, short URLs, and dev 
   assertMatch(config, /output: "public"/);
   assertMatch(config, /shortUrls: false/);
   assertMatch(config, /devPort: 6100/);
+  assertMatch(config, /theme: "jsr:@steno\/theme-minimal@\^0\.12\.0"/);
+  assertMatch(config, /themeConfig:\n\s{2}author: "Tester"/);
+  assertEquals(config.includes("custom:"), false);
   assertEquals(fileExists(dir, "src", "index.md"), true);
 
   await Deno.remove(dir, { recursive: true });
