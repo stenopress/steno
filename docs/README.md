@@ -2,6 +2,10 @@
 
 - [Getting started](getting_started.md)
 - [Configuration reference](config_reference.md)
+- [Recipes](recipes.md)
+- [Deploying](deploying.md)
+- [Troubleshooting](troubleshooting.md)
+- [Glossary](glossary.md)
 - [Content, data, and collections](content.md)
 - [Themes and Tau](theme_development.md)
 - [Tau language specification](tau_syntax.md)

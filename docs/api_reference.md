@@ -156,9 +156,10 @@ common `HeadTagBase`), used for `config.head` and a page's `steno.head` frontmat
 
 `StenoPlugin` types a plugin's hook object (`name`, `transformAst`, `transformHtml`, `beforeBuild`,
 `afterPage`, `afterBuild`); `StenoTheme` types a module-based theme's exported shape (`layouts`,
-`components`, `assets`, `configSchema`, `defaultConfig`, optional `plugins`); `PageRenderContext`
-types the object passed into a layout/component render. `StenoHooks` types the `hooks` argument to
-`new Steno(...)`.
+`components`, trusted theme-scoped `functions`, `assets`, `configSchema`, `defaultConfig`, optional
+`plugins`). Each `functions` entry is available to Tau as a call or pipe filter and may be async;
+see [Theme functions](theme-specification.md#theme-functions). `PageRenderContext` types the object
+passed into a layout/component render. `StenoHooks` types the `hooks` argument to `new Steno(...)`.
 
 `PluginEntry` types a `plugins` array entry in `SiteConfig` (`package`, `options`, `mode`,
 `permissions`, and the isolated-mode fields); `IsolatedPluginPermissions` types its `permissions`

@@ -72,9 +72,7 @@ title: "My Steno Site"
 description: "A site built with Steno"
 author: "Your Name"
 output: "dist"
-
-custom:
-  theme: "jsr:@steno/theme-minimal"
+theme: "jsr:@steno/theme-minimal"
 ```
 
 Add content in `content/index.md`:
@@ -153,7 +151,7 @@ steno [command] [options]
 | Option                | Description                                                        |
 | --------------------- | ------------------------------------------------------------------ |
 | `-c, --config <path>` | Path to configuration file (default: `content/.steno/config.yml`). |
-| `-p, --port <number>` | Preview/dev server port (default: `4173`).                         |
+| `-p, --port <number>` | Preview port; development uses `devPort`.                          |
 | `-h, --help`          | Show CLI usage.                                                    |
 | `-v, --version`       | Print installed version.                                           |
 
