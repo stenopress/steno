@@ -68,6 +68,9 @@ jobs:
       - name: Check package boundaries and compatibility
         run: deno task check:api-compat && deno task check:architecture && deno task check:maintainability
 
+      - name: Test release version validator
+        run: deno task test:release-versions
+
       - name: Test standalone engines
         run: deno task --cwd ../tau check && deno task --cwd packages/core check
 
@@ -79,6 +82,8 @@ jobs:
 
       - name: Test generated projects
         run: deno task --cwd packages/init test:smoke
+        env:
+          STENO_INIT_SMOKE_SOURCE: "1"
 
       - name: Test representative sites
         run: deno task test:sites

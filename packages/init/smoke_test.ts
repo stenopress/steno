@@ -7,8 +7,8 @@ const useSourceCandidate = Deno.env.get("STENO_INIT_SMOKE_SOURCE") === "1";
 
 function publishedSmokeImports(theme: ThemeChoice): Record<string, string> {
   return {
-    "@steno/steno": "jsr:@steno/steno@^0.12.0",
-    [`jsr:@steno/theme-${theme}@^0.12.0`]: new URL(`../theme-${theme}/mod.ts`, import.meta.url)
+    "@steno/steno": "jsr:@steno/steno@^0.13.0",
+    [`jsr:@steno/theme-${theme}@^0.13.0`]: new URL(`../theme-${theme}/mod.ts`, import.meta.url)
       .href,
   };
 }

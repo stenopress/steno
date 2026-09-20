@@ -688,8 +688,8 @@
       "jsr:@std/path@1.1.6",
       "jsr:@std/toml@1.0.11",
       "jsr:@std/yaml@1.2.0",
-      "jsr:@steno/core@0.1.0-rc.1",
-      "jsr:@steno/tau@0.1.0-rc.1",
+      "jsr:@steno/core@0.1.0",
+      "jsr:@steno/tau@0.9.0",
       "npm:marked@18.0.11"
     ],
     "members": {
@@ -700,13 +700,13 @@
           "jsr:@std/path@1.1.6",
           "jsr:@std/toml@1.0.11",
           "jsr:@std/yaml@1.2.0",
-          "jsr:@steno/tau@0.1.0-rc.1",
+          "jsr:@steno/tau@0.9.0",
           "npm:marked@18.0.11"
         ]
       }
     },
     "links": {
-      "jsr:@steno/tau@0.1.0-rc.1": {
+      "jsr:@steno/tau@0.9.0": {
         "dependencies": [
           "jsr:@std/assert@1.0.19"
         ]

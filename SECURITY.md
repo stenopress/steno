@@ -13,8 +13,8 @@ backported to the latest minor or major release.
 
 | Version   | Supported | Notes                                                              |
 | :-------- | :-------- | :----------------------------------------------------------------- |
-| v0.12.x   | Yes       | Current active branch. All security patches are applied here.      |
-| < v0.12.0 | No        | Legacy development versions. Please upgrade to the latest release. |
+| v0.13.x   | Yes       | Current active branch. All security patches are applied here.      |
+| < v0.13.0 | No        | Legacy development versions. Please upgrade to the latest release. |
 
 ---
 
@@ -56,7 +56,7 @@ privately.
 
 ### Disclosure Process
 
-1. Email your report directly to the maintainer at **me@gxbs.dev**.
+1. Email your report directly to the maintainer at **security@gxbs.dev**.
 2. Include a detailed description of the vulnerability, steps to reproduce, and a minimal working
    proof of concept (PoC) if possible.
 3. We will acknowledge your report within 48 hours and coordinate a timeline for a patch and

@@ -199,7 +199,7 @@ Deno.test("onboarding: deno.json scaffold has build/dev tasks", async () => {
   const denoJson = JSON.parse(readFile(dir, "deno.json"));
   assertEquals(typeof denoJson.tasks.build, "string");
   assertEquals(typeof denoJson.tasks.dev, "string");
-  assertEquals(denoJson.imports["@steno/steno"], "jsr:@steno/steno@^0.12.0");
+  assertEquals(denoJson.imports["@steno/steno"], "jsr:@steno/steno@^0.13.0");
   assertMatch(denoJson.tasks.build, /--allow-read=\./);
   assertMatch(denoJson.tasks.build, /--allow-write=\./);
   assertMatch(denoJson.tasks.build, /--allow-net=jsr\.io/);

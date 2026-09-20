@@ -18,17 +18,17 @@ server, and output management, use Steno.
 Add Core to a Deno project:
 
 ```sh
-deno add jsr:@steno/core@0.1.0-rc.1
+deno add jsr:@steno/core@0.1.0
 ```
 
-Core is currently available as a prerelease, so examples pin the version explicitly.
+Examples pin the version explicitly so their imports remain reproducible.
 
 ## Quick start
 
 Parse a document, render its Markdown, and apply a theme:
 
 ```ts
-import { parseFrontmatter, renderMarkdown, Theme } from "jsr:@steno/core@0.1.0-rc.1";
+import { parseFrontmatter, renderMarkdown, Theme } from "jsr:@steno/core@0.1.0";
 
 const { frontmatter, body } = parseFrontmatter(`---
 title: Hello Core
@@ -67,7 +67,7 @@ import {
   renderMarkdown,
   renderPage,
   Theme,
-} from "jsr:@steno/core@0.1.0-rc.1";
+} from "jsr:@steno/core@0.1.0";
 
 const { frontmatter, body } = parseFrontmatter("# Welcome");
 const theme = new Theme({
@@ -126,7 +126,7 @@ content root, so `content/posts/hello.md` belongs to `collections.posts`.
 Collection configuration supports sorting, filtering, limits, and schemas.
 
 ```ts
-import { buildCollections, collectMarkdownPages } from "jsr:@steno/core@0.1.0-rc.1";
+import { buildCollections, collectMarkdownPages } from "jsr:@steno/core@0.1.0";
 
 const pages = await collectMarkdownPages("./content");
 const collections = await buildCollections(
@@ -154,7 +154,7 @@ The HTML cache is populated in place; the caller owns its lifetime and invalidat
 Plugins use the `StenoPlugin` contract:
 
 ```ts
-import { renderMarkdown, type StenoPlugin } from "jsr:@steno/core@0.1.0-rc.1";
+import { renderMarkdown, type StenoPlugin } from "jsr:@steno/core@0.1.0";
 
 const plugin: StenoPlugin = {
   name: "article-body",
@@ -211,7 +211,7 @@ All listed subpaths are public contracts too: `/assets`, `/collections`, `/concu
 
 Do not import other `src/` files directly. The root and listed subpaths are compatibility-tested;
 adding, removing, or renaming an export is a public API change.
-See the [API reference](https://jsr.io/@steno/core@0.1.0-rc.1/doc) for signatures
+See the [API reference](https://jsr.io/@steno/core@0.1.0/doc) for signatures
 and the complete export list.
 
 ## Development
