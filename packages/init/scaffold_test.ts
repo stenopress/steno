@@ -79,8 +79,17 @@ Deno.test("scaffoldPlugin: the generated plugin passes its own generated test", 
   const dir = await Deno.makeTempDir({ prefix: "steno_init_plugin_test_" });
   scaffoldPlugin("smoke", { targetDir: dir });
 
+  const denoJsonPath = join(dir, "deno.json");
+  const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath));
+  denoJson.imports["@steno/steno"] = new URL("../../mod.ts", import.meta.url).href;
+  denoJson.minimumDependencyAge = {
+    age: "P1D",
+    exclude: ["jsr:@steno/core", "jsr:@steno/tau", "jsr:@steno/steno"],
+  };
+  await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson, null, 2));
+
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["test", "-A", "--minimum-dependency-age=0", "mod_test.ts"],
+    args: ["test", "-A", "mod_test.ts"],
     cwd: dir,
     stdout: "piped",
     stderr: "piped",
