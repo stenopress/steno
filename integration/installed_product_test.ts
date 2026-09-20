@@ -69,7 +69,7 @@ const registryConsumer = registryConsumerPackages();
  */
 async function publishedFileManifest(packageRoot = repositoryRoot): Promise<string[]> {
   const result = await new Deno.Command(Deno.execPath(), {
-    args: ["publish", "--dry-run", "--allow-dirty"],
+    args: ["publish", "--dry-run", "--allow-dirty", "--no-check"],
     cwd: packageRoot,
     stdout: "piped",
     stderr: "piped",

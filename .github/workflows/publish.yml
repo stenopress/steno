@@ -47,8 +47,36 @@ jobs:
             exit 1
           fi
 
-  quality:
+  release-graph:
     needs: preflight
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: steno
+    steps:
+      - name: Checkout Steno
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.steno_sha }}
+          path: steno
+
+      - name: Checkout Tau workspace dependency
+        uses: actions/checkout@v4
+        with:
+          repository: stenopress/tau
+          ref: ${{ inputs.tau_sha }}
+          path: tau
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.9.4"
+
+      - name: Validate the release version graph
+        run: deno task check:release-versions ${{ inputs.tau_version }}
+
+  quality:
+    needs: release-graph
     uses: ./.github/workflows/ci.yml
     with:
       steno_sha: ${{ inputs.steno_sha }}
