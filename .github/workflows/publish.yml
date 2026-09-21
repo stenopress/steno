@@ -20,6 +20,14 @@ on:
         required: true
         default: false
         type: boolean
+      resume_from:
+        description: Resume a partially completed release at the first unpublished package
+        required: true
+        default: core
+        type: choice
+        options:
+          - core
+          - themes
 
 concurrency:
   group: release-${{ inputs.steno_sha }}
@@ -35,6 +43,7 @@ jobs:
           STENO_SHA: ${{ inputs.steno_sha }}
           TAU_SHA: ${{ inputs.tau_sha }}
           TAU_VERSION: ${{ inputs.tau_version }}
+          RESUME_FROM: ${{ inputs.resume_from }}
         run: |
           for ref in "$STENO_SHA" "$TAU_SHA"; do
             if [[ ! "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
@@ -44,6 +53,10 @@ jobs:
           done
           if [[ ! "$TAU_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z.-]+)?$ ]]; then
             echo "Tau must be an exact semver version." >&2
+            exit 1
+          fi
+          if [[ "$RESUME_FROM" != "core" && "$RESUME_FROM" != "themes" ]]; then
+            echo "resume_from must be core or themes." >&2
             exit 1
           fi
 
@@ -130,6 +143,7 @@ jobs:
           deno-version: "2.9.4"
 
       - name: Publish Core
+        if: inputs.resume_from == 'core'
         run: deno publish
         working-directory: steno/packages/core
 
@@ -139,7 +153,13 @@ jobs:
           deno check --config tools/registry-deno.json --no-lock "jsr:@steno/core@$CORE_VERSION"
 
       - name: Publish Steno
+        if: inputs.resume_from == 'core'
         run: deno publish
+
+      - name: Verify published Steno from a clean registry state
+        run: |
+          STENO_VERSION="$(deno eval --print 'JSON.parse(Deno.readTextFileSync("deno.json")).version')"
+          deno check --config tools/registry-deno.json --no-lock "jsr:@steno/steno@$STENO_VERSION"
 
       - name: Publish theme-minimal
         run: deno publish

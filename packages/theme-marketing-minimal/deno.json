@@ -11,6 +11,6 @@
   },
   "minimumDependencyAge": {
     "age": "P1D",
-    "exclude": ["jsr:@steno/steno"]
+    "exclude": ["jsr:@steno/core", "jsr:@steno/steno", "jsr:@steno/tau"]
   }
 }
