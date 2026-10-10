@@ -11,6 +11,11 @@ A theme, plugin, data file, redirect, or the config itself failing to load is pr
 `[plugin-load-failed]`, `[data-file-invalid]`, `[redirect-invalid]`, `[config-invalid]`). What
 happens next depends on the command and the severity:
 
+When available, each diagnostic names the source file or package, the config that declared it, and
+the plugin or theme involved. A `hint:` line gives the next repair step. For YAML/TOML parse errors,
+fix the reported location in the named file; for config-shape errors, correct the named field in the
+config shown; for plugin/theme load errors, follow the hint and check that input's own source.
+
 - `steno build` fails the build on any `error`-severity line - a build that silently drops its
   configured theme or a plugin doesn't match its own config, which is worse than failing loudly. The
   thrown error is a `StenoDiagnosticError` (exported from `jsr:@steno/steno`), carrying every
