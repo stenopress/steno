@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects, assertStringIncludes, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import { Steno } from "../../../mod.ts";
+import { formatTauError, TauError } from "../../utils/tau_error.ts";
 import type { SiteConfig, StenoPlugin } from "../../types.ts";
 import { fileExistsSync as fileExists } from "../../utils/fs.ts";
 import { buildSite } from "./build.ts";
@@ -98,6 +99,70 @@ async function replacePlugins(steno: Steno, plugins: StenoPlugin[]): Promise<voi
 // tests
 
 export function registerBuildTests(): void {
+  Deno.test({
+    name: "build: preserves Tau error codes and recovery hints with page context",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const f = createFixture();
+      try {
+        const themeDir = f.writeTheme({ layout: "{#if title}unclosed" });
+        f.writeConfig(`theme: "${themeDir}"\n`);
+        f.writePage("broken.md", "# Broken");
+
+        const error = await assertRejects(() => new Steno(f.configPath, false).build(), TauError);
+        assertEquals(error.code, "TAU_PARSE_UNCLOSED_BLOCK");
+        assertEquals(error.filePath, join(themeDir, "layouts", "layout.tau"));
+        assertStringIncludes(
+          error.message,
+          'Failed to render page "broken.md" with theme "test-theme"',
+        );
+        assertStringIncludes(error.message, `from config "${f.configPath}"`);
+        assertStringIncludes(formatTauError(error), "Code: TAU_PARSE_UNCLOSED_BLOCK");
+        assertStringIncludes(formatTauError(error), "Hint: Check Tau block syntax");
+      } finally {
+        f.cleanup();
+      }
+    },
+  });
+
+  for (const hook of ["beforeBuild", "afterPage", "afterBuild"] as const) {
+    Deno.test({
+      name: `build: names failing plugin ${hook} hook and preserves the previous output`,
+      permissions: { read: true, write: true },
+      fn: async () => {
+        const f = createFixture();
+        try {
+          f.writeConfig();
+          f.writePage("index.md", "# Original");
+          const steno = new Steno(f.configPath, false);
+          await steno.build();
+          const previous = Deno.readTextFileSync(join(f.outputDir, "index.html"));
+          const cause = new Error("hook failure");
+          await replacePlugins(steno, [
+            {
+              name: "broken",
+              [hook]: () => {
+                throw cause;
+              },
+            },
+          ]);
+          f.writePage("index.md", "# Changed");
+
+          const error = await assertRejects(() => steno.build(), Error);
+          assertStringIncludes(
+            error.message,
+            `Plugin "broken" hook "${hook}" failed in config "${f.configPath}"`,
+          );
+          assertStringIncludes(error.message, "Check this hook's implementation");
+          assertEquals(error.cause, cause);
+          assertEquals(Deno.readTextFileSync(join(f.outputDir, "index.html")), previous);
+        } finally {
+          f.cleanup();
+        }
+      },
+    });
+  }
+
   Deno.test({
     name: "build: ready waits for the automatic initialization build",
     permissions: { read: true, write: true },
@@ -830,9 +895,10 @@ export default theme;`,
       const error = await assertRejects(
         () => new Steno(f.configPath, false).build(),
         Error,
-        'in "invalid.md": Invalid configuration for theme "test-theme" at "themeConfig.columns": expected integer',
+        'Invalid configuration for theme "test-theme" at "themeConfig.columns": expected integer',
       );
-      assertStringIncludes(error.message, "test-theme");
+      assertStringIncludes(error.message, `in "invalid.md" in config "${f.configPath}"`);
+      assertStringIncludes(error.message, "Check the page's steno.themeConfig");
 
       f.cleanup();
     },

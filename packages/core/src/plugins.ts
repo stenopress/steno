@@ -1,6 +1,6 @@
 import type { TokensList } from "marked";
-import type { StenoPlugin } from "./types.ts";
 import { errorMessage } from "./text.ts";
+import type { StenoPlugin } from "./types.ts";
 /** Shared plugin contract used throughout the build pipeline. */
 export type { StenoPlugin } from "./types.ts";
 
@@ -48,9 +48,10 @@ export async function runAstTransforms(
     try {
       result = await plugin.transformAst(tokens);
     } catch (error) {
-      throw new Error(`Plugin "${plugin.name}"'s transformAst threw: ${errorMessage(error)}`, {
-        cause: error,
-      });
+      throw new Error(
+        `Plugin "${plugin.name}"'s transformAst threw: ${errorMessage(error)}. Check the hook implementation and the token shape it expects.`,
+        { cause: error },
+      );
     }
 
     // Catches wrong-shape returns before they fail deep in markdown rendering.
@@ -79,9 +80,10 @@ export async function runHtmlTransforms(html: string, plugins: StenoPlugin[]): P
     try {
       result = await plugin.transformHtml(html);
     } catch (error) {
-      throw new Error(`Plugin "${plugin.name}"'s transformHtml threw: ${errorMessage(error)}`, {
-        cause: error,
-      });
+      throw new Error(
+        `Plugin "${plugin.name}"'s transformHtml threw: ${errorMessage(error)}. Check the hook implementation and its assumptions about rendered HTML.`,
+        { cause: error },
+      );
     }
 
     // Catches a plugin forgetting `return`, which would write "undefined" into HTML.

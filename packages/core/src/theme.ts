@@ -4,7 +4,7 @@ import type { CollectionMap } from "./collections.ts";
 import { basename, fromFileUrl, isAbsolute, join, resolve, toFileUrl } from "@std/path";
 import { parse as parseYaml } from "@std/yaml";
 import { transpile } from "@deno/emit";
-import { isRecord } from "./text.ts";
+import { errorMessage, isRecord } from "./text.ts";
 import { copyThemeAssets } from "./assets.ts";
 import { loadThemeFunctions, validateThemeFunctions } from "./functions.ts";
 import { resolveSchemaDefaults, type ThemeConfig, validateThemeConfig } from "./theme_config.ts";
@@ -306,16 +306,32 @@ export class Theme {
    */
   private static loadMetadata(dir: string): ThemeDirectoryMetadata {
     let yamlContent: string | undefined;
+    let yamlPath: string | undefined;
     for (const fileName of ["theme.yaml", "theme.yml"]) {
       try {
-        yamlContent = Deno.readTextFileSync(join(dir, fileName));
+        yamlPath = join(dir, fileName);
+        yamlContent = Deno.readTextFileSync(yamlPath);
         break;
-      } catch {
+      } catch (error) {
+        if (!(error instanceof Deno.errors.NotFound)) {
+          throw new Error(
+            `Could not read theme metadata "${yamlPath}": ${errorMessage(error)}. Check that the file is readable.`,
+            { cause: error },
+          );
+        }
         // Try the next candidate filename.
       }
     }
     if (yamlContent === undefined) return {};
-    const parsed = parseYaml(yamlContent);
+    let parsed: unknown;
+    try {
+      parsed = parseYaml(yamlContent);
+    } catch (error) {
+      throw new Error(
+        `Failed to parse theme metadata "${yamlPath}": ${errorMessage(error)}. Check the YAML syntax and indentation in this file.`,
+        { cause: error },
+      );
+    }
     return parsed && typeof parsed === "object" ? (parsed as ThemeDirectoryMetadata) : {};
   }
 

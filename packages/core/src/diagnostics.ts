@@ -19,6 +19,12 @@ export interface Diagnostic {
   message: string;
   /** Path to the file the problem was found in, if applicable. */
   file?: string;
+  /** Configuration file that declared the input, when applicable. */
+  config?: string;
+  /** Plugin package or plugin name involved in the problem, when applicable. */
+  plugin?: string;
+  /** Theme specifier or theme name involved in the problem, when applicable. */
+  theme?: string;
   /** A concrete next step, when there's an obvious one. */
   hint?: string;
 }
@@ -27,9 +33,13 @@ export interface Diagnostic {
 export class DiagnosticBag {
   private readonly items: Diagnostic[] = [];
 
+  /** Creates a bag whose entries inherit the declaring config path when known. */
+  constructor(private readonly configPath?: string) {}
+
   /** Appends a diagnostic in discovery order. */
   add(diagnostic: Diagnostic): void {
-    this.items.push(diagnostic);
+    const config = diagnostic.config ?? this.configPath;
+    this.items.push(config ? { ...diagnostic, config } : diagnostic);
   }
 
   /** All collected diagnostics in discovery order. */
@@ -61,8 +71,16 @@ export class DiagnosticBag {
 /** Renders one diagnostic as a single-line-plus-hint string for console output. */
 export function formatDiagnostic(diagnostic: Diagnostic): string {
   const location = diagnostic.file ? ` (${diagnostic.file})` : "";
+  const context = [
+    diagnostic.plugin ? `plugin "${diagnostic.plugin}"` : "",
+    diagnostic.theme ? `theme "${diagnostic.theme}"` : "",
+    diagnostic.config && diagnostic.config !== diagnostic.file
+      ? `config "${diagnostic.config}"`
+      : "",
+  ].filter(Boolean);
+  const contextText = context.length ? ` [${context.join(", ")}]` : "";
   const hint = diagnostic.hint ? `\n  hint: ${diagnostic.hint}` : "";
-  return `[${diagnostic.code}] ${diagnostic.message}${location}${hint}`;
+  return `[${diagnostic.code}] ${diagnostic.message}${location}${contextText}${hint}`;
 }
 
 /** Prints every diagnostic in `bag` to the console - errors via `console.error`,
