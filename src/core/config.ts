@@ -310,13 +310,13 @@ export async function loadPlugins(
   const plugins: StenoPlugin[] = [];
   const sourcePolicy = resolvePluginSourcePolicy(config);
 
-  for (const configuredEntry of config.plugins) {
+  for (const [index, configuredEntry] of config.plugins.entries()) {
     const entry = toPluginEntry(configuredEntry);
     if (!entry) {
       diagnostics.add({
         code: "plugin-entry-invalid",
         severity: "error",
-        message: `Invalid plugin entry in config.`,
+        message: `Invalid plugin entry at "plugins[${index}]" in config.`,
         hint: 'Each entry must be a package specifier string, or an object with at least a "package" field.',
       });
       continue;
@@ -332,6 +332,7 @@ export async function loadPlugins(
         severity: "error",
         message: `Blocked plugin source "${packageName}": ${blockedReason}`,
         file: packageName,
+        plugin: packageName,
         hint: "Adjust pluginSourcePolicy if this source should be allowed.",
       });
       continue;
@@ -374,6 +375,8 @@ export async function loadPlugins(
           severity: "error",
           message: `Plugin "${packageName}" does not export a default function.`,
           file: packageName,
+          plugin: packageName,
+          hint: "Export a default plugin factory that returns a valid Steno plugin object.",
         });
         continue;
       }
@@ -385,6 +388,7 @@ export async function loadPlugins(
           severity: "error",
           message: `Plugin "${packageName}" returned an invalid plugin object.`,
           file: packageName,
+          plugin: packageName,
           hint: 'Its factory must return an object with at least a "name".',
         });
         continue;
@@ -396,15 +400,18 @@ export async function loadPlugins(
       plugins.push(plugin);
     } catch (err) {
       if (entry.mode === "isolated") {
-        throw new Error(`Failed to load isolated plugin "${packageName}": ${errorMessage(err)}`, {
-          cause: err,
-        });
+        throw new Error(
+          `Failed to load isolated plugin "${packageName}" from the configured plugin entry: ${errorMessage(err)}. Check its permissions and pinned source, then compare its requirements with the isolated plugin policy.`,
+          { cause: err },
+        );
       }
       diagnostics.add({
         code: "plugin-load-failed",
         severity: "error",
         message: `Failed to load plugin "${packageName}": ${errorMessage(err)}`,
         file: packageName,
+        plugin: packageName,
+        hint: "Check the package specifier, registry/network access, and the plugin's documented setup requirements.",
       });
     }
   }
@@ -421,7 +428,15 @@ export async function loadPlugins(
  * reported as warnings, same as before.
  */
 export function loadConfig(configPath: string): SiteConfig {
-  const fileContents = Deno.readTextFileSync(configPath);
+  let fileContents: string;
+  try {
+    fileContents = Deno.readTextFileSync(configPath);
+  } catch (error) {
+    throw new Error(
+      `Could not read configuration file "${configPath}": ${errorMessage(error)}. Check that the path exists and is readable, then rerun with the correct --config path if needed.`,
+      { cause: error },
+    );
+  }
   const parser =
     configPath.endsWith(".yaml") || configPath.endsWith(".yml")
       ? parseYaml
@@ -431,7 +446,7 @@ export function loadConfig(configPath: string): SiteConfig {
 
   if (!parser) {
     throw new Error(
-      `Unsupported config file format at "${configPath}". Please use .yaml, .yml, or .toml.`,
+      `Unsupported config file format at "${configPath}". Please use .yaml, .yml, or .toml. Rename the file or pass a supported path with --config.`,
     );
   }
 
@@ -449,7 +464,7 @@ export function loadConfig(configPath: string): SiteConfig {
     );
   }
 
-  const diagnostics = new DiagnosticBag();
+  const diagnostics = new DiagnosticBag(configPath);
   validateSiteConfig(config as Record<string, unknown>, configPath, diagnostics);
   enforceDiagnostics(diagnostics, false);
 

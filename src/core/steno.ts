@@ -96,7 +96,9 @@ export class Steno {
   private async loadRuntime(dev: boolean = Deno.args.includes("dev")): Promise<ResolvedProject> {
     const project = await resolveProject(this.configPath, undefined, this.buildState.pageCache);
     this.config = project.config;
-    const diagnostics = new DiagnosticBag();
+    const diagnostics = new DiagnosticBag(
+      project.mode === "configured" ? this.configPath : undefined,
+    );
     this.theme = await loadTheme(project.config, diagnostics);
 
     const configuredPlugins = project.config.plugins ?? [];
@@ -134,6 +136,7 @@ export class Steno {
               code: "theme-plugin-invalid",
               severity: "error",
               message: `Theme plugin at index ${index} is invalid.`,
+              theme: this.theme?.name,
               hint: 'It must be an object with at least a "name".',
             });
             return false;
@@ -147,6 +150,8 @@ export class Steno {
         code: "theme-plugins-disabled",
         severity: "warning",
         message: "Theme plugins are disabled by `pluginSourcePolicy.allowThemePlugins: false`.",
+        theme: this.theme?.name,
+        hint: "Set pluginSourcePolicy.allowThemePlugins to true only if this theme's plugins are trusted.",
       });
     }
 
@@ -164,6 +169,7 @@ export class Steno {
           code: "plugin-name-duplicate",
           severity: "warning",
           message: `More than one plugin is named "${plugin.name}" - diagnostics naming this plugin won't say which one they mean.`,
+          plugin: plugin.name,
           hint: "Give each plugin a distinct name, even if it's the same package loaded twice with different options.",
         });
         continue;
@@ -182,6 +188,7 @@ export class Steno {
     try {
       await buildSite({
         config: this.config,
+        configPath: project.mode === "configured" ? this.configPath : undefined,
         theme: this.theme,
         plugins: this.plugins,
         hooks: this.hooks,

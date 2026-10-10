@@ -1,6 +1,7 @@
 import { join, resolve } from "@std/path";
+import { TauError } from "../../utils/tau_error.ts";
 import { createPageContext, renderMarkdown, renderPage } from "@steno/core/render";
-import type { SiteConfig } from "../../types.ts";
+import type { SiteConfig, StenoPlugin } from "../../types.ts";
 import { mapWithConcurrency } from "../../utils/concurrency.ts";
 import { ensureParentDirSync, fileExists } from "../../utils/fs.ts";
 import { buildComplete, debugBuildStart, debugPageContext } from "../../utils/output.ts";
@@ -36,6 +37,23 @@ import { createBuildSignature } from "./signature.ts";
 export type { BuildContext, BuildState, BuildStateEntry } from "./context.ts";
 const STAGING_COPY_CONCURRENCY = 128;
 const PAGE_RENDER_CONCURRENCY = 16;
+
+async function runPluginHook(
+  plugin: StenoPlugin,
+  hook: string,
+  configPath: string | undefined,
+  run: () => void | Promise<void>,
+): Promise<void> {
+  try {
+    await run();
+  } catch (error) {
+    const configLabel = configPath ? ` in config "${configPath}"` : "";
+    throw new Error(
+      `Plugin "${plugin.name}" hook "${hook}" failed${configLabel}: ${errorMessage(error)}. Check this hook's implementation and the plugin's documented requirements.`,
+      { cause: error },
+    );
+  }
+}
 
 async function copyFilesToStaging(
   files: Array<{ source: string; destination: string }>,
@@ -91,6 +109,7 @@ async function copyPublicDir(
 
 export async function buildSite({
   config,
+  configPath,
   theme,
   plugins,
   hooks,
@@ -112,10 +131,16 @@ export async function buildSite({
   }
 
   try {
-    for (const plugin of plugins) await plugin.beforeBuild?.(stagedConfig);
+    for (const plugin of plugins) {
+      if (plugin.beforeBuild) {
+        await runPluginHook(plugin, "beforeBuild", configPath, () =>
+          plugin.beforeBuild!(stagedConfig),
+        );
+      }
+    }
     await hooks.beforeBuild?.(stagedConfig);
 
-    const diagnostics = new DiagnosticBag();
+    const diagnostics = new DiagnosticBag(configPath);
     const data = await loadDataFiles(contentDir, diagnostics);
     enforceDiagnostics(diagnostics, dev);
     const globalVars = resolveConfigGlobals(config);
@@ -266,12 +291,11 @@ export async function buildSite({
         html,
       });
       for (const plugin of plugins) {
-        await plugin.afterPage?.({
-          path: stagingPath,
-          finalPath,
-          stagingPath,
-          html,
-        });
+        if (plugin.afterPage) {
+          await runPluginHook(plugin, "afterPage", configPath, () =>
+            plugin.afterPage!({ path: stagingPath, finalPath, stagingPath, html }),
+          );
+        }
       }
     };
 
@@ -320,7 +344,15 @@ export async function buildSite({
 
         let htmlContent = htmlCache.get(page.fullPath);
         if (htmlContent === undefined) {
-          htmlContent = await renderMarkdown(processedBody, plugins);
+          try {
+            htmlContent = await renderMarkdown(processedBody, plugins);
+          } catch (error) {
+            const configLabel = configPath ? ` from config "${configPath}"` : "";
+            throw new Error(
+              `Failed to process Markdown in page "${page.relPath}"${configLabel}: ${errorMessage(error)}. Check the page source and any named plugin transform hook.`,
+              { cause: error },
+            );
+          }
           htmlCache.set(page.fullPath, htmlContent);
         }
 
@@ -331,6 +363,7 @@ export async function buildSite({
         } = createPageContext({
           page,
           config,
+          configPath,
           theme,
           siteHead,
           globals: globalVars,
@@ -344,14 +377,29 @@ export async function buildSite({
           debugPageContext(outputPath, theme && layoutName, pageContext);
         }
 
-        const renderedContent = await renderPage({
-          content: htmlContent,
-          context: pageContext,
-          layout: layoutName,
-          head: pageHead,
-          theme,
-          minify: resolveMinifyHtml(config),
-        });
+        let renderedContent: string;
+        try {
+          renderedContent = await renderPage({
+            content: htmlContent,
+            context: pageContext,
+            layout: layoutName,
+            head: pageHead,
+            theme,
+            minify: resolveMinifyHtml(config),
+          });
+        } catch (error) {
+          const themeLabel = theme ? ` with theme "${theme.name}"` : "";
+          const configLabel = configPath ? ` from config "${configPath}"` : "";
+          const pageLabel = `Failed to render page "${page.relPath}"${themeLabel}${configLabel}`;
+          if (error instanceof TauError) {
+            error.message = `${pageLabel}: ${error.message}`;
+            throw error;
+          }
+          throw new Error(
+            `${pageLabel}: ${errorMessage(error)}. Check the page's layout setting and the referenced theme template.`,
+            { cause: error },
+          );
+        }
 
         return {
           page,
@@ -432,12 +480,18 @@ export async function buildSite({
     }
 
     if (config.redirects && Object.keys(config.redirects).length > 0) {
-      const redirectDiagnostics = new DiagnosticBag();
+      const redirectDiagnostics = new DiagnosticBag(configPath);
       buildRedirects(stagingDir, config.redirects, shortUrls, occupiedPaths, redirectDiagnostics);
       enforceDiagnostics(redirectDiagnostics, dev);
     }
 
-    for (const plugin of plugins) await plugin.afterBuild?.(stagedConfig);
+    for (const plugin of plugins) {
+      if (plugin.afterBuild) {
+        await runPluginHook(plugin, "afterBuild", configPath, () =>
+          plugin.afterBuild!(stagedConfig),
+        );
+      }
+    }
     await hooks.afterBuild?.(stagedConfig);
 
     commitOutputTransaction(transaction);

@@ -146,6 +146,7 @@ export async function loadTheme(
             severity: "error",
             message: `Could not find mod.ts, theme.ts, or index.ts in theme directory "${themeName}".`,
             file: themeName,
+            theme: themeName,
             hint: "A directory-based local theme needs a theme.yaml/theme.yml, or one of mod.ts/theme.ts/index.ts exporting a StenoTheme.",
           });
           return;
@@ -168,7 +169,8 @@ export async function loadTheme(
       severity: "error",
       message: `Failed to load theme "${themeName}": ${errorMessage(error)}`,
       file: themeName,
-      hint: "Check the theme specifier and that its module/directory actually exports a valid StenoTheme.",
+      theme: themeName,
+      hint: "Check the theme path or specifier, fix the named theme file, and confirm the module exports a valid StenoTheme.",
     });
   }
 }
