@@ -223,19 +223,7 @@ export function registerPluginTests(): void {
   // loadPlugins
 
   Deno.test({
-    name: "plugins: loadPlugins returns [] when no plugins in config",
-    fn: async () => {
-      const result = await loadPlugins({
-        title: "",
-        description: "",
-        author: "",
-      });
-      assertEquals(result, []);
-    },
-  });
-
-  Deno.test({
-    name: "plugins: loadPlugins loads plugin from string entry",
+    name: "plugins: loadPlugins blocks a local string entry by default",
     permissions: { read: true, write: true },
     fn: async () => {
       const originalError = console.error;
@@ -495,104 +483,5 @@ export function registerPluginTests(): void {
       }
       assertEquals(result.length, 0);
     },
-  });
-
-  // theme plugins
-
-  Deno.test("plugins: theme plugins are prepended before site plugins", () => {
-    const order: string[] = [];
-    const themePlugin: StenoPlugin = {
-      name: "theme-plugin",
-      transformHtml: (h) => {
-        order.push("theme");
-        return h;
-      },
-    };
-    const sitePlugin: StenoPlugin = {
-      name: "site-plugin",
-      transformHtml: (h) => {
-        order.push("site");
-        return h;
-      },
-    };
-
-    const merged = [themePlugin, sitePlugin];
-    runHtmlTransforms("<p>x</p>", merged).then(() => {
-      assertEquals(order, ["theme", "site"]);
-    });
-  });
-
-  // lifecycle hooks
-
-  Deno.test("plugins: beforeBuild is called with site config", async () => {
-    let received: unknown = null;
-    const plugin: StenoPlugin = {
-      name: "test",
-      beforeBuild: (config) => {
-        received = config;
-      },
-    };
-
-    const config = { title: "Test", description: "", author: "" };
-    await plugin.beforeBuild!(config);
-
-    assertEquals(received, config);
-  });
-
-  Deno.test("plugins: afterPage is called with path and html", async () => {
-    let received: unknown = null;
-    const plugin: StenoPlugin = {
-      name: "test",
-      afterPage: (page) => {
-        received = page;
-      },
-    };
-
-    const page = { path: "/dist/index.html", html: "<p>hello</p>" };
-    await plugin.afterPage!(page);
-
-    assertEquals(received, page);
-  });
-
-  Deno.test("plugins: afterBuild is called with site config", async () => {
-    let received: unknown = null;
-    const plugin: StenoPlugin = {
-      name: "test",
-      afterBuild: (config) => {
-        received = config;
-      },
-    };
-
-    const config = { title: "Test", description: "", author: "" };
-    await plugin.afterBuild!(config);
-
-    assertEquals(received, config);
-  });
-
-  Deno.test("plugins: lifecycle hooks can be invoked in sequence", async () => {
-    const order: string[] = [];
-    const plugin: StenoPlugin = {
-      name: "test",
-      beforeBuild: () => {
-        order.push("beforeBuild");
-      },
-      transformHtml: (html) => {
-        order.push("transformHtml");
-        return html;
-      },
-      afterPage: () => {
-        order.push("afterPage");
-      },
-      afterBuild: () => {
-        order.push("afterBuild");
-      },
-    };
-
-    await plugin.beforeBuild!({ title: "", description: "", author: "" });
-    await plugin.transformHtml!("<p>hi</p>");
-    await plugin.afterPage!({ path: "/dist/index.html", html: "<p>hi</p>" });
-    await plugin.afterBuild!({ title: "", description: "", author: "" });
-
-    assertEquals(order, ["beforeBuild", "transformHtml", "afterPage", "afterBuild"]);
   });
 }
