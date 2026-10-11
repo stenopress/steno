@@ -52,10 +52,11 @@ Deno.test({
       );
       await Deno.writeTextFile(pagePath, "# First");
       const steno = new Steno(configPath, false);
-      await steno.ready();
       const runtime = steno as unknown as {
+        runtimeLoadingPromise: Promise<unknown>;
         executeBuild: (dev: boolean, changedPaths?: string[]) => Promise<void>;
       };
+      await runtime.runtimeLoadingPromise;
       await runtime.executeBuild(true);
       const before = await Deno.stat(pagePath);
       await Deno.writeTextFile(pagePath, "# Later");
