@@ -51,6 +51,32 @@ Deno.test("performance budgets: applies the supplied multiplier", () => {
   assertEquals(relaxed.successes.length, 1);
 });
 
+Deno.test("performance budgets: cover themed incremental scenarios", () => {
+  const scenarios = [
+    "build (themed selective collection, 10 of 100 pages)",
+    "build (themed plain baseline, 1 of 1000 pages)",
+    "build (themed selective collection, 100 of 1000 pages)",
+    "build (themed shared collection, 1000 of 1000 pages)",
+  ];
+  for (const name of scenarios) {
+    assertEquals(Object.hasOwn(BENCH_BUDGETS_NS, name), true);
+  }
+
+  const sharedScenario = scenarios.at(-1)!;
+  const averages = Object.fromEntries(
+    Object.entries(BENCH_BUDGETS_NS).map(([name, budget]) => [
+      name,
+      name === sharedScenario ? budget * 1.5 + 1 : budget,
+    ]),
+  );
+  const evaluation = evaluatePerformanceBudgets(
+    results(averages),
+    1.5,
+  );
+  assertEquals(evaluation.failures.length, 1);
+  assertEquals(evaluation.failures[0].startsWith(`${sharedScenario}: avg`), true);
+});
+
 Deno.test("performance budgets: rejects invalid multipliers", () => {
   assertEquals(parseBudgetMultiplier(undefined), 1);
   assertEquals(parseBudgetMultiplier("1.5"), 1.5);

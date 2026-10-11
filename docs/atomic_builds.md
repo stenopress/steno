@@ -81,16 +81,26 @@ no-op build or a cache-assisted incremental build happen on the first `build()` 
 process, not only on a long-running `dev()` session. It is safe to delete; Steno rebuilds it on the
 next build. Add `.steno/build-cache.json` to `.gitignore`.
 
-The build signature that gates cache reuse is computed from the full site config, the theme's
-layouts and components (sorted), the theme's resolved config, and the source text of every
-configured hook and plugin hook function (via `Function.prototype.toString`). Editing an inline hook
-or plugin function invalidates the cache; editing the internals of a function called _from_ that
-hook, without changing the hook's own source text, does not.
+The site-wide signature gates cache reuse when the site config, theme identity or resolved theme
+config, public environment, configured plugins/hooks, or custom filters change. Layout and component
+source is tracked per page, so editing a template only rerenders pages that used it.
 
-Beyond that whole-build signature, each page has its own cache entry and is re-rendered individually
-when its source text, output path, resolved theme assets, `{@include}`d partials (even though those
-live in other files), or the site's `collections` map changed since it was last cached - not only
-when the page's own frontmatter/body changed.
+During rendering, Steno also records the template's reads from the top-level data files,
+collections, and theme assets, plus every Markdown or Tau include it resolves. A changed data file
+or collection rerenders pages that read that top-level entry; an asset change rerenders pages that
+embed its resolved path. Reads of missing keys are recorded, so adding a previously missing value
+invalidates the page. Enumerating a namespace records the whole namespace, so adding or removing an
+entry invalidates pages that enumerate it. Persisted dependency values use compact fingerprints, so
+shared collection and template inputs are not repeated in each page's cache entry. This tracking
+covers template context reads, not every possible dependency of arbitrary code. Opaque plugins,
+hooks, custom functions, and custom filters can read inputs Steno cannot observe, so those builds
+use conservative full invalidation.
+
+On each build, Steno still scans the current inputs, stages a fresh output tree, and promotes it
+only after the build succeeds. It reuses cached page output for unaffected pages while copying the
+current assets and public files into the staging tree; it does not update the final output in place.
+Older cache entries without dependency snapshots are rebuilt conservatively and gain snapshots on
+the next successful build.
 
 ## Staging directory names
 
