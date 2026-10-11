@@ -26,7 +26,11 @@ import {
   toBuildStatePageMap,
 } from "./cache.ts";
 import type { BuildContext, BuildStateEntry } from "./context.ts";
-import { dependenciesChanged, DependencyTracker } from "./dependencies.ts";
+import {
+  createDependencySnapshotter,
+  dependenciesChanged,
+  DependencyTracker,
+} from "./dependencies.ts";
 import type { DependencySnapshots } from "./dependencies.ts";
 import { getPublicEnvVars, resolveConfigGlobals } from "./env.ts";
 import {
@@ -126,6 +130,7 @@ export async function buildSite({
   const outputDir = transaction.outputDir;
   const stagingDir = transaction.stagingDir;
   const stagedConfig: SiteConfig = { ...config, output: stagingDir };
+  const snapshotValue = createDependencySnapshotter();
   let committed = false;
 
   if (verbose) {
@@ -248,7 +253,7 @@ export async function buildSite({
       scannedPages,
       STAGING_COPY_CONCURRENCY,
       async (page) => {
-        const dependencies = new DependencyTracker();
+        const dependencies = new DependencyTracker(snapshotValue);
         pageDependencies.set(page.fullPath, dependencies);
         const body = await processIncludes(
           page.body,
@@ -358,7 +363,7 @@ export async function buildSite({
           // catches a changed {@include}d partial even when sourceText didn't change
           cachedPage.body !== processedBody ||
           cachedPage.outputPath !== outputFilePath ||
-          dependenciesChanged(cachedPage.dependencies, dependencyInputs) ||
+          dependenciesChanged(cachedPage.dependencies, dependencyInputs, snapshotValue) ||
           !(await fileExists(outputFilePath));
 
         if (!needsRender) {
