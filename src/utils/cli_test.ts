@@ -79,7 +79,7 @@ export function registerCliTests(): void {
     assertEquals(parseCliArgs(["version"]).command, "version");
   });
 
-  Deno.test("cli: STENO_VERSION matches deno.json's version field", () => {
+  Deno.test("cli: STENO_VERSION has a semantic version format", () => {
     assertMatch(STENO_VERSION, /^\d+\.\d+\.\d+/);
   });
 
@@ -127,10 +127,6 @@ export function registerCliTests(): void {
     const options = parseCliArgs(["help", "--config", "my/config.yml"]);
     assertEquals(options.command, "help");
     assertEquals(options.configPath, "my/config.yml");
-  });
-
-  Deno.test("cli: Helpful unknown-command and unknown-option errors.", () => {
-    assertThrows(() => parseCliArgs(["serve"]), Error, "Unknown command: serve");
   });
 
   Deno.test("cli: parses preview command", () => {

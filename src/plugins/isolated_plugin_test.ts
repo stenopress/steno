@@ -283,7 +283,6 @@ export function registerIsolatedPluginTests(): void {
 
       const error = await assertRejects(() => plugin.transformHtml?.("") as Promise<string>, Error);
       assertStringIncludes(error.message, "exited with code 23");
-      assertEquals(1 + 1, 2);
     },
   });
 

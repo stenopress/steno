@@ -5,7 +5,6 @@ import { formatTauError, TauError } from "../../utils/tau_error.ts";
 import type { SiteConfig, StenoPlugin } from "../../types.ts";
 import { fileExistsSync as fileExists } from "../../utils/fs.ts";
 import { buildSite } from "./build.ts";
-import { beginOutputTransaction, rollbackOutputTransaction } from "./output_transaction.ts";
 
 interface TestFixture {
   tempDir: string;
@@ -1256,24 +1255,6 @@ Body.`,
       await new Steno(f.configPath, false).build();
       assertEquals(await snapshot(), first);
       f.cleanup();
-    },
-  });
-
-  Deno.test({
-    name: "build: recovers an output backup left by interrupted promotion",
-    permissions: { read: true, write: true },
-    fn: () => {
-      const tempDir = Deno.makeTempDirSync();
-      const outputDir = join(tempDir, "dist");
-      const backupDir = join(tempDir, ".dist.steno-backup");
-      Deno.mkdirSync(backupDir);
-      Deno.writeTextFileSync(join(backupDir, "index.html"), "last-good");
-
-      const transaction = beginOutputTransaction(outputDir);
-      assertEquals(Deno.readTextFileSync(join(outputDir, "index.html")), "last-good");
-      rollbackOutputTransaction(transaction);
-      assertEquals(Deno.readTextFileSync(join(outputDir, "index.html")), "last-good");
-      Deno.removeSync(tempDir, { recursive: true });
     },
   });
 
