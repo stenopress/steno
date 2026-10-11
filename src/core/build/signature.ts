@@ -1,4 +1,4 @@
-import type { StenoPlugin } from "../../types.ts";
+import type { StenoHooks, StenoPlugin } from "../../types.ts";
 import type { Theme } from "../../theme/theme.ts";
 import type { SiteConfig } from "../../types.ts";
 import { getIsolatedPluginSignature } from "../../plugins/isolated_plugin.ts";
@@ -7,6 +7,29 @@ import { filters } from "../../utils/tau.ts";
 
 const initialFilters = new Map(Object.entries(filters));
 const customFilterIds = new WeakMap<object, string>();
+
+function containsFunction(value: unknown, seen = new Set<object>()): boolean {
+  if (typeof value === "function") return true;
+  if (!value || typeof value !== "object" || seen.has(value)) return false;
+  seen.add(value);
+  return Object.values(value).some((entry) => containsFunction(entry, seen));
+}
+
+/** Opaque callbacks can read inputs outside the dependency graph. */
+export function hasOpaqueBuildInputs(
+  config: SiteConfig,
+  theme: Theme | undefined,
+  plugins: StenoPlugin[],
+  hooks: StenoHooks,
+): boolean {
+  return (
+    plugins.length > 0 ||
+    containsFunction(config) ||
+    Object.values(hooks).some((hook) => typeof hook === "function") ||
+    theme?.getBuildSignatureData().functions !== undefined ||
+    Object.entries(filters).some(([name, filter]) => initialFilters.get(name) !== filter)
+  );
+}
 
 function filterSignature(
   name: string,
@@ -26,9 +49,10 @@ export function createBuildSignature(
   config: SiteConfig,
   theme?: Theme,
   plugins: StenoPlugin[] = [],
-  data?: unknown,
   publicEnv?: Record<string, string>,
+  opaqueInputs = false,
 ): string {
+  const themeSignature = theme?.getBuildSignatureData();
   const pluginSignature = plugins.map((plugin) => {
     const isolatedSignature = getIsolatedPluginSignature(plugin);
     if (isolatedSignature !== undefined) {
@@ -46,13 +70,20 @@ export function createBuildSignature(
   });
 
   return JSON.stringify({
+    opaqueInputs,
     config,
-    theme: theme ? theme.getBuildSignatureData() : null,
+    theme: themeSignature
+      ? {
+          name: themeSignature.name,
+          version: themeSignature.version,
+          config: themeSignature.config,
+          functions: themeSignature.functions,
+        }
+      : null,
     plugins: pluginSignature,
     filters: Object.entries(filters)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, filter]) => [name, filterSignature(name, filter)]),
-    data: data ?? null,
     publicEnv: publicEnv ?? null,
   });
 }

@@ -2,7 +2,7 @@ import { Theme as CoreTheme } from "@steno/core/theme";
 import type { BundledThemeSources, ThemeConfig } from "@steno/core/theme";
 
 export { bundledThemeLocalPath, mergeTheme } from "@steno/core/theme";
-export type { PageRenderContext, ThemeConfig } from "@steno/core/theme";
+export type { PageRenderContext, ThemeConfig, ThemeRenderDependency } from "@steno/core/theme";
 
 /** Bundled theme locations remain relative to the Steno package. */
 export const bundledThemeSources: Record<string, URL> = {

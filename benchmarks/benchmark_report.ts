@@ -97,9 +97,10 @@ hardware and runtime versions.
 ${table(buildRows)}
 
 Cold scenarios delete output and persistent cache before every measured build.
-Warm unchanged uses an initialized 1,000-page site. Atomic incremental changes
-one page while retaining transactional staging and promotion. Fixture creation
-is outside the explicit benchmark timer.
+Warm unchanged uses an initialized 1,000-page site. The themed incremental
+scenarios vary site size and the number of pages sharing a collection input;
+render-count assertions run outside the measured interval. Fixture creation
+and initial warm builds are outside the explicit benchmark timer.
 
 ## Parser and template microbenchmarks
 

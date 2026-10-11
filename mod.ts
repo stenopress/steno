@@ -50,7 +50,7 @@ export type {
 export { mergeTheme, Theme } from "./src/theme/theme.ts";
 /** Shared theme runtime without Steno's bundled directory defaults. */
 export { Theme as CoreTheme } from "@steno/core/theme";
-export type { PageRenderContext, ThemeConfig } from "./src/theme/theme.ts";
+export type { PageRenderContext, ThemeConfig, ThemeRenderDependency } from "./src/theme/theme.ts";
 /** Structured problems found while resolving a project's theme, plugins,
  * data files, or redirects - and the error thrown when a production build
  * has any of error severity. */

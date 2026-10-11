@@ -11,6 +11,13 @@ import { resolveSchemaDefaults, type ThemeConfig, validateThemeConfig } from "./
 
 export type { ThemeConfig } from "./theme_config.ts";
 
+/** Observes template sources consumed by a single render, including nested components. */
+export type ThemeRenderDependency = (
+  kind: "layout" | "component",
+  name: string,
+  source: string | undefined,
+) => void;
+
 /** Product-owned locations for themes resolved by directory loaders. */
 export type BundledThemeSources = Readonly<Record<string, URL>>;
 
@@ -467,15 +474,32 @@ export class Theme {
     template: string,
     context: Record<string, unknown>,
     filePath?: string,
+    onDependency?: ThemeRenderDependency,
   ): Promise<string> {
+    const sources = this.themeData.components || {};
+    const observe = (name: string | symbol) => {
+      if (typeof name === "string") onDependency?.("component", name, sources[name]);
+    };
+    const components = onDependency
+      ? new Proxy(sources, {
+          get(target, name, receiver) {
+            observe(name);
+            return Reflect.get(target, name, receiver);
+          },
+          getOwnPropertyDescriptor(target, name) {
+            observe(name);
+            return Reflect.getOwnPropertyDescriptor(target, name);
+          },
+        })
+      : sources;
     return await render({
       template,
       context,
-      components: this.themeData.components || {},
+      components,
       functions: this.themeData.functions,
       filePath,
       includeResolver: (path) => {
-        const component = this.themeData.components?.[path];
+        const component = components[path];
         if (component) return component;
         throw new Error(`Include "${path}" not found in theme "${this.name}".`);
       },
@@ -489,8 +513,10 @@ export class Theme {
     layoutName: string,
     content: string,
     variables: PageRenderContext,
+    onDependency?: ThemeRenderDependency,
   ): Promise<string> {
     const template = this.themeData.layouts[layoutName];
+    onDependency?.("layout", layoutName, template);
     if (!template) {
       throw new Error(
         `Layout "${layoutName}" not found in theme "${this.name}". Available layouts: ${Object.keys(
@@ -502,6 +528,7 @@ export class Theme {
       template,
       { assets: {}, content, ...variables },
       this.layoutPaths[layoutName],
+      onDependency,
     );
   }
 
@@ -511,12 +538,19 @@ export class Theme {
   public async renderComponent(
     componentName: string,
     variables: Record<string, unknown>,
+    onDependency?: ThemeRenderDependency,
   ): Promise<string> {
     const template = this.themeData.components?.[componentName];
+    onDependency?.("component", componentName, template);
     if (!template) {
       throw new Error(`Component "${componentName}" not found in theme "${this.name}".`);
     }
-    return await this.executeRender(template, variables, this.componentPaths[componentName]);
+    return await this.executeRender(
+      template,
+      variables,
+      this.componentPaths[componentName],
+      onDependency,
+    );
   }
 
   /**

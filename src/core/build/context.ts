@@ -1,6 +1,7 @@
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../../types.ts";
 import type { Theme } from "../../theme/theme.ts";
 import type { MarkdownPage, MarkdownPageCache } from "../collections.ts";
+import type { DependencySnapshots } from "./dependencies.ts";
 
 export type BuildContext = {
   config: SiteConfig;
@@ -37,4 +38,6 @@ export interface BuildStateEntry {
   assetsSignature?: string;
   /** Serialized `collections` map in effect when `htmlContent` was rendered. */
   collectionsSignature?: string;
+  /** Named build inputs consumed directly or through nested templates/includes. */
+  dependencies?: DependencySnapshots;
 }

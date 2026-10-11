@@ -1,4 +1,4 @@
-import { formatNs, getMetrics, type BenchJson } from "./bench_results.ts";
+import { type BenchJson, formatNs, getMetrics } from "./bench_results.ts";
 
 const NS_PER_MS = 1_000_000;
 const NS_PER_US = 1_000;
@@ -9,6 +9,10 @@ export const BENCH_BUDGETS_NS: Readonly<Record<string, number>> = {
   "build (cold, 4000 pages)": 800 * NS_PER_MS,
   "build (warm, 1000 pages unchanged)": 45 * NS_PER_MS,
   "build (atomic incremental, 1 changed page of 1000)": 275 * NS_PER_MS,
+  "build (themed selective collection, 10 of 100 pages)": 100 * NS_PER_MS,
+  "build (themed plain baseline, 1 of 1000 pages)": 400 * NS_PER_MS,
+  "build (themed selective collection, 100 of 1000 pages)": 400 * NS_PER_MS,
+  "build (themed shared collection, 1000 of 1000 pages)": 325 * NS_PER_MS,
   "pipeline (typical page parse->markdown->tau)": 250 * NS_PER_US,
   "pipeline (large page parse->markdown->tau)": 1_000 * NS_PER_US,
   "core (prepared page context->layout)": 250 * NS_PER_US,
