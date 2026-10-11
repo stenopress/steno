@@ -1,25 +1,48 @@
+import { createHash } from "node:crypto";
+
 /** Inputs actually consumed while rendering a page, serialized for disk cache reuse. */
 export type DependencySnapshots = Record<string, string>;
 
 export type DependencyInputs = Record<string, Record<string, unknown>>;
 
+export type DependencySnapshotter = (value: unknown) => string;
+
 function snapshot(value: unknown): string {
   return JSON.stringify(value) ?? "undefined";
+}
+
+/** Hashes object inputs once per build so shared dependencies stay cheap and compact. */
+export function createDependencySnapshotter(): DependencySnapshotter {
+  const fingerprints = new Map<unknown, string>();
+  return (value) => {
+    const cached = fingerprints.get(value);
+    if (cached !== undefined) return cached;
+    const serialized = snapshot(value);
+    const fingerprint = `sha256:${createHash("sha256").update(serialized).digest("hex")}`;
+    fingerprints.set(value, fingerprint);
+    return fingerprint;
+  };
 }
 
 /** Records reads of named inputs without changing the values exposed to templates. */
 export class DependencyTracker {
   public readonly snapshots: DependencySnapshots = Object.create(null);
 
+  constructor(private readonly snapshotValue: DependencySnapshotter = snapshot) {}
+
   public record(namespace: string, key: string, value: unknown): void {
     const encodedKey = JSON.stringify([namespace, key]);
-    if (!Object.hasOwn(this.snapshots, encodedKey)) this.snapshots[encodedKey] = snapshot(value);
+    if (!Object.hasOwn(this.snapshots, encodedKey)) {
+      this.snapshots[encodedKey] = this.snapshotValue(value);
+    }
   }
 
   public track<T extends Record<string, unknown>>(namespace: string, values: T): T {
     const recordAll = () => {
       const encodedKey = JSON.stringify([namespace]);
-      if (!Object.hasOwn(this.snapshots, encodedKey)) this.snapshots[encodedKey] = snapshot(values);
+      if (!Object.hasOwn(this.snapshots, encodedKey)) {
+        this.snapshots[encodedKey] = this.snapshotValue(values);
+      }
     };
     const recordKey = (key: string | symbol) => {
       if (typeof key === "symbol" || (!Object.hasOwn(values, key) && Reflect.has(values, key))) {
@@ -54,6 +77,7 @@ export class DependencyTracker {
 export function dependenciesChanged(
   dependencies: DependencySnapshots | undefined,
   inputs: DependencyInputs,
+  snapshotValue: DependencySnapshotter = snapshot,
 ): boolean {
   if (!dependencies) return true;
   for (const [encodedKey, previous] of Object.entries(dependencies)) {
@@ -73,7 +97,7 @@ export function dependenciesChanged(
     }
     const values = inputs[key[0]];
     const current = key.length === 1 ? values : values[key[1]];
-    if (previous !== snapshot(current)) return true;
+    if (previous !== snapshotValue(current)) return true;
   }
   return false;
 }

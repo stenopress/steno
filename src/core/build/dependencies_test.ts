@@ -2,7 +2,11 @@ import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { Theme } from "@steno/core/theme";
 import { processIncludes } from "../includes.ts";
-import { dependenciesChanged, DependencyTracker } from "./dependencies.ts";
+import {
+  createDependencySnapshotter,
+  dependenciesChanged,
+  DependencyTracker,
+} from "./dependencies.ts";
 import {
   loadPersistentBuildCache,
   savePersistentBuildCache,
@@ -50,6 +54,40 @@ Deno.test("dependencies: legacy, malformed, and unavailable inputs require a ren
   assertEquals(dependenciesChanged({ broken: "null" }, {}), true);
   assertEquals(dependenciesChanged({ '["unknown","key"]': "null" }, {}), true);
   assertEquals(dependenciesChanged({ '["data",3]': "null" }, { data: {} }), true);
+});
+
+Deno.test("dependencies: shared objects use compact fingerprints across page snapshots", () => {
+  const snapshotValue = createDependencySnapshotter();
+  const collection = { items: Array.from({ length: 100 }, (_, index) => ({ index })) };
+  const first = new DependencyTracker(snapshotValue);
+  const second = new DependencyTracker(snapshotValue);
+  first.record("collection", "posts", collection);
+  second.record("collection", "posts", collection);
+
+  const key = JSON.stringify(["collection", "posts"]);
+  assertEquals(first.snapshots[key], second.snapshots[key]);
+  assertEquals(first.snapshots[key].startsWith("sha256:"), true);
+  assertEquals(first.snapshots[key].length < JSON.stringify(collection).length, true);
+  assertEquals(
+    dependenciesChanged(first.snapshots, { collection: { posts: collection } }, snapshotValue),
+    false,
+  );
+  assertEquals(
+    dependenciesChanged(
+      first.snapshots,
+      { collection: { posts: { items: [{ index: 0 }, { index: 1 }] } } },
+      snapshotValue,
+    ),
+    true,
+  );
+
+  const template = "<main>" + "x".repeat(100_000) + "</main>";
+  first.record("layout", "shared", template);
+  second.record("layout", "shared", template);
+  const templateKey = JSON.stringify(["layout", "shared"]);
+  assertEquals(first.snapshots[templateKey], second.snapshots[templateKey]);
+  assertEquals(first.snapshots[templateKey].startsWith("sha256:"), true);
+  assertEquals(first.snapshots[templateKey].length < template.length, true);
 });
 
 Deno.test("dependencies: theme callbacks capture nested components and Tau includes", async () => {
