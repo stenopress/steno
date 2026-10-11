@@ -1,7 +1,7 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { Steno } from "../../../mod.ts";
-import { Theme } from "../../theme/theme.ts";
+import type { Theme } from "../../theme/theme.ts";
 
 interface Fixture {
   root: string;
@@ -107,13 +107,19 @@ Deno.test({
         `<html><body>Independent v2{@html content}</body></html>`,
       );
       await buildAndCount(configPath, rendered);
-      assertEquals(rendered.map((entry) => entry.split(":", 1)[0]), ["independent"]);
+      assertEquals(
+        rendered.map((entry) => entry.split(":", 1)[0]),
+        ["independent"],
+      );
       assertStringIncludes(Deno.readTextFileSync(join(f.output, "plain.html")), "Independent v2");
 
       rendered.length = 0;
       f.write("about.md", `---\ntitle: About\nlayout: shared\n---\nChanged about body.`);
       await buildAndCount(configPath, rendered);
-      assertEquals(rendered.map((entry) => entry.split(":", 1)[0]), ["shared"]);
+      assertEquals(
+        rendered.map((entry) => entry.split(":", 1)[0]),
+        ["shared"],
+      );
       assertStringIncludes(
         Deno.readTextFileSync(join(f.output, "about.html")),
         "Changed about body.",
@@ -148,7 +154,10 @@ Deno.test({
       f.write("partials/inner.md", `Leaf v2`);
       await buildAndCount(configPath, rendered);
       assertEquals(rendered.length, 3);
-      assertEquals(rendered.every((entry) => entry.startsWith("layout:")), true);
+      assertEquals(
+        rendered.every((entry) => entry.startsWith("layout:")),
+        true,
+      );
       assertStringIncludes(Deno.readTextFileSync(join(f.output, "index.html")), "Leaf v2");
       assertStringIncludes(Deno.readTextFileSync(join(f.output, "other.html")), "No include.");
     } finally {
@@ -179,7 +188,10 @@ Deno.test({
       const rendered: string[] = [];
       await buildAndCount(configPath, rendered);
 
-      assertEquals(rendered.map((entry) => entry.split(":", 1)[0]), ["layout", "layout"]);
+      assertEquals(
+        rendered.map((entry) => entry.split(":", 1)[0]),
+        ["layout", "layout"],
+      );
       assertStringIncludes(Deno.readTextFileSync(join(f.output, "about.html")), "Layout v2");
     } finally {
       f.cleanup();
@@ -263,7 +275,10 @@ Deno.test({
       Deno.writeTextFileSync(join(f.theme, "assets", "style.css"), `body { color: blue; }`);
       await buildAndCount(configPath, rendered);
 
-      assertEquals(rendered.map((entry) => entry.split(":", 1)[0]), ["asset"]);
+      assertEquals(
+        rendered.map((entry) => entry.split(":", 1)[0]),
+        ["asset"],
+      );
       assertStringIncludes(Deno.readTextFileSync(join(f.output, "asset.html")), "assets/style.");
       assertStringIncludes(Deno.readTextFileSync(join(f.output, "plain.html")), "Plain");
     } finally {
@@ -304,10 +319,7 @@ Deno.test({
       await buildAndCount(configPath, rendered);
 
       assertEquals(rendered.length, 2);
-      assertEquals(
-        rendered.map((entry) => entry.split(":", 1)[0]).sort(),
-        ["layout", "posts"],
-      );
+      assertEquals(rendered.map((entry) => entry.split(":", 1)[0]).sort(), ["layout", "posts"]);
       assertStringIncludes(
         Deno.readTextFileSync(join(f.output, "posts-index.html")),
         "Second post",

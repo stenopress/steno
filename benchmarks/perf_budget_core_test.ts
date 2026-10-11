@@ -69,10 +69,7 @@ Deno.test("performance budgets: cover themed incremental scenarios", () => {
       name === sharedScenario ? budget * 1.5 + 1 : budget,
     ]),
   );
-  const evaluation = evaluatePerformanceBudgets(
-    results(averages),
-    1.5,
-  );
+  const evaluation = evaluatePerformanceBudgets(results(averages), 1.5);
   assertEquals(evaluation.failures.length, 1);
   assertEquals(evaluation.failures[0].startsWith(`${sharedScenario}: avg`), true);
 });
