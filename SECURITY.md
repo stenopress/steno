@@ -13,8 +13,8 @@ backported to the latest minor or major release.
 
 | Version   | Supported | Notes                                                              |
 | :-------- | :-------- | :----------------------------------------------------------------- |
-| v0.13.x   | Yes       | Current active branch. All security patches are applied here.      |
-| < v0.13.0 | No        | Legacy development versions. Please upgrade to the latest release. |
+| v0.14.x   | Yes       | Current active branch. All security patches are applied here.      |
+| < v0.14.0 | No        | Legacy development versions. Please upgrade to the latest release. |
 
 ---
 
