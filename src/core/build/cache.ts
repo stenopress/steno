@@ -1,5 +1,6 @@
 import { join } from "@std/path";
 import type { BuildStateEntry } from "./context.ts";
+import type { DependencySnapshots } from "./dependencies.ts";
 import { ensureParentDirSync } from "../../utils/fs.ts";
 import { STENO_DIR } from "../path_utils.ts";
 
@@ -15,6 +16,7 @@ export interface PersistentBuildCache {
     htmlContent?: string;
     assetsSignature?: string;
     collectionsSignature?: string;
+    dependencies?: DependencySnapshots;
   }>;
 }
 
@@ -71,6 +73,7 @@ export async function loadPersistentBuildCache(
       htmlContent?: unknown;
       assetsSignature?: unknown;
       collectionsSignature?: unknown;
+      dependencies?: unknown;
     };
 
     if (
@@ -79,6 +82,17 @@ export async function loadPersistentBuildCache(
       typeof typedEntry.sourceText !== "string"
     ) {
       throw new Error(`Invalid build cache page fields at "${cachePath}".`);
+    }
+
+    const dependencies = typedEntry.dependencies;
+    if (
+      dependencies !== undefined &&
+      (!dependencies ||
+        typeof dependencies !== "object" ||
+        Array.isArray(dependencies) ||
+        Object.values(dependencies).some((value) => typeof value !== "string"))
+    ) {
+      throw new Error(`Invalid build cache dependencies at "${cachePath}".`);
     }
 
     pages.push({
@@ -97,6 +111,7 @@ export async function loadPersistentBuildCache(
         typeof typedEntry.collectionsSignature === "string"
           ? typedEntry.collectionsSignature
           : undefined,
+      dependencies: dependencies as DependencySnapshots | undefined,
     });
   }
 
@@ -116,6 +131,7 @@ export function toBuildStatePageMap(
       htmlContent: page.htmlContent,
       assetsSignature: page.assetsSignature,
       collectionsSignature: page.collectionsSignature,
+      dependencies: page.dependencies,
     });
   }
   return pageMap;
@@ -139,6 +155,7 @@ export async function savePersistentBuildCache(
       htmlContent: page.htmlContent,
       assetsSignature: page.assetsSignature,
       collectionsSignature: page.collectionsSignature,
+      dependencies: page.dependencies,
     })),
   };
   await Deno.writeTextFile(cachePath, JSON.stringify(payload));

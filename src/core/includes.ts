@@ -1,4 +1,4 @@
-import { dirname, isAbsolute, join } from "@std/path";
+import { dirname, isAbsolute, join, resolve } from "@std/path";
 import { fileExists } from "../utils/fs.ts";
 import { hasControlCharacters } from "../utils/text.ts";
 
@@ -45,12 +45,14 @@ async function resolveIncludePath(
  * @param currentFile - Absolute path to the file being processed.
  * @param contentDir - The root content directory for fallback resolution.
  * @param stack - Set of currently open files for circular detection.
+ * @param onDependency - Receives each resolved include and its unexpanded source.
  */
 export async function processIncludes(
   body: string,
   currentFile: string,
   contentDir: string,
   stack: Set<string> = new Set([currentFile]),
+  onDependency?: (path: string, source: string) => void,
 ): Promise<string> {
   const pattern = new RegExp(INCLUDE_PATTERN_SOURCE, "g");
   let result = "";
@@ -81,10 +83,11 @@ export async function processIncludes(
     }
 
     const included = await Deno.readTextFile(resolvedPath);
+    onDependency?.(resolve(resolvedPath), included);
     const newStack = new Set([...stack, resolvedPath]);
 
     // recursively process includes in the included file
-    result += await processIncludes(included, resolvedPath, contentDir, newStack);
+    result += await processIncludes(included, resolvedPath, contentDir, newStack, onDependency);
   }
 
   result += body.slice(lastIndex);

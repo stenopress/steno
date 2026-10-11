@@ -1,7 +1,7 @@
 import type { CollectionMap, MarkdownPage } from "./collections.ts";
 import { injectHeadTags, mergeHeadTags } from "./head.ts";
 import { resolvePageConfigOverrides } from "./page_config.ts";
-import type { PageRenderContext, Theme } from "./theme.ts";
+import type { PageRenderContext, Theme, ThemeRenderDependency } from "./theme.ts";
 import type { HeadTag, SiteConfig } from "./types.ts";
 import { errorMessage, minifyHtml } from "./text.ts";
 
@@ -102,9 +102,13 @@ export async function renderPage(options: {
   head: HeadTag[];
   theme?: Theme;
   minify: boolean;
+  /** Observes layout and component reads for callers maintaining incremental caches. */
+  onDependency?: ThemeRenderDependency;
 }): Promise<string> {
-  const { content, context, layout, head, theme, minify } = options;
-  const layoutContent = theme ? await theme.renderLayout(layout, content, context) : content;
+  const { content, context, layout, head, theme, minify, onDependency } = options;
+  const layoutContent = theme
+    ? await theme.renderLayout(layout, content, context, onDependency)
+    : content;
   const injectedContent = injectHeadTags(layoutContent, head);
   return minify ? minifyHtml(injectedContent) : injectedContent;
 }

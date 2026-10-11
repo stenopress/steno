@@ -67,6 +67,7 @@ export function registerPublicApiTests(): void {
       "Theme",
       "ThemeConfig",
       "ThemeConfigField",
+      "ThemeRenderDependency",
       "clearTauCache",
       "filters",
       "getTauCacheStats",

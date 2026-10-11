@@ -6,7 +6,7 @@ export { validateSiteConfig } from "./src/config_validation.ts";
 export { createPageContext, renderMarkdown, renderPage } from "./src/render.ts";
 export type { PageContextOptions } from "./src/render.ts";
 export { mergeTheme, Theme } from "./src/theme.ts";
-export type { PageRenderContext, ThemeConfig } from "./src/theme.ts";
+export type { PageRenderContext, ThemeConfig, ThemeRenderDependency } from "./src/theme.ts";
 export { buildCollections, collectMarkdownPages } from "./src/collections.ts";
 export type {
   Collection,
