@@ -104,6 +104,44 @@ function initialLoad(steno: Steno): Promise<unknown> {
 
 export function registerStenoTests(): void {
   Deno.test({
+    name: "Steno: zero-config failures omit a config file that does not exist",
+    permissions: { read: true, write: true },
+    fn: async () => {
+      const tempDir = Deno.makeTempDirSync();
+      const originalCwd = Deno.cwd();
+      const configPath = join(tempDir, "missing.yml");
+      const themeDir = join(tempDir, "theme");
+      try {
+        Deno.mkdirSync(join(themeDir, "layouts"), { recursive: true });
+        Deno.writeTextFileSync(join(themeDir, "theme.yaml"), "name: local\nversion: 1.0.0\n");
+        Deno.writeTextFileSync(
+          join(themeDir, "layouts", "layout.tau"),
+          "<main>{@html content}</main>",
+        );
+        Deno.writeTextFileSync(
+          join(tempDir, "index.md"),
+          `---\nlayout: missing\nsteno:\n  theme: "${themeDir}"\n---\n# Home`,
+        );
+        Deno.chdir(tempDir);
+        const error = await assertRejects(() => new Steno(configPath, false).build(), Error);
+        assertStringIncludes(error.message, 'Failed to render page "index.md" with theme "local"');
+        assertEquals(error.message.includes(configPath), false);
+
+        Deno.writeTextFileSync(join(themeDir, "theme.yaml"), "name: [invalid\n");
+        const diagnosticError = await assertRejects(
+          () => new Steno(configPath, true).ready(),
+          StenoDiagnosticError,
+        );
+        assertEquals(diagnosticError.diagnostics[0].config, undefined);
+        assertEquals(diagnosticError.diagnostics[0].theme, themeDir);
+      } finally {
+        Deno.chdir(originalCwd);
+        Deno.removeSync(tempDir, { recursive: true });
+      }
+    },
+  });
+
+  Deno.test({
     name: "Steno: reloads changed trusted local source and invalidates captured hook output",
     permissions: { read: true, write: true, run: true, env: true },
     fn: async () => {
@@ -237,6 +275,8 @@ theme: "${join(contentDir, "broken-theme")}"
         );
         assertEquals(error.diagnostics.length, 1);
         assertEquals(error.diagnostics[0].code, "theme-load-failed");
+        assertEquals(error.diagnostics[0].config, configPath);
+        assertEquals(error.diagnostics[0].theme, join(contentDir, "broken-theme"));
         assertStringIncludes(error.diagnostics[0].message, "mod.ts");
       } finally {
         Deno.removeSync(tempDir, { recursive: true });
@@ -278,6 +318,9 @@ plugins:
         );
         assertEquals(error.diagnostics.length, 1);
         assertEquals(error.diagnostics[0].code, "plugin-load-failed");
+        assertEquals(error.diagnostics[0].config, configPath);
+        assertEquals(error.diagnostics[0].plugin, `file://${pluginPath}`);
+        assertStringIncludes(error.diagnostics[0].hint ?? "", "Export a default plugin factory");
       } finally {
         Deno.removeSync(tempDir, { recursive: true });
       }

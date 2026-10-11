@@ -13,6 +13,8 @@ export interface PageContextOptions {
   page: Pick<MarkdownPage, "frontmatter" | "relPath" | "title">;
   /** Resolved site settings before per-page overrides. */
   config: SiteConfig;
+  /** Path to the site config, included in configuration errors when known. */
+  configPath?: string;
   /** Prepared theme instance, if the site uses a theme. */
   theme?: Theme;
   /** Validated site-wide document head entries. */
@@ -35,7 +37,18 @@ export function createPageContext(options: PageContextOptions): {
   head: HeadTag[];
   layout: string;
 } {
-  const { page, config, theme, siteHead, globals, publicEnv, collections, data, assets } = options;
+  const {
+    page,
+    config,
+    configPath,
+    theme,
+    siteHead,
+    globals,
+    publicEnv,
+    collections,
+    data,
+    assets,
+  } = options;
   const pageOverrides = resolvePageConfigOverrides(page.frontmatter, page.relPath);
   const pageGlobals = { ...globals, ...pageOverrides.globals };
   const pageHead = mergeHeadTags(siteHead, pageOverrides.head);
@@ -52,7 +65,11 @@ export function createPageContext(options: PageContextOptions): {
   try {
     pageThemeConfig = theme?.resolveConfig(pageOverrides.themeConfig);
   } catch (error) {
-    throw new Error(`Invalid per-page configuration in "${page.relPath}": ${errorMessage(error)}`);
+    const configLabel = configPath ? ` in config "${configPath}"` : "";
+    throw new Error(
+      `Invalid per-page configuration in "${page.relPath}"${configLabel}: ${errorMessage(error)}. Active theme: "${theme?.name ?? "(none)"}". Check the page's steno.themeConfig against the active theme's configSchema.`,
+      { cause: error },
+    );
   }
 
   return {

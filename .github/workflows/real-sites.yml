@@ -17,7 +17,7 @@ on:
 env:
   DENO_VERSION: "2.9.4"
   STENO_REF: ${{ inputs.steno_sha || github.sha }}
-  TAU_REF: ${{ inputs.tau_sha || vars.TAU_REF || 'v0.1.0' }}
+  TAU_REF: ${{ inputs.tau_sha || vars.TAU_REF || '0.9.0' }}
   REQUESTED_STENO_SHA: ${{ inputs.steno_sha }}
   REQUESTED_TAU_SHA: ${{ inputs.tau_sha }}
 

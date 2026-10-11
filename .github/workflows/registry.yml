@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: stenopress/tau
-          ref: ${{ vars.TAU_REF || 'v0.1.0' }}
+          ref: ${{ vars.TAU_REF || '0.9.0' }}
           path: tau
       - uses: denoland/setup-deno@v2
         with:

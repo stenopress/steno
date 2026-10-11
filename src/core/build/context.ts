@@ -4,6 +4,8 @@ import type { MarkdownPage, MarkdownPageCache } from "../collections.ts";
 
 export type BuildContext = {
   config: SiteConfig;
+  /** Path to the site configuration used to produce this build. */
+  configPath?: string;
   theme?: Theme;
   plugins: StenoPlugin[];
   hooks: StenoHooks;

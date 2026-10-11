@@ -312,7 +312,9 @@ export async function resolveProject(
   const rootScan = await scanRoot(rootDir);
 
   if (rootScan.hasProjectMarkers) {
-    throw new Error(`Configuration file not found at "${configPath}".`);
+    throw new Error(
+      `Configuration file not found at "${configPath}". Create it, pass the correct path with --config, or remove the project marker files to use zero-config mode. Run "steno doctor" to check the project setup.`,
+    );
   }
 
   const discovery = await discoverZeroConfigProject(rootDir, rootScan, pageCache);

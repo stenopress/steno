@@ -182,7 +182,8 @@ the type to reach for in new code.
 ## Diagnostics
 
 `Diagnostic` types one problem found while resolving a project's theme, plugins, data files,
-redirects, or config (`code`, `severity`, `message`, `file?`, `hint?`). `StenoDiagnosticError` is
-the error a production build throws when any diagnostic is `error`-severity; its `diagnostics`
-property carries all of them. See
+redirects, or config (`code`, `severity`, `message`, `file?`, `config?`, `plugin?`, `theme?`,
+`hint?`). The formatted output identifies the declaring config and relevant input when known, and
+prints `hint` as the recovery step. `StenoDiagnosticError` is the error a production build throws
+when any diagnostic is `error`-severity; its `diagnostics` property carries all of them. See
 [How Steno reports problems](troubleshooting.md#how-steno-reports-problems).

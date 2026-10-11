@@ -27,6 +27,7 @@ function invalid(
     severity: "error",
     message: `"${field}" must be ${expected}.`,
     file: configPath,
+    hint: `Correct "${field}" in this config file so it is ${expected}.`,
   });
 }
 
@@ -343,6 +344,7 @@ export function validateSiteConfig(
         .map((k) => `"${k}"`)
         .join(", ")}. Check for a typo, or nest project-specific fields under "custom".`,
       file: configPath,
+      hint: "Rename the key to a documented setting or move project-specific data under custom.",
     });
   }
 
