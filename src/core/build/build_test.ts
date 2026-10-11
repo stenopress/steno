@@ -4,6 +4,7 @@ import { Steno } from "../../../mod.ts";
 import { formatTauError, TauError } from "../../utils/tau_error.ts";
 import type { SiteConfig, StenoPlugin } from "../../types.ts";
 import { fileExistsSync as fileExists } from "../../utils/fs.ts";
+import type { Theme } from "../../theme/theme.ts";
 import { buildSite } from "./build.ts";
 
 interface TestFixture {
@@ -93,6 +94,19 @@ async function replacePlugins(steno: Steno, plugins: StenoPlugin[]): Promise<voi
   };
   await internals.runtimeLoadingPromise;
   internals.plugins = plugins;
+}
+
+async function trackLayoutRenders(steno: Steno, rendered: string[]): Promise<void> {
+  await steno.ready();
+  const internals = steno as unknown as { theme?: Theme };
+  const theme = internals.theme;
+  if (!theme) throw new Error("Expected the fixture theme to load.");
+  const renderLayout = theme.renderLayout.bind(theme);
+  theme.renderLayout = async (...args: Parameters<Theme["renderLayout"]>) => {
+    const [name, content] = args;
+    rendered.push(`${name}:${content}`);
+    return await renderLayout(...args);
+  };
 }
 
 // tests
@@ -453,26 +467,21 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
-    name: "build: incremental rebuilds skip unchanged pages",
+    name: "build: incremental rebuilds skip unchanged pages with a cached theme",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
-      f.writeConfig();
-      f.writePage("index.md", `---\ntitle: "Home"\n---\nHome.`);
-      f.writePage("about.md", `---\ntitle: "About"\n---\nAbout.`);
+      const themeDir = f.writeTheme({ layout: `<html><body>{@html content}</body></html>` });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: layout\n---\nHome.`);
+      f.writePage("about.md", `---\ntitle: "About"\nlayout: layout\n---\nAbout.`);
 
       const rendered: string[] = [];
-      const steno = new Steno(f.configPath, false, {
-        afterPage: ({ path }) => {
-          rendered.push(path);
-        },
-      });
+      const steno = new Steno(f.configPath, false);
+      await trackLayoutRenders(steno, rendered);
 
       await steno.build();
-      assertEquals(rendered.sort(), [
-        join(f.outputDir, "about.html"),
-        join(f.outputDir, "index.html"),
-      ]);
+      assertEquals(rendered.length, 2);
 
       rendered.length = 0;
       const aboutPath = join(f.contentDir, "about.md");
@@ -481,7 +490,8 @@ export function registerBuildTests(): void {
       // Reproduce writes sharing a filesystem timestamp without relying on timing.
       Deno.utimeSync(aboutPath, originalTime, originalTime);
       await steno.build();
-      assertEquals(rendered, [join(f.outputDir, "about.html")]);
+      assertEquals(rendered.length, 1);
+      assertStringIncludes(rendered[0], "Updated about page.");
 
       rendered.length = 0;
       Deno.removeSync(join(f.contentDir, "index.md"));
@@ -494,34 +504,35 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
-    name: "build: persistent cache skips unchanged pages across processes",
+    name: "build: persistent cache skips unchanged pages across processes with a cached theme",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
-      f.writeConfig();
-      f.writePage("index.md", `---\ntitle: "Home"\n---\nHome.`);
-      f.writePage("about.md", `---\ntitle: "About"\n---\nAbout.`);
+      const themeDir = f.writeTheme({ layout: `<html><body>{@html content}</body></html>` });
+      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writePage("index.md", `---\ntitle: "Home"\nlayout: layout\n---\nHome.`);
+      f.writePage("about.md", `---\ntitle: "About"\nlayout: layout\n---\nAbout.`);
 
       const cachePath = join(f.contentDir, ".steno", "build-cache.json");
 
-      await new Steno(f.configPath, false).build();
+      const firstRendered: string[] = [];
+      const firstSteno = new Steno(f.configPath, false);
+      await trackLayoutRenders(firstSteno, firstRendered);
+      await firstSteno.build();
       assertStringIncludes(Deno.readTextFileSync(cachePath), '"signature"');
 
       f.writePage("about.md", `---\ntitle: "About"\n---\nUpdated from new process.`);
       const secondRendered: string[] = [];
-      await new Steno(f.configPath, false, {
-        afterPage: ({ path }) => {
-          secondRendered.push(path);
-        },
-      }).build();
-      assertEquals(secondRendered, [join(f.outputDir, "about.html")]);
+      const secondSteno = new Steno(f.configPath, false);
+      await trackLayoutRenders(secondSteno, secondRendered);
+      await secondSteno.build();
+      assertEquals(secondRendered.length, 1);
+      assertStringIncludes(secondRendered[0], "Updated from new process.");
 
       const thirdRendered: string[] = [];
-      await new Steno(f.configPath, false, {
-        afterPage: ({ path }) => {
-          thirdRendered.push(path);
-        },
-      }).build();
+      const thirdSteno = new Steno(f.configPath, false);
+      await trackLayoutRenders(thirdSteno, thirdRendered);
+      await thirdSteno.build();
       assertEquals(thirdRendered, []);
 
       Deno.removeSync(join(f.contentDir, "about.md"));
@@ -600,7 +611,7 @@ export function registerBuildTests(): void {
   });
 
   Deno.test({
-    name: "build: reuses cached HTML across processes when output is missing but content is unchanged",
+    name: "build: opaque HTML transforms rerun when cached output is missing",
     permissions: { read: true, write: true },
     fn: async () => {
       const f = createFixture();
@@ -621,9 +632,13 @@ export function registerBuildTests(): void {
       await stenoV1.build();
       assertEquals(transformCalls, 1);
 
-      // Simulate a clean rebuild from a fresh process: the output directory
-      // is gone, but content is unchanged and the persistent disk cache
-      // still matches the build signature.
+      const stenoSame = new Steno(f.configPath, false);
+      await replacePlugins(stenoSame, [plugin]);
+      await stenoSame.build();
+      assertEquals(transformCalls, 2, "opaque transformHtml hooks require conservative rerendering");
+
+      // The output is gone, but content and the persistent cache are unchanged.
+      // The opaque transform still runs because its input reads are unknown.
       Deno.removeSync(f.outputDir, { recursive: true });
 
       const stenoV2 = new Steno(f.configPath, false);
@@ -632,8 +647,8 @@ export function registerBuildTests(): void {
 
       assertEquals(
         transformCalls,
-        1,
-        "transformHtml should not run again when cached HTML is reused",
+        3,
+        "opaque transformHtml hooks require conservative rerendering",
       );
       assertStringIncludes(Deno.readTextFileSync(join(f.outputDir, "index.html")), "Hello.");
 
