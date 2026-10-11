@@ -5,7 +5,7 @@ import type { SiteConfig, StenoPlugin } from "../../types.ts";
 import { mapWithConcurrency } from "../../utils/concurrency.ts";
 import { ensureParentDirSync, fileExists } from "../../utils/fs.ts";
 import { buildComplete, debugBuildStart, debugPageContext } from "../../utils/output.ts";
-import { errorMessage, hashContent } from "../../utils/text.ts";
+import { errorMessage } from "../../utils/text.ts";
 import type { CollectionMap } from "../collections.ts";
 import { buildCollections, collectMarkdownPages } from "../collections.ts";
 import { resolveMinifyCss, resolveMinifyHtml, resolveShortUrls } from "../config.ts";
@@ -26,13 +26,15 @@ import {
   toBuildStatePageMap,
 } from "./cache.ts";
 import type { BuildContext, BuildStateEntry } from "./context.ts";
+import { dependenciesChanged, DependencyTracker } from "./dependencies.ts";
+import type { DependencySnapshots } from "./dependencies.ts";
 import { getPublicEnvVars, resolveConfigGlobals } from "./env.ts";
 import {
   beginOutputTransaction,
   commitOutputTransaction,
   rollbackOutputTransaction,
 } from "./output_transaction.ts";
-import { createBuildSignature } from "./signature.ts";
+import { createBuildSignature, hasOpaqueBuildInputs } from "./signature.ts";
 
 export type { BuildContext, BuildState, BuildStateEntry } from "./context.ts";
 const STAGING_COPY_CONCURRENCY = 128;
@@ -160,6 +162,8 @@ export async function buildSite({
       siteHead.push({ tag: "link", rel: "stylesheet", href: "/custom.css" });
     }
 
+    const opaqueInputs = hasOpaqueBuildInputs(config, theme, plugins, hooks);
+    if (opaqueInputs) state?.pageCache?.clear();
     const scannedPages =
       pages ??
       (await collectMarkdownPages(contentDir, {
@@ -167,7 +171,13 @@ export async function buildSite({
         pageCache: state?.pageCache,
       }));
 
-    const buildSignature = createBuildSignature(config, theme, plugins, data, publicEnv);
+    const buildSignature = createBuildSignature(
+      { ...config, head: siteHead },
+      theme,
+      plugins,
+      publicEnv,
+      opaqueInputs,
+    );
     const previousPages = new Map<string, BuildStateEntry>();
 
     if (state?.signature === buildSignature) {
@@ -193,6 +203,7 @@ export async function buildSite({
           : undefined,
     }));
     let canSkipUnchangedBuild =
+      !opaqueInputs &&
       theme === undefined &&
       plugins.length === 0 &&
       hooks.beforeBuild === undefined &&
@@ -214,6 +225,7 @@ export async function buildSite({
           const expectedOutput = join(outputDir, resolvePageRoute(page, shortUrls).outputPath);
           return (
             cached?.sourceText === page.sourceText &&
+            cached.dependencies !== undefined &&
             cached.outputPath === expectedOutput &&
             (await fileExists(expectedOutput))
           );
@@ -230,13 +242,26 @@ export async function buildSite({
     }
 
     const processedBodies = new Map<string, string>();
+    const pageDependencies = new Map<string, DependencyTracker>();
+    const includes: Record<string, unknown> = {};
     const processedBodyResults = await mapWithConcurrency(
       scannedPages,
       STAGING_COPY_CONCURRENCY,
-      async (page) => ({
-        fullPath: page.fullPath,
-        body: await processIncludes(page.body, page.fullPath, contentDir),
-      }),
+      async (page) => {
+        const dependencies = new DependencyTracker();
+        pageDependencies.set(page.fullPath, dependencies);
+        const body = await processIncludes(
+          page.body,
+          page.fullPath,
+          contentDir,
+          undefined,
+          (path, source) => {
+            includes[path] = source;
+            dependencies.record("include", path, source);
+          },
+        );
+        return { fullPath: page.fullPath, body };
+      },
     );
     for (const { fullPath, body } of processedBodyResults) {
       processedBodies.set(fullPath, body);
@@ -246,6 +271,7 @@ export async function buildSite({
     for (const page of scannedPages) {
       const cachedPage = previousPages.get(page.fullPath);
       if (
+        !opaqueInputs &&
         cachedPage &&
         cachedPage.body === processedBodies.get(page.fullPath) &&
         typeof cachedPage.htmlContent === "string"
@@ -274,13 +300,15 @@ export async function buildSite({
           resolveMinifyCss(config),
         )
       : {};
-    // Detects stale baked-in asset hrefs on cache reuse.
-    const assetsSignature = await hashContent(JSON.stringify(themeAssets));
-    // Any page's template could read `collections`; resolved eagerly so the
-    // per-page cache check below sees it. Skipped without a theme.
-    const collectionsSignature = theme
-      ? await hashContent(JSON.stringify(await getCollections()))
-      : "";
+    const themeSources = theme?.getBuildSignatureData();
+    const dependencyInputs = {
+      layout: Object.fromEntries(themeSources?.layouts ?? []),
+      component: Object.fromEntries(themeSources?.components ?? []),
+      data,
+      collection: theme ? await getCollections() : {},
+      asset: themeAssets,
+      include: includes,
+    };
 
     const fireAfterPage = async (finalPath: string, stagingPath: string, html: string) => {
       // `path` kept for backward compatibility, meaning differs per hook.
@@ -307,6 +335,7 @@ export async function buildSite({
       needsRender: boolean;
       htmlContent?: string;
       renderedContent?: string;
+      dependencies?: DependencySnapshots;
     }
 
     // Only rendering is safe to run concurrently; collision detection, hooks,
@@ -320,15 +349,16 @@ export async function buildSite({
         const stagedOutputFilePath = join(stagingDir, outputPath);
         const cachedPage = previousPages.get(page.fullPath);
         const processedBody = processedBodies.get(page.fullPath)!;
+        const dependencies = pageDependencies.get(page.fullPath)!;
 
         const needsRender =
+          opaqueInputs ||
           !cachedPage ||
           cachedPage.sourceText !== page.sourceText ||
           // catches a changed {@include}d partial even when sourceText didn't change
           cachedPage.body !== processedBody ||
           cachedPage.outputPath !== outputFilePath ||
-          cachedPage.assetsSignature !== assetsSignature ||
-          cachedPage.collectionsSignature !== collectionsSignature ||
+          dependenciesChanged(cachedPage.dependencies, dependencyInputs) ||
           !(await fileExists(outputFilePath));
 
         if (!needsRender) {
@@ -339,6 +369,7 @@ export async function buildSite({
             processedBody,
             needsRender,
             htmlContent: cachedPage?.htmlContent,
+            dependencies: cachedPage?.dependencies,
           };
         }
 
@@ -368,9 +399,9 @@ export async function buildSite({
           siteHead,
           globals: globalVars,
           publicEnv,
-          collections: await getCollections(),
-          data,
-          assets: themeAssets,
+          collections: dependencies.track("collection", await getCollections()),
+          data: dependencies.track("data", data),
+          assets: dependencies.track("asset", themeAssets),
         });
 
         if (verbose) {
@@ -386,6 +417,7 @@ export async function buildSite({
             head: pageHead,
             theme,
             minify: resolveMinifyHtml(config),
+            onDependency: (kind, name, source) => dependencies.record(kind, name, source),
           });
         } catch (error) {
           const themeLabel = theme ? ` with theme "${theme.name}"` : "";
@@ -409,6 +441,7 @@ export async function buildSite({
           needsRender,
           htmlContent,
           renderedContent,
+          dependencies: dependencies.snapshots,
         };
       },
     );
@@ -461,8 +494,7 @@ export async function buildSite({
         sourceText: page.sourceText,
         body: processedBody,
         htmlContent,
-        assetsSignature,
-        collectionsSignature,
+        dependencies: result.dependencies,
       });
     }
 
@@ -509,7 +541,7 @@ export async function buildSite({
       console.warn(`Build committed, but failed to save cache: ${errorMessage(error)}`);
     }
 
-    buildComplete([...nextPages.values()].filter((p) => p.htmlContent !== undefined).length);
+    buildComplete(renderedWrites.length);
   } finally {
     if (!committed) rollbackOutputTransaction(transaction);
   }

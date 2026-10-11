@@ -270,7 +270,7 @@ export async function processWatchEvents(
   options: {
     outputDir: string;
     ignoredPaths?: string[];
-    buildFn: () => void | Promise<void>;
+    buildFn: (changedPaths?: string[]) => void | Promise<void>;
     broadcastReload?: () => void;
     debounceMs?: number;
   },
@@ -289,17 +289,22 @@ export async function processWatchEvents(
   }
 
   let pending = false;
+  const changedPaths = new Set<string>();
+  let unknownPaths = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   // Chains rebuilds so they never overlap.
   let rebuildChain: Promise<void> = Promise.resolve();
 
   const runRebuild = () => {
     pending = false;
+    const paths = unknownPaths ? undefined : [...changedPaths];
+    changedPaths.clear();
+    unknownPaths = false;
     rebuildChain = rebuildChain.then(async () => {
       changeDetected();
       // Don't let a rejecting hook crash dev() - report as a failed build instead.
       try {
-        await options.buildFn();
+        await options.buildFn(paths);
       } catch (error) {
         buildError(errorMessage(error));
         return;
@@ -321,16 +326,16 @@ export async function processWatchEvents(
     if (event.kind !== "modify" && event.kind !== "create" && event.kind !== "remove") {
       continue;
     }
-    if (
-      event.paths.length > 0 &&
-      event.paths.every(
-        (path) =>
-          isTransactionalOutputPath(path, options.outputDir) ||
-          ignoredPaths.some((ignoredPath) => isPathInsideOrEqual(path, ignoredPath)),
-      )
-    ) {
+    const relevantPaths = event.paths.filter(
+      (path) =>
+        !isTransactionalOutputPath(path, options.outputDir) &&
+        !ignoredPaths.some((ignoredPath) => isPathInsideOrEqual(path, ignoredPath)),
+    );
+    if (event.paths.length > 0 && relevantPaths.length === 0) {
       continue;
     }
+    if (event.paths.length === 0) unknownPaths = true;
+    for (const path of relevantPaths) changedPaths.add(path);
 
     if (debugWatch) {
       console.error("[watch]", event.kind, event.paths, "ignoredPaths:", ignoredPaths);
@@ -375,7 +380,7 @@ export async function resolveWatchComparisonPath(path: string): Promise<string> 
 
 export async function startDevServer(
   outputDir: string,
-  buildFn: () => void | Promise<void>,
+  buildFn: (changedPaths?: string[]) => void | Promise<void>,
   watchDirs: string | string[] = "content",
   ignoredPaths: string[] = [],
   preferredPort: number = DEFAULT_DEV_PORT,

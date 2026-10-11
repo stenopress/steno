@@ -2,7 +2,9 @@ import { disposeIsolatedPlugins } from "../plugins/isolated_plugin.ts";
 import { isStenoPlugin } from "../plugins/plugins.ts";
 import type { Theme } from "../theme/theme.ts";
 import type { SiteConfig, StenoHooks, StenoPlugin } from "../types.ts";
-import { startDevServer, startPreviewServer } from "../utils/server.ts";
+import { basename, dirname, join, resolve } from "@std/path";
+import { isPathInsideOrEqual } from "../utils/fs.ts";
+import { resolveWatchComparisonPath, startDevServer, startPreviewServer } from "../utils/server.ts";
 import { buildSite, type BuildState } from "./build/build.ts";
 import { resolveCachePath } from "./build/cache.ts";
 import {
@@ -182,7 +184,33 @@ export class Steno {
   }
 
   /** Core execution method for triggering a site build orchestration. */
-  private async executeBuild(dev: boolean): Promise<void> {
+  private async executeBuild(dev: boolean, changedPaths?: string[]): Promise<void> {
+    if (dev) {
+      const pageCache = this.buildState.pageCache!;
+      if (changedPaths === undefined) {
+        pageCache.clear();
+      } else {
+        const paths = await Promise.all(changedPaths.map(resolveWatchComparisonPath));
+        const directories = new Map<string, string>();
+        for (const cachedPath of pageCache.keys()) {
+          const directory = dirname(cachedPath);
+          let realDirectory = directories.get(directory);
+          if (realDirectory === undefined) {
+            realDirectory = await resolveWatchComparisonPath(directory);
+            directories.set(directory, realDirectory);
+          }
+          const realPath = join(realDirectory, basename(cachedPath));
+          if (
+            paths.some(
+              (path) =>
+                isPathInsideOrEqual(realPath, path) ||
+                isPathInsideOrEqual(resolve(cachedPath), resolve(path)),
+            )
+          )
+            pageCache.delete(cachedPath);
+        }
+      }
+    }
     const project = dev ? await this.loadRuntime(true) : await this.runtimeLoadingPromise;
 
     try {
@@ -236,7 +264,7 @@ export class Steno {
     watchDirs.push(...resolvePluginWatchDirs(project.config));
     await startDevServer(
       outputDir,
-      () => this.executeBuild(true),
+      (changedPaths) => this.executeBuild(true, changedPaths),
       watchDirs,
       [resolveCachePath(contentDir), outputDir],
       devPort,
