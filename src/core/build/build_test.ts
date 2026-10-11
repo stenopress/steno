@@ -97,8 +97,11 @@ async function replacePlugins(steno: Steno, plugins: StenoPlugin[]): Promise<voi
 }
 
 async function trackLayoutRenders(steno: Steno, rendered: string[]): Promise<void> {
-  await steno.ready();
-  const internals = steno as unknown as { theme?: Theme };
+  const internals = steno as unknown as {
+    runtimeLoadingPromise: Promise<unknown>;
+    theme?: Theme;
+  };
+  await internals.runtimeLoadingPromise;
   const theme = internals.theme;
   if (!theme) throw new Error("Expected the fixture theme to load.");
   const renderLayout = theme.renderLayout.bind(theme);
@@ -472,7 +475,7 @@ export function registerBuildTests(): void {
     fn: async () => {
       const f = createFixture();
       const themeDir = f.writeTheme({ layout: `<html><body>{@html content}</body></html>` });
-      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writeConfig(`theme: "${themeDir}"\n`);
       f.writePage("index.md", `---\ntitle: "Home"\nlayout: layout\n---\nHome.`);
       f.writePage("about.md", `---\ntitle: "About"\nlayout: layout\n---\nAbout.`);
 
@@ -509,7 +512,7 @@ export function registerBuildTests(): void {
     fn: async () => {
       const f = createFixture();
       const themeDir = f.writeTheme({ layout: `<html><body>{@html content}</body></html>` });
-      f.writeConfig(`custom:\n  theme: "${themeDir}"\n`);
+      f.writeConfig(`theme: "${themeDir}"\n`);
       f.writePage("index.md", `---\ntitle: "Home"\nlayout: layout\n---\nHome.`);
       f.writePage("about.md", `---\ntitle: "About"\nlayout: layout\n---\nAbout.`);
 
@@ -635,7 +638,11 @@ export function registerBuildTests(): void {
       const stenoSame = new Steno(f.configPath, false);
       await replacePlugins(stenoSame, [plugin]);
       await stenoSame.build();
-      assertEquals(transformCalls, 2, "opaque transformHtml hooks require conservative rerendering");
+      assertEquals(
+        transformCalls,
+        2,
+        "opaque transformHtml hooks require conservative rerendering",
+      );
 
       // The output is gone, but content and the persistent cache are unchanged.
       // The opaque transform still runs because its input reads are unknown.
