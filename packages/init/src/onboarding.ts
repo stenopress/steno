@@ -7,7 +7,7 @@
  * @module
  */
 
-import { join } from "@std/path";
+import { isAbsolute, join, relative, resolve } from "@std/path";
 import {
   c,
   ESC,
@@ -209,7 +209,7 @@ function selectTheme(advanced: boolean): string {
     extraRows.push({
       label: LOCAL_THEME_LABEL,
       hint: "Use a theme path inside this project (e.g. ./theme)",
-      handle: () => promptWithDefault("Local theme path", "./theme"),
+      handle: () => localThemeSpecifier(promptWithDefault("Local theme path", "./theme")),
     });
   }
 
@@ -233,15 +233,15 @@ function selectTheme(advanced: boolean): string {
     const arrow = paint(c.purple, "›");
     const selection = prompt(`  ${arrow} Select theme ${paint(c.gray, "[1]")}`)?.trim() || "1";
 
-    const index = parseInt(selection) - 1;
-    if (index >= 0 && index < entries.length) {
+    const index = Number(selection) - 1;
+    if (Number.isInteger(index) && index >= 0 && index < entries.length) {
       const [choice, theme] = entries[index];
       if (!advanced) return themePackage(choice);
       const version = promptWithDefault(`${theme.label} version`, theme.version);
       return themePackage(choice, version);
     }
 
-    if (index >= entries.length && index < maxIndex) {
+    if (Number.isInteger(index) && index >= entries.length && index < maxIndex) {
       const row = extraRows[index - entries.length];
       const value = row.handle();
       if (value) return value;
@@ -505,6 +505,10 @@ export function checkOverwrite(paths: string[]): void {
   checkProjectOverwrite(paths, OnboardingError);
 }
 
+function localThemeSpecifier(path: string): string {
+  return isAbsolute(path) || path.startsWith(".") ? path : `./${path}`;
+}
+
 /**
  * Runs the interactive onboarding process to scaffold a new Steno project.
  *
@@ -549,8 +553,10 @@ export async function runOnboarding(
   const shortUrls =
     options?.shortUrls ?? (advanced ? promptYesNo("Enable short URLs?", true) : true);
   const devPort =
-    options?.devPort ??
-    (advanced ? parseInt(promptWithDefault("Dev server port", "5735"), 10) || 5735 : 5735);
+    options?.devPort ?? (advanced ? Number(promptWithDefault("Dev server port", "5735")) : 5735);
+  if (!Number.isInteger(devPort) || devPort < 1 || devPort > 65535) {
+    throw new OnboardingError("Dev server port must be an integer between 1 and 65535.");
+  }
   const stenoVersion =
     options?.stenoVersion ??
     (advanced
@@ -562,6 +568,26 @@ export async function runOnboarding(
   const configPath = join(stenoConfigDir, "config.yml");
   const homePagePath = join(contentDirPath, "index.md");
   const denoJsonPath = join(projectRoot, "deno.json");
+
+  const resolvedTheme = options?.theme
+    ? themePackage(options.theme, options.themeVersion)
+    : (options?.communityTheme ??
+      (options?.localTheme ? localThemeSpecifier(options.localTheme) : selectTheme(advanced)));
+  if (resolvedTheme.startsWith(".") || isAbsolute(resolvedTheme)) {
+    const themePath = resolve(projectRoot, resolvedTheme);
+    const themeRelativePath = relative(resolve(projectRoot), themePath);
+    if (isAbsolute(themeRelativePath) || themeRelativePath.split(/[\\/]/).includes("..")) {
+      throw new OnboardingError("Local theme must be inside the project directory.");
+    }
+    try {
+      Deno.statSync(themePath);
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+      throw new OnboardingError(
+        `Local theme "${resolvedTheme}" does not exist. Create it first with deno run -A jsr:@steno/init/create-theme my-theme --dir <path>, then run init again.`,
+      );
+    }
+  }
 
   if (!options?.force) {
     checkOverwrite([configPath, homePagePath]);
@@ -575,10 +601,6 @@ export async function runOnboarding(
   }
 
   // config.yml
-  const resolvedTheme = options?.theme
-    ? themePackage(options.theme, options.themeVersion)
-    : (options?.communityTheme ?? options?.localTheme ?? selectTheme(advanced));
-
   Deno.writeTextFileSync(
     configPath,
     `title: ${toYamlString(title)}
@@ -608,22 +630,32 @@ Your Steno site is ready. Edit this page at \`${contentDirName}/index.md\`.
 `,
   );
 
-  // deno.json - only when not already present
-  try {
-    Deno.statSync(denoJsonPath);
-  } catch {
+  const configArgument = `'${relative(projectRoot, configPath).replaceAll("\\", "/").replaceAll("'", "'\\''")}'`;
+  const buildCommand = `deno run --allow-read=. --allow-write=. --allow-net=jsr.io --allow-env jsr:@steno/steno@${stenoVersion} build --config ${configArgument}`;
+  const devCommand = `deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0,jsr.io --allow-env jsr:@steno/steno@${stenoVersion} dev --config ${configArgument}`;
+  const existingDenoConfig = [denoJsonPath, join(projectRoot, "deno.jsonc")].some((path) => {
+    try {
+      Deno.statSync(path);
+      return true;
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+      return false;
+    }
+  });
+  if (!existingDenoConfig) {
     Deno.writeTextFileSync(
       denoJsonPath,
-      `{
-  "tasks": {
-    "build": "deno run --allow-read=. --allow-write=. --allow-net=jsr.io --allow-env @steno/steno build",
-    "dev": "deno run --allow-read=. --allow-write=. --allow-net=127.0.0.1,0.0.0.0,jsr.io --allow-env @steno/steno dev"
-  },
-  "imports": {
-    "@steno/steno": "jsr:@steno/steno@${stenoVersion}"
-  }
-}
-`,
+      JSON.stringify(
+        {
+          tasks: {
+            build: buildCommand.replace(`jsr:@steno/steno@${stenoVersion}`, "@steno/steno"),
+            dev: devCommand.replace(`jsr:@steno/steno@${stenoVersion}`, "@steno/steno"),
+          },
+          imports: { "@steno/steno": `jsr:@steno/steno@${stenoVersion}` },
+        },
+        null,
+        2,
+      ) + "\n",
     );
   }
 
@@ -636,11 +668,14 @@ Your Steno site is ready. Edit this page at \`${contentDirName}/index.md\`.
   console.log();
   console.log(`${paint(c.purpleBold, "◆")} ${paint(c.whiteBold, "You're all set!")}`);
   console.log();
+  if (existingDenoConfig) {
+    console.log("  Kept your existing Deno config. Run these commands, or add them as tasks:");
+  }
   console.log(
-    `  ${paint(c.cyanBold, "deno task build")}   ${paint(c.gray, "# build the site into dist/")}`,
+    `  ${paint(c.cyanBold, existingDenoConfig ? buildCommand : "deno task build")}   ${paint(c.gray, `# build the site into ${outputDirName}/`)}`,
   );
   console.log(
-    `  ${paint(c.cyanBold, "deno task dev")}     ${paint(
+    `  ${paint(c.cyanBold, existingDenoConfig ? devCommand : "deno task dev")}     ${paint(
       c.gray,
       "# start live-reload dev server",
     )}`,

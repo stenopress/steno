@@ -1,5 +1,6 @@
 import { assertEquals, assertMatch, assertRejects, assertThrows } from "@std/assert";
-import { join } from "@std/path";
+import { fromFileUrl, join } from "@std/path";
+import { scaffoldTheme } from "./src/scaffold_theme.ts";
 import {
   OnboardingError,
   parsePluginChoices,
@@ -88,15 +89,78 @@ Deno.test("onboarding: config.yml uses JSR theme package for docs-minimal", asyn
 });
 
 Deno.test("onboarding: config.yml uses a local theme path when set", async () => {
-  const dir = await scaffold({
+  const dir = await Deno.makeTempDir({ prefix: "steno_init_local_" });
+  scaffoldTheme("my-theme", { targetDir: join(dir, "my-theme") });
+  await runOnboarding(dir, {
+    title: "Local site",
+    description: "Test",
+    author: "Tester",
+    plugins: [],
     theme: undefined,
-    localTheme: "./my-theme",
+    localTheme: "my-theme",
   });
 
   const config = readFile(dir, "content", ".steno", "config.yml");
   assertMatch(config, /theme: "\.\/my-theme"/);
 
   await Deno.remove(dir, { recursive: true });
+});
+
+Deno.test("onboarding: missing local theme fails before writing project files", async () => {
+  const dir = await Deno.makeTempDir({ prefix: "steno_init_missing_theme_" });
+  try {
+    await assertRejects(
+      () =>
+        runOnboarding(dir, {
+          title: "Test",
+          description: "Test",
+          author: "Test",
+          plugins: [],
+          localTheme: "./missing",
+        }),
+      OnboardingError,
+      "Create it first",
+    );
+    assertEquals([...Deno.readDirSync(dir)].length, 0);
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("onboarding: preserves deno.jsonc and gives runnable commands", async () => {
+  const dir = await Deno.makeTempDir({ prefix: "steno_init_jsonc_" });
+  const original = '{ // existing settings\n"tasks": { "test": "deno test" }\n}\n';
+  const messages: string[] = [];
+  const log = console.log;
+  try {
+    Deno.writeTextFileSync(join(dir, "deno.jsonc"), original);
+    console.log = (...args: unknown[]) => messages.push(args.join(" "));
+    await runOnboarding(dir, {
+      title: "Test",
+      description: "Test",
+      author: "Test",
+      plugins: [],
+      theme: "minimal",
+    });
+    assertEquals(readFile(dir, "deno.jsonc"), original);
+    assertEquals(fileExists(dir, "deno.json"), false);
+    assertMatch(messages.join("\n"), /jsr:@steno\/steno@\^0\.14\.0 build --config/);
+    assertEquals(messages.join("\n").includes("deno task build"), false);
+  } finally {
+    console.log = log;
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("onboarding: custom content path is passed to both generated tasks", async () => {
+  const dir = await scaffold({ contentDir: "pages here" });
+  try {
+    const config = JSON.parse(readFile(dir, "deno.json"));
+    assertMatch(config.tasks.build, /build --config 'pages here\/\.steno\/config.yml'/);
+    assertMatch(config.tasks.dev, /dev --config 'pages here\/\.steno\/config.yml'/);
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
 });
 
 Deno.test("onboarding: pins a custom theme version for an official theme", async () => {
@@ -348,4 +412,50 @@ Deno.test("onboarding: rejects unknown plugin choices", () => {
     OnboardingError,
     "Available plugins: tailwind, shiki, seo, docs, search, og, image",
   );
+});
+
+Deno.test("init CLI: both entrypoints honor help without scaffolding", async () => {
+  for (const entry of ["./mod.ts", "./src/create.ts"]) {
+    const dir = await Deno.makeTempDir({ prefix: "steno_init_help_" });
+    try {
+      const result = await new Deno.Command(Deno.execPath(), {
+        args: ["run", "-A", fromFileUrl(new URL(entry, import.meta.url)), "--help"],
+        cwd: dir,
+        stdin: "null",
+        stdout: "piped",
+        stderr: "piped",
+      }).output();
+      assertEquals(result.success, true, new TextDecoder().decode(result.stderr));
+      assertMatch(new TextDecoder().decode(result.stdout), /Usage:/);
+      assertEquals([...Deno.readDirSync(dir)].length, 0);
+    } finally {
+      await Deno.remove(dir, { recursive: true });
+    }
+  }
+});
+
+Deno.test("init CLI: invalid ports fail before scaffolding", async () => {
+  for (const port of ["0", "65536", "5735junk", "1.5"]) {
+    const dir = await Deno.makeTempDir({ prefix: "steno_init_port_" });
+    try {
+      const result = await new Deno.Command(Deno.execPath(), {
+        args: [
+          "run",
+          "-A",
+          fromFileUrl(new URL("./src/create.ts", import.meta.url)),
+          "--dev-port",
+          port,
+        ],
+        cwd: dir,
+        stdin: "null",
+        stdout: "piped",
+        stderr: "piped",
+      }).output();
+      assertEquals(result.success, false);
+      assertMatch(new TextDecoder().decode(result.stderr), /Invalid --dev-port/);
+      assertEquals([...Deno.readDirSync(dir)].length, 0);
+    } finally {
+      await Deno.remove(dir, { recursive: true });
+    }
+  }
 });

@@ -22,11 +22,10 @@ server port, a local theme path, and version pinning for `@steno/steno` and the 
 theme:
 
 ```sh
-deno create jsr:@steno/init --advanced
+deno create jsr:@steno/init -- --advanced
 ```
 
-Every prompt can be skipped with a flag - run `deno create jsr:@steno/init
---help` for the full
+Every prompt can be skipped with a flag - run `deno create jsr:@steno/init -- --help` for the full
 list, including `--plugins`, `--community-plugins`, `--theme`, `--community-theme`, `--local-theme`,
 `--content-dir`, `--output-dir`, `--dev-port`, `--short-urls`, `--steno-version`, and
 `--theme-version`.
@@ -43,7 +42,7 @@ my-site/
 ```
 
 Themes and plugins are loaded directly from JSR (or wherever the community package specifier
-points) - no local theme or plugin files are created unless you choose a local theme path. The
+points); a local theme selection uses files you already created. The
 generated project pins `@steno/steno` to `^0.14.0` and official themes to `^0.14.0` by default;
 override with `--advanced` or the `--steno-version`/`--theme-version` flags.
 
@@ -56,7 +55,8 @@ override with `--advanced` or the `--steno-version`/`--theme-version` flags.
 | `marketing-minimal` | `jsr:@steno/theme-marketing-minimal` | Editorial landing-page theme for products and campaigns |
 
 Each is pinned to `^0.14.0` unless overridden. You can also pass any `jsr:`/`npm:`/HTTPS package as
-a **community theme**, or a path inside your project as a **local theme**.
+a **community theme**, or an existing path inside your project as a **local theme**. Create a local
+theme first with `deno run -A jsr:@steno/init/create-theme my-theme`, then select `./my-theme`.
 
 ## Plugins
 
@@ -100,6 +100,10 @@ scaffolded plugin's own README for the exact config).
 deno task build   # build the site into dist/
 deno task dev     # start the live-reload dev server
 ```
+
+The tasks use the content and output directories you selected, including custom paths. Use
+`--no-short-urls` to disable short URLs. If `deno.json` or `deno.jsonc` already exists, it is
+preserved and the wizard prints direct commands you can run or add as tasks yourself.
 
 Steno's CI scaffolds and builds a project with every official theme to ensure generated projects
 work without manual changes.

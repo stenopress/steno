@@ -10,8 +10,6 @@
  * @module
  */
 
-import { runOnboarding } from "./src/onboarding.ts";
-
 /** The onboarding error type thrown for expected scaffolding failures. */
 export { OnboardingError, runOnboarding } from "./src/onboarding.ts";
 /** Options for pre-filling the onboarding prompts. */
@@ -22,5 +20,5 @@ export { scaffoldTheme, type ThemeScaffoldOptions } from "./src/scaffold_theme.t
 export { type PluginScaffoldOptions, scaffoldPlugin } from "./src/scaffold_plugin.ts";
 
 if (import.meta.main) {
-  await runOnboarding();
+  await import("./src/create.ts");
 }
