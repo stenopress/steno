@@ -27,7 +27,7 @@ The scaffolder (`deno create jsr:@steno/init`) offers all seven as checkboxes in
 plugin picker, and by name through `--plugins`:
 
 ```sh
-deno create jsr:@steno/init --plugins tailwind,shiki,seo,docs,search,og,image
+deno create jsr:@steno/init -- --plugins tailwind,shiki,seo,docs,search,og,image
 ```
 
 Any of them can also be added manually to an existing project's config, each with its own `options`:

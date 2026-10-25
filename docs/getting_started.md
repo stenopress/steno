@@ -26,9 +26,10 @@ will have a folder that looks like this:
 
 ```text
 my-site/
-├── content/
-│   ├── .steno/config.yml
-│   └── index.md
+├── deno.json
+└── content/
+    ├── .steno/config.yml
+    └── index.md
 ```
 
 `content/index.md` is your home page, written in Markdown. `content/.steno/config.yml` is your
@@ -40,7 +41,7 @@ file yet.
 From inside `my-site/`, run:
 
 ```sh
-deno x jsr:@steno/steno dev
+deno task dev
 ```
 
 This builds your site and starts a local server. Open the link it prints (`http://localhost:5735/`
@@ -55,7 +56,7 @@ effect on the next save, no need to stop and restart the command.
 When you are ready to publish, run:
 
 ```sh
-deno x jsr:@steno/steno build
+deno task build
 ```
 
 This writes the final website into a `dist/` folder. That folder is your whole site: plain HTML,
@@ -99,7 +100,7 @@ answers, or you are scripting the setup (for example in CI), you can answer them
 flags instead:
 
 ```sh
-deno create jsr:@steno/init \
+deno create jsr:@steno/init -- \
   --title "My Site" \
   --description "A concise description" \
   --author "Ada Lovelace" \
@@ -113,8 +114,12 @@ deno create jsr:@steno/init \
 - `--plugins` is a comma separated list of official plugins; see [Plugins](plugins.md) for what
   `tailwind` and `shiki` do, and how to write your own.
 - `--force` overwrites files already in the target folder.
-- Any flag you leave out just falls back to its normal question. Run with `--help` to see the full
+- Any flag you leave out just falls back to its normal question. Run `deno create jsr:@steno/init -- --help` to see the full
   list.
+
+The `--` separator passes flags to the initializer. For unattended setup, use
+`deno create --yes jsr:@steno/init -- ...` with all the answers supplied; `--yes` accepts Deno's
+package trust prompt and runs the initializer with full permissions.
 
 ### Building without any config file
 
