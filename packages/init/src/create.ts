@@ -47,14 +47,14 @@ if (flags.help) {
 @steno/init - scaffold a new Steno static site
 
 Usage:
-  deno create jsr:@steno/init [options]
+  deno create jsr:@steno/init -- [options]
 
 Options:
   --title <text>             Site title (skips prompt)
   --description <text>       Site description (skips prompt)
   --author <text>            Author name (skips prompt)
   --plugins <list>           Comma-separated official plugins:
-                              tailwind, shiki, seo, docs, search, og
+                              tailwind, shiki, seo, docs, search, og, image, directives, taxonomy, backlinks, nav, accent-color, scp, analytics, markdown-extensions
   --community-plugins <list> Comma-separated community package specifiers,
                               e.g. jsr:@user/plugin-name (installed as mode: isolated)
   --theme <name>             One of the official themes: minimal, docs-minimal, marketing-minimal
@@ -70,7 +70,7 @@ Advanced options (also unlocked interactively with --advanced, -a):
   --content-dir <name>        Content directory (default: content)
   --output-dir <name>         Build output directory (default: dist)
   --dev-port <number>         Dev server port (default: 5735)
-  --short-urls                Enable short URLs (default: true)
+  --short-urls                Enable short URLs (default: true; disable with --no-short-urls)
 
 Building a theme or plugin instead of a whole site:
   deno run -A jsr:@steno/init/create-theme <name>
@@ -84,8 +84,8 @@ const communityPlugins = flags["community-plugins"]
   .map((p) => p.trim())
   .filter((p) => p.length > 0);
 
-const devPort = flags["dev-port"] !== undefined ? parseInt(flags["dev-port"], 10) : undefined;
-if (devPort !== undefined && Number.isNaN(devPort)) {
+const devPort = flags["dev-port"] !== undefined ? Number(flags["dev-port"]) : undefined;
+if (devPort !== undefined && (!Number.isInteger(devPort) || devPort < 1 || devPort > 65535)) {
   console.error(`\n❌  Invalid --dev-port "${flags["dev-port"]}".\n`);
   Deno.exit(1);
 }
@@ -107,7 +107,9 @@ try {
     contentDir: flags["content-dir"],
     outputDir: flags["output-dir"],
     devPort,
-    shortUrls: flags["short-urls"] || undefined,
+    shortUrls: Deno.args.some((arg) => /^--(?:no-)?short-urls(?:=|$)/.test(arg))
+      ? flags["short-urls"]
+      : undefined,
     force: flags.force,
     advanced: flags.advanced,
   });
