@@ -69,7 +69,7 @@ export function scaffoldPlugin(name: string, options: PluginScaffoldOptions = {}
     ".": "./mod.ts"
   },
   "imports": {
-    "@steno/steno": "jsr:@steno/steno@^0.14.0",
+    "@steno/steno": "jsr:@steno/steno@^0.15.0",
     "@std/assert": "jsr:@std/assert@1"
   },
   "tasks": {

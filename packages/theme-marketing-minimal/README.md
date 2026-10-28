@@ -4,7 +4,7 @@ A polished, content-driven landing-page theme for Steno with responsive product 
 examples, calls to action, and lightweight interactions.
 
 ```yaml
-theme: jsr:@steno/theme-marketing-minimal@^0.14.0
+theme: jsr:@steno/theme-marketing-minimal@^0.15.0
 themeConfig:
   githubUrl: https://github.com/your-org/your-project
   jsrUrl: https://jsr.io/@your-org/your-project
