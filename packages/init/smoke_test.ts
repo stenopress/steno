@@ -78,7 +78,7 @@ Deno.test({
         if (custom) assertStringIncludes(await Deno.readTextFile(configPath), "shortUrls: false");
         const denoPath = join(projectDir, "deno.json");
         const generated = JSON.parse(await Deno.readTextFile(denoPath));
-        assertEquals(generated.imports["@steno/steno"], "jsr:@steno/steno@^0.14.0");
+        assertEquals(generated.imports["@steno/steno"], "jsr:@steno/steno@^0.15.0");
         if (useSourceCandidate) {
           // Substitute candidate dependencies only; keep the generated task and permissions intact.
           const localTheme = join(projectDir, "candidate-theme");
@@ -93,7 +93,7 @@ Deno.test({
             "@steno/steno": new URL("../../mod.ts", import.meta.url).href,
             ...(theme !== "local"
               ? {
-                  [`jsr:@steno/theme-${theme}@^0.14.0`]: toFileUrl(join(localTheme, "mod.ts")).href,
+                  [`jsr:@steno/theme-${theme}@^0.15.0`]: toFileUrl(join(localTheme, "mod.ts")).href,
                 }
               : {}),
           };

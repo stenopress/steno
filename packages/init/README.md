@@ -43,7 +43,7 @@ my-site/
 
 Themes and plugins are loaded directly from JSR (or wherever the community package specifier
 points); a local theme selection uses files you already created. The
-generated project pins `@steno/steno` to `^0.14.0` and official themes to `^0.14.0` by default;
+generated project pins `@steno/steno` to `^0.15.0` and official themes to `^0.15.0` by default;
 override with `--advanced` or the `--steno-version`/`--theme-version` flags.
 
 ## Themes
@@ -54,7 +54,7 @@ override with `--advanced` or the `--steno-version`/`--theme-version` flags.
 | `docs-minimal`      | `jsr:@steno/theme-docs-minimal`      | Minimal theme optimised for documentation sites         |
 | `marketing-minimal` | `jsr:@steno/theme-marketing-minimal` | Editorial landing-page theme for products and campaigns |
 
-Each is pinned to `^0.14.0` unless overridden. You can also pass any `jsr:`/`npm:`/HTTPS package as
+Each is pinned to `^0.15.0` unless overridden. You can also pass any `jsr:`/`npm:`/HTTPS package as
 a **community theme**, or an existing path inside your project as a **local theme**. Create a local
 theme first with `deno run -A jsr:@steno/init/create-theme my-theme`, then select `./my-theme`.
 
